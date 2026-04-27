@@ -1,0 +1,146 @@
+{% extends "admin/base_site.html" %}
+
+{% block title %}Import SEPA ZIP — Tracksy Admin{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumb-nav">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="{% url 'admin:index' %}">Home</a></li>
+    <li class="breadcrumb-item"><a href="{% url 'admin:imports_importbatch_changelist' %}">Import Batches</a></li>
+    <li class="breadcrumb-item active">Import SEPA ZIP</li>
+  </ol>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="col-md-8 col-lg-6">
+
+    <div class="card card-outline card-success mb-4">
+      <div class="card-header">
+        <h3 class="card-title">
+          <i class="fas fa-file-archive mr-2"></i>
+          Import SEPA data from ZIP file
+        </h3>
+      </div>
+      <div class="card-body">
+
+        <div class="alert alert-info alert-dismissible">
+          <button type="button" class="close" data-dismiss="alert"><span>&times;</span></button>
+          <h5><i class="icon fas fa-info-circle"></i> Expected format</h5>
+          <p class="mb-1">The ZIP must contain the following files in SEPA format (columns separated by <code>|</code>):</p>
+          <ul class="mb-0">
+            <li><strong>comercio.csv</strong> — supermarket chains (id_bandera, comercio_bandera_nombre, …)</li>
+            <li><strong>sucursales.csv</strong> — branches and opening hours (id_sucursal, sucursales_nombre, …)</li>
+            <li><strong>productos.csv</strong> — products, brands and prices (id_producto, productos_descripcion, productos_precio_lista, …)</li>
+          </ul>
+        </div>
+
+        <div class="alert alert-warning">
+          <i class="icon fas fa-exclamation-triangle"></i>
+          Existing records will be <strong>updated</strong> (upsert) based on the file identifiers.
+          Processing may take a few seconds depending on the ZIP size.
+        </div>
+
+        <form method="post" enctype="multipart/form-data" novalidate>
+          {% csrf_token %}
+
+          {% if form.errors %}
+          <div class="alert alert-danger">
+            <strong>Please fix the following errors:</strong>
+            {{ form.errors }}
+          </div>
+          {% endif %}
+
+          <div class="form-group">
+            <label for="{{ form.zip_file.id_for_label }}" class="font-weight-bold">
+              {{ form.zip_file.label }}
+            </label>
+            {{ form.zip_file }}
+            {% if form.zip_file.help_text %}
+            <small class="form-text text-muted">{{ form.zip_file.help_text|safe }}</small>
+            {% endif %}
+          </div>
+
+          <hr>
+
+          <div class="d-flex align-items-center">
+            <button type="submit" class="btn btn-success btn-lg mr-3">
+              <i class="fas fa-upload mr-1"></i> Start import
+            </button>
+            <a href="{% url 'admin:imports_importbatch_changelist' %}" class="btn btn-outline-secondary">
+              Cancel
+            </a>
+          </div>
+        </form>
+
+      </div>
+    </div>
+
+    <div class="card card-outline card-secondary">
+      <div class="card-header">
+        <h3 class="card-title"><i class="fas fa-table mr-2"></i>Recognized fields by file</h3>
+        <div class="card-tools">
+          <button type="button" class="btn btn-tool" data-card-widget="collapse">
+            <i class="fas fa-minus"></i>
+          </button>
+        </div>
+      </div>
+      <div class="card-body p-0">
+        <ul class="nav nav-tabs px-3 pt-2" role="tablist">
+          <li class="nav-item">
+            <a class="nav-link active" data-toggle="tab" href="#tab-comercio">comercio.csv</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" data-toggle="tab" href="#tab-sucursales">sucursales.csv</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" data-toggle="tab" href="#tab-productos">productos.csv</a>
+          </li>
+        </ul>
+        <div class="tab-content px-3 py-2">
+          <div class="tab-pane active" id="tab-comercio">
+            <table class="table table-sm table-borderless mb-0">
+              <thead><tr><th>Field</th><th>Maps to</th><th>Required</th></tr></thead>
+              <tbody>
+                <tr><td><code>id_bandera</code></td><td>Chain identifier</td><td><span class="badge badge-danger">Yes</span></td></tr>
+                <tr><td><code>comercio_bandera_nombre</code></td><td>Chain name</td><td><span class="badge badge-danger">Yes</span></td></tr>
+                <tr><td><code>comercio_bandera_url</code></td><td>Chain website</td><td><span class="badge badge-secondary">No</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="tab-pane" id="tab-sucursales">
+            <table class="table table-sm table-borderless mb-0">
+              <thead><tr><th>Field</th><th>Maps to</th><th>Required</th></tr></thead>
+              <tbody>
+                <tr><td><code>id_bandera</code></td><td>Chain (must exist in comercio.csv)</td><td><span class="badge badge-danger">Yes</span></td></tr>
+                <tr><td><code>id_sucursal</code></td><td>Branch code</td><td><span class="badge badge-danger">Yes</span></td></tr>
+                <tr><td><code>sucursales_nombre</code></td><td>Branch name</td><td><span class="badge badge-secondary">No</span></td></tr>
+                <tr><td><code>sucursales_calle / _numero</code></td><td>Street address</td><td><span class="badge badge-secondary">No</span></td></tr>
+                <tr><td><code>sucursales_latitud / _longitud</code></td><td>GPS coordinates</td><td><span class="badge badge-secondary">No</span></td></tr>
+                <tr><td><code>sucursales_localidad</code></td><td>City</td><td><span class="badge badge-secondary">No</span></td></tr>
+                <tr><td><code>sucursales_provincia</code></td><td>Province</td><td><span class="badge badge-secondary">No</span></td></tr>
+                <tr><td><code>sucursales_*_horario_atencion</code></td><td>Opening hours per day (e.g. "08:00 a 21:00")</td><td><span class="badge badge-secondary">No</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="tab-pane" id="tab-productos">
+            <table class="table table-sm table-borderless mb-0">
+              <thead><tr><th>Field</th><th>Maps to</th><th>Required</th></tr></thead>
+              <tbody>
+                <tr><td><code>id_producto</code></td><td>Barcode / EAN</td><td><span class="badge badge-danger">Yes</span></td></tr>
+                <tr><td><code>productos_descripcion</code></td><td>Product name</td><td><span class="badge badge-danger">Yes</span></td></tr>
+                <tr><td><code>productos_marca</code></td><td>Brand (created if not found)</td><td><span class="badge badge-secondary">No</span></td></tr>
+                <tr><td><code>productos_cantidad_presentacion + _unidad_medida</code></td><td>Presentation</td><td><span class="badge badge-secondary">No</span></td></tr>
+                <tr><td><code>productos_precio_lista</code></td><td>Active price at the branch</td><td><span class="badge badge-secondary">No</span></td></tr>
+                <tr><td><code>id_bandera / id_sucursal</code></td><td>Branch for the price</td><td><span class="badge badge-secondary">No</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

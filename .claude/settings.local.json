@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/Usuario/Documents/1-Desarrollo de Aplicaciones para Dispositivos Móviles/cosas de copilot/backend/descargas/**)",
+      "Bash(python -c ' *)",
+      "Bash(venv/Scripts/pip install *)",
+      "Bash(../../venv/Scripts/python -c ' *)"
+    ]
+  }
+}

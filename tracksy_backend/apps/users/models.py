@@ -14,9 +14,9 @@ class User(AbstractUser):
     ROLE_BACKOFFICE = "backoffice"
 
     ROLE_CHOICES = [
-        (ROLE_CONSUMER, "Consumidor"),
-        (ROLE_ADMIN, "Administrador"),
-        (ROLE_BACKOFFICE, "Operador Backoffice"),
+        (ROLE_CONSUMER, "Consumer"),
+        (ROLE_ADMIN, "Administrator"),
+        (ROLE_BACKOFFICE, "Backoffice Operator"),
     ]
 
     email = models.EmailField(unique=True)
@@ -30,8 +30,8 @@ class User(AbstractUser):
 
     class Meta:
         db_table = "users"
-        verbose_name = "Usuario"
-        verbose_name_plural = "Usuarios"
+        verbose_name = "User"
+        verbose_name_plural = "Users"
 
     def __str__(self):
         return self.email
@@ -48,10 +48,10 @@ class UserProfile(BaseModel):
 
     class Meta:
         db_table = "user_profiles"
-        verbose_name = "Perfil de Usuario"
+        verbose_name = "User Profile"
 
     def __str__(self):
-        return f"Perfil de {self.user.email}"
+        return f"Profile of {self.user.email}"
 
 
 class UserPreferences(BaseModel):
@@ -68,7 +68,7 @@ class UserPreferences(BaseModel):
 
     class Meta:
         db_table = "user_preferences"
-        verbose_name = "Preferencias de Usuario"
+        verbose_name = "User Preferences"
 
 
 class FavoriteProduct(BaseModel):
@@ -80,7 +80,7 @@ class FavoriteProduct(BaseModel):
     class Meta:
         db_table = "favorite_products"
         unique_together = ("user", "product")
-        verbose_name = "Producto Favorito"
+        verbose_name = "Favorite Product"
 
     def __str__(self):
         return f"{self.user.email} — {self.product}"
@@ -99,4 +99,4 @@ class FavoriteSupermarket(BaseModel):
     class Meta:
         db_table = "favorite_supermarkets"
         unique_together = ("user", "supermarket")
-        verbose_name = "Supermercado Favorito"
+        verbose_name = "Favorite Supermarket"

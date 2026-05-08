@@ -10,7 +10,7 @@ from drf_spectacular.views import (
 
 admin.site.site_header = "Tracksy Administrator"
 admin.site.site_title = "Tracksy Admin"
-admin.site.index_title = "Administration Panel — Tracksy"
+admin.site.index_title = "Administration Panel"
 
 api_v1 = [
     # Auth

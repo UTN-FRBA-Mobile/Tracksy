@@ -11,9 +11,9 @@ class ShoppingList(BaseModel):
     STATUS_ARCHIVED = "archived"
 
     STATUS_CHOICES = [
-        (STATUS_ACTIVE, "Activa"),
-        (STATUS_COMPLETED, "Completada"),
-        (STATUS_ARCHIVED, "Archivada"),
+        (STATUS_ACTIVE, "Active"),
+        (STATUS_COMPLETED, "Completed"),
+        (STATUS_ARCHIVED, "Archived"),
     ]
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="shopping_lists")
@@ -30,8 +30,8 @@ class ShoppingList(BaseModel):
 
     class Meta:
         db_table = "shopping_lists"
-        verbose_name = "Lista de Compra"
-        verbose_name_plural = "Listas de Compra"
+        verbose_name = "Shopping List"
+        verbose_name_plural = "Shopping Lists"
         ordering = ["-created_at"]
         indexes = [
             models.Index(fields=["user", "status"], name="idx_list_user_status"),
@@ -65,7 +65,7 @@ class ShoppingListItem(BaseModel):
     class Meta:
         db_table = "shopping_list_items"
         unique_together = ("shopping_list", "product")
-        verbose_name = "Ítem de Lista"
+        verbose_name = "List Item"
 
     def __str__(self):
         return f"{self.product.name} x{self.quantity}"
@@ -89,5 +89,5 @@ class ShoppingListEstimation(BaseModel):
 
     class Meta:
         db_table = "shopping_list_estimations"
-        verbose_name = "Estimación de Lista"
+        verbose_name = "List Estimation"
         ordering = ["total_estimated"]

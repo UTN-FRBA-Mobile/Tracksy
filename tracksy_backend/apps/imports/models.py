@@ -14,12 +14,12 @@ class ImportBatch(BaseModel):
     TYPE_SEPA_ZIP = "sepa_zip"
 
     TYPE_CHOICES = [
-        (TYPE_PRODUCTS, "Productos"),
-        (TYPE_PRICES, "Precios"),
-        (TYPE_SUPERMARKETS, "Supermercados"),
-        (TYPE_BRANCHES, "Sucursales"),
-        (TYPE_PROMOTIONS, "Promociones"),
-        (TYPE_SEPA_ZIP, "SEPA ZIP (comercios + sucursales + productos)"),
+        (TYPE_PRODUCTS, "Products"),
+        (TYPE_PRICES, "Prices"),
+        (TYPE_SUPERMARKETS, "Supermarkets"),
+        (TYPE_BRANCHES, "Branches"),
+        (TYPE_PROMOTIONS, "Promotions"),
+        (TYPE_SEPA_ZIP, "SEPA ZIP (chains + branches + products)"),
     ]
 
     STATUS_PENDING = "pending"
@@ -29,11 +29,11 @@ class ImportBatch(BaseModel):
     STATUS_PARTIAL = "partial"
 
     STATUS_CHOICES = [
-        (STATUS_PENDING, "Pendiente"),
-        (STATUS_PROCESSING, "Procesando"),
-        (STATUS_COMPLETED, "Completado"),
-        (STATUS_FAILED, "Fallido"),
-        (STATUS_PARTIAL, "Parcial"),
+        (STATUS_PENDING, "Pending"),
+        (STATUS_PROCESSING, "Processing"),
+        (STATUS_COMPLETED, "Completed"),
+        (STATUS_FAILED, "Failed"),
+        (STATUS_PARTIAL, "Partial"),
     ]
 
     uploaded_by = models.ForeignKey(
@@ -52,7 +52,7 @@ class ImportBatch(BaseModel):
 
     class Meta:
         db_table = "import_batches"
-        verbose_name = "Lote de Importación"
+        verbose_name = "Import Batch"
         ordering = ["-created_at"]
 
     def __str__(self):
@@ -68,5 +68,5 @@ class ImportError(BaseModel):
 
     class Meta:
         db_table = "import_errors"
-        verbose_name = "Error de Importación"
+        verbose_name = "Import Error"
         ordering = ["row_number"]

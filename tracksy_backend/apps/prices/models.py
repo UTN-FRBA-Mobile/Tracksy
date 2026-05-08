@@ -11,10 +11,10 @@ class ProductPrice(BaseModel):
     SOURCE_API = "api"
 
     SOURCE_CHOICES = [
-        (SOURCE_MANUAL, "Carga manual"),
-        (SOURCE_IMPORT, "Importación CSV"),
+        (SOURCE_MANUAL, "Manual"),
+        (SOURCE_IMPORT, "CSV Import"),
         (SOURCE_SCRAPING, "Scraping"),
-        (SOURCE_API, "API externa"),
+        (SOURCE_API, "External API"),
     ]
 
     product = models.ForeignKey(
@@ -38,8 +38,8 @@ class ProductPrice(BaseModel):
 
     class Meta:
         db_table = "product_prices"
-        verbose_name = "Precio de Producto"
-        verbose_name_plural = "Precios de Productos"
+        verbose_name = "Product Price"
+        verbose_name_plural = "Product Prices"
         indexes = [
             models.Index(fields=["product", "branch", "is_active"], name="idx_price_lookup"),
             models.Index(fields=["product", "price"], name="idx_price_comparison"),
@@ -85,7 +85,7 @@ class PriceHistory(BaseModel):
 
     class Meta:
         db_table = "price_history"
-        verbose_name = "Historial de Precios"
+        verbose_name = "Price History"
         ordering = ["-created_at"]
         indexes = [
             models.Index(fields=["product", "branch", "created_at"], name="idx_price_history"),

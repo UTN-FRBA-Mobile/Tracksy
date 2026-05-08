@@ -15,15 +15,15 @@ class PromotionType(BaseModel):
     PRODUCT = "product"
 
     TYPE_CHOICES = [
-        (PERCENTAGE, "Descuento porcentual"),
-        (FIXED_AMOUNT, "Descuento monto fijo"),
+        (PERCENTAGE, "Percentage discount"),
+        (FIXED_AMOUNT, "Fixed amount discount"),
         (TWO_FOR_ONE, "2x1"),
         (THREE_FOR_TWO, "3x2"),
-        (SECOND_UNIT, "Segunda unidad con descuento"),
-        (BANK, "Promoción bancaria / medio de pago"),
-        (DAY_OF_WEEK, "Promoción por día"),
-        (CATEGORY, "Promoción por categoría"),
-        (PRODUCT, "Promoción por producto"),
+        (SECOND_UNIT, "Second unit with discount"),
+        (BANK, "Bank / payment method promotion"),
+        (DAY_OF_WEEK, "Day-of-week promotion"),
+        (CATEGORY, "Category promotion"),
+        (PRODUCT, "Product promotion"),
     ]
 
     code = models.CharField(max_length=30, unique=True, choices=TYPE_CHOICES)
@@ -32,7 +32,7 @@ class PromotionType(BaseModel):
 
     class Meta:
         db_table = "promotion_types"
-        verbose_name = "Tipo de Promoción"
+        verbose_name = "Promotion Type"
 
     def __str__(self):
         return self.label
@@ -75,8 +75,8 @@ class Promotion(BaseModel):
 
     class Meta:
         db_table = "promotions"
-        verbose_name = "Promoción"
-        verbose_name_plural = "Promociones"
+        verbose_name = "Promotion"
+        verbose_name_plural = "Promotions"
         ordering = ["-start_date"]
         indexes = [
             models.Index(fields=["is_active", "start_date", "end_date"], name="idx_promo_active"),
@@ -144,7 +144,7 @@ class PromotionPaymentMethod(BaseModel):
         (CARD_VISA, "Visa"),
         (CARD_MASTERCARD, "Mastercard"),
         (CARD_AMEX, "Amex"),
-        (DEBIT, "Débito"),
+        (DEBIT, "Debit"),
         (MERCADO_PAGO, "Mercado Pago"),
         (NARANJA, "Naranja"),
     ]
@@ -165,7 +165,7 @@ class PromotionDayOfWeek(BaseModel):
     )
     weekday = models.PositiveSmallIntegerField(
         choices=[(i, d) for i, d in enumerate(
-            ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
+            ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
         )]
     )
 

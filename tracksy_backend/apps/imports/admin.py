@@ -32,11 +32,11 @@ class ImportErrorInline(admin.TabularInline):
 
 def _status_badge(status):
     colors = {
-        ImportBatch.STATUS_COMPLETED: "#28a745",
+        ImportBatch.STATUS_COMPLETED: "#7c5cbf",
         ImportBatch.STATUS_FAILED: "#dc3545",
-        ImportBatch.STATUS_PARTIAL: "#fd7e14",
-        ImportBatch.STATUS_PROCESSING: "#007bff",
-        ImportBatch.STATUS_PENDING: "#6c757d",
+        ImportBatch.STATUS_PARTIAL: "#c97b2e",
+        ImportBatch.STATUS_PROCESSING: "#9b7fd4",
+        ImportBatch.STATUS_PENDING: "#8e7aaa",
     }
     labels = {
         ImportBatch.STATUS_COMPLETED: "Completed",

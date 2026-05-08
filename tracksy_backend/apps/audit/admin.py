@@ -8,6 +8,9 @@ class AuditLogAdmin(admin.ModelAdmin):
     list_filter = ("action", "entity_type")
     search_fields = ("user__email", "entity_id", "description")
     ordering = ("-created_at",)
+    list_per_page = 500
+    list_max_show_all = 1_000_000
+    show_full_result_count = True
     readonly_fields = (
         "user", "action", "entity_type", "entity_id",
         "ip_address", "user_agent", "previous_data", "new_data", "description", "created_at",

@@ -1,0 +1,352 @@
+/* ── Tracksy Admin — Violet / Lilac Pastel Theme ──────────────────────────── */
+
+/* ── Logo: remove oval/circle shape ───────────────────────────────────────── */
+.brand-image,
+.brand-image.img-circle,
+img.brand-image {
+    border-radius: 8px !important;
+    object-fit: contain;
+    max-height: 36px;
+    width: auto;
+    background-color: #ffffff !important;
+}
+
+.brand-text {
+    color: #ffffff !important;
+    font-weight: bold !important;
+}
+
+/* ── Login page ────────────────────────────────────────────────────────────── */
+.login-page {
+    background: linear-gradient(135deg, #ede7f6 0%, #d8cef0 50%, #c5b8ea 100%) !important;
+}
+
+.login-box .card,
+.login-card-body {
+    border-top: 4px solid #7c5cbf !important;
+    border-radius: 12px !important;
+    box-shadow: 0 8px 32px rgba(124, 92, 191, 0.18) !important;
+}
+
+.login-box .card-body input:focus,
+.login-card-body input:focus {
+    border-color: #9b7fd4 !important;
+    box-shadow: 0 0 0 0.2rem rgba(155, 127, 212, 0.25) !important;
+}
+
+/* ── Navbar (top bar) ──────────────────────────────────────────────────────── */
+.main-header.navbar {
+    background: linear-gradient(90deg, #5a3d96 0%, #7c5cbf 60%, #9b7fd4 100%) !important;
+    border-bottom: none !important;
+    box-shadow: 0 2px 8px rgba(90, 61, 150, 0.25);
+}
+
+.main-header .nav-link,
+.main-header .nav-link:hover,
+.main-header .navbar-nav .nav-link {
+    color: #ede7f6 !important;
+}
+
+.main-header .navbar-search-block .form-control {
+    border-color: rgba(237, 231, 246, 0.4) !important;
+}
+
+/* ── Brand / sidebar header ────────────────────────────────────────────────── */
+.brand-link,
+.brand-link:hover {
+    background: #4a2e7a !important;
+    border-bottom: 1px solid rgba(200, 180, 255, 0.2) !important;
+    color: #ede7f6 !important;
+}
+
+.brand-text {
+    color: #e8e0f5 !important;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+/* ── Sidebar ───────────────────────────────────────────────────────────────── */
+.main-sidebar,
+.main-sidebar::before {
+    background: linear-gradient(180deg, #3d2570 0%, #5a3d96 60%, #6b4daf 100%) !important;
+}
+
+.sidebar .nav-sidebar .nav-item > .nav-link {
+    color: #d8cef0 !important;
+    border-radius: 6px;
+    margin: 1px 6px;
+    transition: background 0.2s, color 0.2s;
+}
+
+.sidebar .nav-sidebar .nav-item > .nav-link:hover {
+    background: rgba(216, 206, 240, 0.18) !important;
+    color: #ffffff !important;
+}
+
+.sidebar .nav-sidebar .nav-item.menu-open > .nav-link,
+.sidebar .nav-sidebar .nav-item > .nav-link.active {
+    background: rgba(216, 206, 240, 0.28) !important;
+    color: #ffffff !important;
+    font-weight: 600;
+}
+
+.sidebar .nav-sidebar .nav-icon {
+    color: #c5b8ea !important;
+}
+
+.sidebar .nav-sidebar .nav-item > .nav-link:hover .nav-icon,
+.sidebar .nav-sidebar .nav-item > .nav-link.active .nav-icon {
+    color: #ffffff !important;
+}
+
+/* Sidebar category headers */
+.nav-sidebar .nav-header {
+    color: #b39ce6 !important;
+    font-size: 0.7rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+/* ── Content wrapper ───────────────────────────────────────────────────────── */
+.content-wrapper {
+    background: #f7f4fc !important;
+}
+
+/* ── Content header (breadcrumbs bar) ─────────────────────────────────────── */
+.content-header {
+    background: linear-gradient(90deg, #ede7f6 0%, #f3effe 100%);
+    border-bottom: 1px solid #d8cef0;
+    padding: 10px 20px;
+}
+
+.content-header h1 {
+    color: #4a2e7a;
+    font-weight: 600;
+}
+
+.breadcrumb-item a {
+    color: #7c5cbf !important;
+}
+
+.breadcrumb-item.active {
+    color: #9b7fd4;
+}
+
+/* ── Cards ─────────────────────────────────────────────────────────────────── */
+.card {
+    border: 1px solid #e0d5f5 !important;
+    border-radius: 10px !important;
+    box-shadow: 0 2px 12px rgba(124, 92, 191, 0.08) !important;
+}
+
+.card-header {
+    background: linear-gradient(90deg, #7c5cbf 0%, #9b7fd4 100%) !important;
+    color: #ffffff !important;
+    border-bottom: none !important;
+    border-radius: 10px 10px 0 0 !important;
+    font-weight: 600;
+}
+
+.card-header .card-title {
+    color: #ffffff !important;
+}
+
+/* ── Tables ─────────────────────────────────────────────────────────────────── */
+#result_list thead th,
+.table thead th {
+    background: #ede7f6 !important;
+    color: #4a2e7a !important;
+    border-bottom: 2px solid #c5b8ea !important;
+    font-weight: 600;
+}
+
+#result_list tbody tr:hover,
+.table tbody tr:hover {
+    background: #f3effe !important;
+}
+
+/* Column sort arrows */
+thead th a {
+    color: #5a3d96 !important;
+}
+
+/* ── Buttons ────────────────────────────────────────────────────────────────── */
+
+/* Primary → deep violet */
+.btn-primary {
+    margin-right: 10px;
+}
+.btn-primary,
+input[type="submit"].default {
+    background: #ffffff !important;
+    border-color: #6b4daf !important;
+    color: #ffffff !important;
+    border-radius: 6px;
+    font-weight: 500;
+}
+.btn-primary:hover,
+.btn-primary:active,
+.btn-primary:focus,
+input[type="submit"].default:hover {
+    background: #6b4daf !important;
+    border-color: #5a3d96 !important;
+    color: #ffffff !important;
+}
+
+/* Success → remap to violet (Save / Add buttons) */
+.btn-success {
+    background: #7c5cbf !important;
+    border-color: #6b4daf !important;
+    color: #ffffff !important;
+    border-radius: 6px;
+    font-weight: 500;
+}
+.btn-success:hover,
+.btn-success:active,
+.btn-success:focus {
+    background: #6b4daf !important;
+    border-color: #5a3d96 !important;
+    color: #ffffff !important;
+}
+
+/* Info → lighter lilac (Save and continue / Save as new) */
+.btn-info {
+    background: #9b7fd4 !important;
+    border-color: #8b6fc4 !important;
+    color: #ffffff !important;
+    border-radius: 6px;
+    font-weight: 500;
+}
+.btn-info:hover,
+.btn-info:active,
+.btn-info:focus {
+    background: #8b6fc4 !important;
+    border-color: #7c5cbf !important;
+    color: #ffffff !important;
+}
+.btn-outline-info {
+    color: #7c5cbf !important;
+    border-color: #9b7fd4 !important;
+    border-radius: 6px;
+}
+.btn-outline-info:hover {
+    background: #ede7f6 !important;
+    color: #5a3d96 !important;
+    border-color: #7c5cbf !important;
+}
+
+/* Secondary outline */
+.btn-outline-secondary {
+    color: #7c5cbf !important;
+    border-color: #c5b8ea !important;
+    border-radius: 6px;
+}
+.btn-outline-secondary:hover {
+    background: #ede7f6 !important;
+    color: #5a3d96 !important;
+}
+
+/* Ensure all admin action buttons have rounded corners */
+.btn,
+.object-tools a,
+.object-tools li a {
+    border-radius: 6px !important;
+}
+
+/* Django admin top-right "Add" button */
+.object-tools a,
+.object-tools li a {
+    background: #7c5cbf !important;
+    border-color: #6b4daf !important;
+    color: #ffffff !important;
+}
+.object-tools a:hover,
+.object-tools li a:hover {
+    background: #6b4daf !important;
+    color: #ffffff !important;
+}
+
+/* ── Form fields ────────────────────────────────────────────────────────────── */
+.form-control:focus,
+select:focus,
+textarea:focus {
+    border-color: #9b7fd4 !important;
+    box-shadow: 0 0 0 0.2rem rgba(155, 127, 212, 0.2) !important;
+}
+
+/* ── Links ──────────────────────────────────────────────────────────────────── */
+.d-block {
+    color: #999999 !important;
+}
+.d-block:hover {
+    color: #ffffff !important;
+}
+
+a,
+.changelink,
+.addlink, .viewlink {
+    color: #7c5cbf !important;
+}
+
+a:hover {
+    color: #5a3d96 !important;
+}
+
+/* ── Filter sidebar ─────────────────────────────────────────────────────────── */
+#changelist-filter {
+    background: #f3effe !important;
+    border-left: 3px solid #c5b8ea !important;
+}
+
+#changelist-filter h2 {
+    background: #7c5cbf !important;
+    color: #ffffff !important;
+}
+
+#changelist-filter h3 {
+    color: #5a3d96 !important;
+    border-bottom: 1px solid #d8cef0;
+}
+
+#changelist-filter li.selected a {
+    color: #7c5cbf !important;
+    font-weight: 600;
+}
+
+/* ── Pagination ─────────────────────────────────────────────────────────────── */
+.paginator .this-page,
+.paginator a:hover {
+    background: #7c5cbf !important;
+    color: #ffffff !important;
+    border-radius: 4px;
+}
+
+/* ── Footer ─────────────────────────────────────────────────────────────────── */
+.main-footer {
+    background: #f3effe !important;
+    border-top: 1px solid #d8cef0 !important;
+    color: #7c5cbf !important;
+}
+
+/* ── Info / success / warning messages ─────────────────────────────────────── */
+.alert-info {
+    background: #ede7f6 !important;
+    border-color: #c5b8ea !important;
+    color: #4a2e7a !important;
+}
+
+/* ── Select2 dropdowns (related fields) ─────────────────────────────────────── */
+.select2-container--default .select2-selection--single:focus,
+.select2-container--default.select2-container--focus .select2-selection--multiple {
+    border-color: #9b7fd4 !important;
+}
+
+.select2-container--default .select2-results__option--highlighted {
+    background: #7c5cbf !important;
+}
+
+/* ── Select dropdowns (user options) ─────────────────────────────────────── */
+
+.dropdown-item:hover {
+    color: #ffffff !important;
+}

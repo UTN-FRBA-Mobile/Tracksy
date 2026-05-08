@@ -21,7 +21,6 @@ DJANGO_APPS = [
 THIRD_PARTY_APPS = [
     "rest_framework",
     "rest_framework_simplejwt",
-    "rest_framework_simplejwt.token_blacklist",
     "corsheaders",
     "django_filters",
     "drf_spectacular",
@@ -98,7 +97,7 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
-LANGUAGE_CODE = "es-ar"
+LANGUAGE_CODE = "en-us"
 TIME_ZONE = "America/Argentina/Buenos_Aires"
 USE_I18N = True
 USE_TZ = True
@@ -140,8 +139,6 @@ SIMPLE_JWT = {
     "REFRESH_TOKEN_LIFETIME": timedelta(
         days=config("JWT_REFRESH_TOKEN_LIFETIME_DAYS", default=7, cast=int)
     ),
-    "ROTATE_REFRESH_TOKENS": True,
-    "BLACKLIST_AFTER_ROTATION": True,
     "AUTH_HEADER_TYPES": ("Bearer",),
     "AUTH_HEADER_NAME": "HTTP_AUTHORIZATION",
     "USER_ID_FIELD": "id",
@@ -151,24 +148,24 @@ SIMPLE_JWT = {
 SPECTACULAR_SETTINGS = {
     "TITLE": "Tracksy API",
     "DESCRIPTION": (
-        "API REST para Tracksy — plataforma de comparación de precios y "
-        "gestión de listas de compra para consumidores."
+        "REST API for Tracksy — a price comparison and shopping list management "
+        "platform for consumers."
     ),
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
     "COMPONENT_SPLIT_REQUEST": True,
     "TAGS": [
-        {"name": "auth", "description": "Autenticación y tokens JWT"},
-        {"name": "users", "description": "Perfil y preferencias del consumidor"},
-        {"name": "products", "description": "Catálogo de productos"},
-        {"name": "supermarkets", "description": "Cadenas y sucursales"},
-        {"name": "prices", "description": "Precios e historial"},
-        {"name": "promotions", "description": "Promociones vigentes"},
-        {"name": "shopping-lists", "description": "Listas de compra"},
-        {"name": "favorites", "description": "Favoritos del usuario"},
-        {"name": "comparisons", "description": "Comparación y recomendaciones"},
-        {"name": "admin", "description": "Backoffice — requiere rol administrador"},
-        {"name": "imports", "description": "Importación masiva de datos"},
+        {"name": "auth", "description": "Authentication and JWT tokens"},
+        {"name": "users", "description": "Consumer profile and preferences"},
+        {"name": "products", "description": "Product catalogue"},
+        {"name": "supermarkets", "description": "Chains and branches"},
+        {"name": "prices", "description": "Prices and history"},
+        {"name": "promotions", "description": "Active promotions"},
+        {"name": "shopping-lists", "description": "Shopping lists"},
+        {"name": "favorites", "description": "User favourites"},
+        {"name": "comparisons", "description": "Comparison and recommendations"},
+        {"name": "admin", "description": "Backoffice — requires administrator role"},
+        {"name": "imports", "description": "Bulk data import"},
     ],
 }
 
@@ -211,11 +208,10 @@ LOGGING = {
 JAZZMIN_SETTINGS = {
     "site_title": "Tracksy Admin",
     "site_header": "Tracksy Administrator",
-    "site_brand": "Tracksy",
+    "site_brand": "Tracksy Admin",
     "site_logo": "img/tracksy_logo.png",
     "login_logo": "img/tracksy_logo.png",
-    "site_logo": None,
-    "login_logo": None,
+    "site_logo_classes": "img-fluid",
     "site_icon": None,
     "welcome_sign": "Welcome to the Tracksy Administration Panel",
     "copyright": "Tracksy — DAMM TP 2026",
@@ -238,7 +234,7 @@ JAZZMIN_SETTINGS = {
     "show_sidebar": True,
     "navigation_expanded": True,
     "hide_apps": [],
-    "hide_models": [],
+    "hide_models": ["products.measurementunit"],
     "order_with_respect_to": [
         "imports",
         "supermarkets",
@@ -268,7 +264,6 @@ JAZZMIN_SETTINGS = {
         "products.Category": "fas fa-tags",
         "products.SubCategory": "fas fa-tag",
         "products.Brand": "fas fa-trademark",
-        "products.MeasurementUnit": "fas fa-ruler",
         "supermarkets.SupermarketChain": "fas fa-store",
         "supermarkets.SupermarketBranch": "fas fa-map-marker-alt",
         "supermarkets.BranchOpeningHours": "fas fa-clock",
@@ -281,8 +276,8 @@ JAZZMIN_SETTINGS = {
     "default_icon_parents": "fas fa-chevron-circle-right",
     "default_icon_children": "fas fa-circle",
     "related_modal_active": True,
-    "custom_css": None,
-    "custom_js": None,
+    "custom_css": "admin/css/tracksy_admin.css",
+    "custom_js": "admin/js/tracksy_admin.js",
     "use_google_fonts_cdn": True,
     "show_ui_builder": False,
     "changeform_format": "horizontal_tabs",
@@ -297,29 +292,29 @@ JAZZMIN_UI_TWEAKS = {
     "footer_small_text": False,
     "body_small_text": True,
     "brand_small_text": False,
-    "brand_colour": "navbar-success",
-    "accent": "accent-teal",
-    "navbar": "navbar-dark",
-    "no_navbar_border": False,
+    "brand_colour": "navbar-purple",
+    "accent": "accent-purple",
+    "navbar": "navbar-purple navbar-dark",
+    "no_navbar_border": True,
     "navbar_fixed": True,
     "layout_boxed": False,
     "footer_fixed": False,
     "sidebar_fixed": True,
-    "sidebar": "sidebar-dark-teal",
+    "sidebar": "sidebar-dark-purple",
     "sidebar_nav_small_text": False,
     "sidebar_disable_expand": False,
     "sidebar_nav_child_indent": True,
     "sidebar_nav_compact_style": True,
     "sidebar_nav_legacy_style": False,
     "sidebar_nav_flat_style": False,
-    "theme": "flatly",
+    "theme": "pulse",
     "dark_mode_theme": None,
     "button_classes": {
         "primary": "btn-primary",
         "secondary": "btn-outline-secondary",
-        "info": "btn-outline-info",
+        "info": "btn-primary",
         "warning": "btn-warning",
         "danger": "btn-danger",
-        "success": "btn-success",
+        "success": "btn-primary",
     },
 }

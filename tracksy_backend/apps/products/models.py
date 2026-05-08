@@ -10,8 +10,8 @@ class Category(BaseModel):
 
     class Meta:
         db_table = "categories"
-        verbose_name = "Categoría"
-        verbose_name_plural = "Categorías"
+        verbose_name = "Category"
+        verbose_name_plural = "Categories"
         ordering = ["name"]
 
     def __str__(self):
@@ -27,8 +27,8 @@ class SubCategory(BaseModel):
     class Meta:
         db_table = "subcategories"
         unique_together = ("category", "slug")
-        verbose_name = "Subcategoría"
-        verbose_name_plural = "Subcategorías"
+        verbose_name = "Subcategory"
+        verbose_name_plural = "Subcategories"
         ordering = ["name"]
 
     def __str__(self):
@@ -43,8 +43,8 @@ class Brand(BaseModel):
 
     class Meta:
         db_table = "brands"
-        verbose_name = "Marca"
-        verbose_name_plural = "Marcas"
+        verbose_name = "Brand"
+        verbose_name_plural = "Brands"
         ordering = ["name"]
 
     def __str__(self):
@@ -57,7 +57,7 @@ class MeasurementUnit(BaseModel):
 
     class Meta:
         db_table = "measurement_units"
-        verbose_name = "Unidad de Medida"
+        verbose_name = "Measurement Unit"
 
     def __str__(self):
         return self.abbreviation
@@ -94,8 +94,8 @@ class Product(BaseModel):
 
     class Meta:
         db_table = "products"
-        verbose_name = "Producto"
-        verbose_name_plural = "Productos"
+        verbose_name = "Product"
+        verbose_name_plural = "Products"
         indexes = [
             models.Index(fields=["name"], name="idx_product_name"),
             models.Index(fields=["barcode"], name="idx_product_barcode"),
@@ -116,4 +116,4 @@ class ProductImage(BaseModel):
     class Meta:
         db_table = "product_images"
         ordering = ["order"]
-        verbose_name = "Imagen de Producto"
+        verbose_name = "Product Image"

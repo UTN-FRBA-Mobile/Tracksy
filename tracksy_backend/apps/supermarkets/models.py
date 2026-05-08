@@ -11,8 +11,8 @@ class SupermarketChain(BaseModel):
 
     class Meta:
         db_table = "supermarket_chains"
-        verbose_name = "Cadena de Supermercado"
-        verbose_name_plural = "Cadenas de Supermercado"
+        verbose_name = "Supermarket Chain"
+        verbose_name_plural = "Supermarket Chains"
         ordering = ["name"]
 
     def __str__(self):
@@ -37,8 +37,8 @@ class SupermarketBranch(BaseModel):
 
     class Meta:
         db_table = "supermarket_branches"
-        verbose_name = "Sucursal"
-        verbose_name_plural = "Sucursales"
+        verbose_name = "Branch"
+        verbose_name_plural = "Branches"
         indexes = [
             models.Index(fields=["city", "province"], name="idx_branch_location"),
             models.Index(fields=["latitude", "longitude"], name="idx_branch_geo"),
@@ -50,13 +50,13 @@ class SupermarketBranch(BaseModel):
 
 class BranchOpeningHours(BaseModel):
     WEEKDAYS = [
-        (0, "Lunes"),
-        (1, "Martes"),
-        (2, "Miércoles"),
-        (3, "Jueves"),
-        (4, "Viernes"),
-        (5, "Sábado"),
-        (6, "Domingo"),
+        (0, "Monday"),
+        (1, "Tuesday"),
+        (2, "Wednesday"),
+        (3, "Thursday"),
+        (4, "Friday"),
+        (5, "Saturday"),
+        (6, "Sunday"),
     ]
 
     branch = models.ForeignKey(
@@ -70,7 +70,7 @@ class BranchOpeningHours(BaseModel):
     class Meta:
         db_table = "branch_opening_hours"
         unique_together = ("branch", "weekday")
-        verbose_name = "Horario de Sucursal"
+        verbose_name = "Branch Opening Hours"
 
     def __str__(self):
         return f"{self.branch} — {self.get_weekday_display()}"

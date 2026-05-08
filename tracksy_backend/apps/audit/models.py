@@ -11,12 +11,12 @@ class AuditLog(BaseModel):
     ACTION_IMPORT = "import"
 
     ACTION_CHOICES = [
-        (ACTION_CREATE, "Creación"),
-        (ACTION_UPDATE, "Actualización"),
-        (ACTION_DELETE, "Eliminación"),
+        (ACTION_CREATE, "Create"),
+        (ACTION_UPDATE, "Update"),
+        (ACTION_DELETE, "Delete"),
         (ACTION_LOGIN, "Login"),
         (ACTION_LOGOUT, "Logout"),
-        (ACTION_IMPORT, "Importación"),
+        (ACTION_IMPORT, "Import"),
     ]
 
     user = models.ForeignKey(
@@ -37,8 +37,8 @@ class AuditLog(BaseModel):
 
     class Meta:
         db_table = "audit_logs"
-        verbose_name = "Log de Auditoría"
-        verbose_name_plural = "Logs de Auditoría"
+        verbose_name = "Audit Log"
+        verbose_name_plural = "Audit Logs"
         ordering = ["-created_at"]
         indexes = [
             models.Index(fields=["entity_type", "entity_id"], name="idx_audit_entity"),

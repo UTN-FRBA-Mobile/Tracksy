@@ -2,6 +2,7 @@
 .env
 .env.*
 *.env
+!*.env.example
 
 # ── Python ────────────────────────────────────────────────────────────────────
 __pycache__/
@@ -70,3 +71,4 @@ yarn-error.log*
 
 # ── Uploaded / imported files that should not be in VCS ─────────────────────
 tracksy_backend/media/
+v

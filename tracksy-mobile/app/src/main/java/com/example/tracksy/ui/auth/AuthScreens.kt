@@ -51,8 +51,8 @@ private enum class AuthRoute {
 
 private val AuthBodyTextStyle = TextStyle(
     fontWeight = FontWeight.Medium,
-    fontSize = 11.sp,
-    lineHeight = 14.sp,
+    fontSize = 12.sp,
+    lineHeight = 15.sp,
     letterSpacing = 0.sp
 )
 
@@ -218,13 +218,13 @@ internal fun LoginContent(
                     onClick = onLogin,
                     enabled = loginEnabled
                 )
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(20.dp))
                 TracksyLinkText(
                     text = "¿Olvidaste tu contraseña?",
                     onClick = onForgotPassword,
                     modifier = Modifier.fillMaxWidth()
                 )
-                Spacer(modifier = Modifier.height(18.dp))
+                Spacer(modifier = Modifier.height(22.dp))
                 TracksyInlineLink(
                     text = "¿No tenés cuenta?",
                     linkText = "Creá una",
@@ -310,10 +310,12 @@ internal fun RecoverPasswordContent(
                 ) {
                     Text(
                         text = "Ingresá tu correo electrónico y te enviaremos instrucciones para restablecer tu contraseña.",
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 4.dp),
                         color = TracksyTextSecondary,
                         style = AuthBodyTextStyle,
-                        textAlign = TextAlign.Start
+                        textAlign = TextAlign.Justify
                     )
                     Spacer(modifier = Modifier.height(38.dp))
                     TracksyTextField(
@@ -378,17 +380,19 @@ fun CheckEmailScreen(
                 ) {
                     Text(
                         text = "Si existe una cuenta asociada a ese correo, te enviaremos instrucciones para restablecer tu contraseña.",
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 4.dp),
                         color = TracksyTextSecondary,
                         style = AuthBodyTextStyle,
-                        textAlign = TextAlign.Start
+                        textAlign = TextAlign.Justify
                     )
                     Spacer(modifier = Modifier.height(30.dp))
                     Text(
                         text = "¿No lo recibiste? Revisá tu carpeta de spam.",
                         modifier = Modifier.fillMaxWidth(),
                         color = TracksyTextMuted,
-                        style = AuthBodyTextStyle.copy(fontSize = 9.5.sp, lineHeight = 12.sp),
+                        style = AuthBodyTextStyle.copy(fontSize = 11.sp, lineHeight = 14.sp),
                         textAlign = TextAlign.Start
                     )
                     Spacer(modifier = Modifier.height(35.dp))

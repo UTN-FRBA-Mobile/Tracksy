@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -112,8 +113,8 @@ private val ButtonTextStyle = TextStyle(
 
 private val LinkTextStyle = TextStyle(
     fontWeight = FontWeight.Medium,
-    fontSize = 11.sp,
-    lineHeight = 14.sp,
+    fontSize = 12.sp,
+    lineHeight = 15.sp,
     letterSpacing = 0.sp
 )
 
@@ -222,6 +223,7 @@ fun TracksyTextField(
     onFocusChanged: (Boolean) -> Unit = {},
     keyboardType: KeyboardType = KeyboardType.Text,
     imeAction: ImeAction = ImeAction.Next,
+    keyboardActions: KeyboardActions = KeyboardActions.Default,
     visualTransformation: VisualTransformation = VisualTransformation.None,
     trailingContent: (@Composable () -> Unit)? = null
 ) {
@@ -273,6 +275,7 @@ fun TracksyTextField(
                         keyboardType = keyboardType,
                         imeAction = imeAction
                     ),
+                    keyboardActions = keyboardActions,
                     visualTransformation = visualTransformation,
                     decorationBox = { innerTextField ->
                         Box(

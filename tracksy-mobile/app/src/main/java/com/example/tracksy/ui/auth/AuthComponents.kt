@@ -51,7 +51,12 @@ import com.example.tracksy.ui.theme.TracksySoftPrimary
 @Composable
 fun AuthScreenContainer(
     modifier: Modifier = Modifier,
-    contentPadding: PaddingValues = PaddingValues(horizontal = 35.dp, vertical = 34.dp),
+    contentPadding: PaddingValues = PaddingValues(
+        start = 52.dp,
+        top = 40.dp,
+        end = 52.dp,
+        bottom = 37.dp
+    ),
     content: @Composable () -> Unit
 ) {
     Box(
@@ -106,7 +111,7 @@ fun AuthHeader(
             style = TracksyAuthTypography.Brand,
             textAlign = TextAlign.Center
         )
-        Spacer(modifier = Modifier.height(23.dp))
+        Spacer(modifier = Modifier.height(48.dp))
         Text(
             text = title,
             color = TracksyFieldPlaceholder,

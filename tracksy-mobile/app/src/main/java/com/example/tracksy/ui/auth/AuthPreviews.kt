@@ -76,7 +76,7 @@ private fun SignInScreenPreview() {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(top = 86.dp),
+                    .padding(top = 56.dp),
                 verticalArrangement = Arrangement.Top
             ) {
                 AuthHeader(title = "Iniciar sesión")
@@ -127,7 +127,7 @@ private fun CreateAccountScreenPreview() {
                 verticalArrangement = Arrangement.Top
             ) {
                 AuthHeader(title = "Crear cuenta")
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(60.dp))
                 AuthTextField(
                     value = "",
                     onValueChange = {},
@@ -180,13 +180,13 @@ private fun RecoverPasswordScreenPreview() {
                 verticalArrangement = Arrangement.Top
             ) {
                 AuthHeader(title = "Recuperar contraseña")
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(30.dp))
                 Text(
                     text = "Ingresá tu correo electrónico y te enviaremos instrucciones para restablecer tu contraseña.",
                     color = TracksySecondaryText,
                     style = TracksyAuthTypography.Body
                 )
-                Spacer(modifier = Modifier.height(28.dp))
+                Spacer(modifier = Modifier.height(30.dp))
                 AuthTextField(
                     value = "",
                     onValueChange = {},

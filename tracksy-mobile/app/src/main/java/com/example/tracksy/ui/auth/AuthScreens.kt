@@ -240,8 +240,9 @@ fun RecoverPasswordScreen(
     var email by remember { mutableStateOf("") }
     var hasInteracted by remember { mutableStateOf(false) }
     var hasBlurred by remember { mutableStateOf(false) }
+    var isEmailFocused by remember { mutableStateOf(false) }
     val isEmailValid = isValidEmail(email)
-    val showError = email.isNotBlank() && !isEmailValid && (hasInteracted || hasBlurred)
+    val showError = email.isNotBlank() && !isEmailValid && hasBlurred && !isEmailFocused
 
     RecoverPasswordContent(
         email = email,
@@ -251,6 +252,7 @@ fun RecoverPasswordScreen(
             hasInteracted = true
         },
         onEmailFocusChanged = { isFocused ->
+            isEmailFocused = isFocused
             if (!isFocused && hasInteracted) {
                 hasBlurred = true
             }
@@ -279,12 +281,6 @@ internal fun RecoverPasswordContent(
 
     AuthScreenContainer(modifier = modifier) {
         Box(modifier = Modifier.fillMaxSize()) {
-            AuthBackButton(
-                onClick = onBack,
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .padding(top = 13.dp)
-            )
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -330,6 +326,12 @@ internal fun RecoverPasswordContent(
                     )
                 }
             }
+            AuthBackButton(
+                onClick = onBack,
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(top = 13.dp)
+            )
         }
     }
 }
@@ -343,12 +345,6 @@ fun CheckEmailScreen(
 ) {
     AuthScreenContainer(modifier = modifier) {
         Box(modifier = Modifier.fillMaxSize()) {
-            AuthBackButton(
-                onClick = onBack,
-                modifier = Modifier
-                    .align(Alignment.TopStart)
-                    .padding(top = 13.dp)
-            )
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -392,6 +388,12 @@ fun CheckEmailScreen(
                     )
                 }
             }
+            AuthBackButton(
+                onClick = onBack,
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(top = 13.dp)
+            )
         }
     }
 }

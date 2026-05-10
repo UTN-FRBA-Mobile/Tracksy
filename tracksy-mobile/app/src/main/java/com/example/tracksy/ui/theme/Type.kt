@@ -32,3 +32,61 @@ val Typography = Typography(
     )
     */
 )
+
+object TracksyAuthTypography {
+    val Brand = TextStyle(
+        fontFamily = FontFamily.Default,
+        fontWeight = FontWeight.Black,
+        fontSize = 64.sp,
+        lineHeight = 72.sp,
+        letterSpacing = 0.sp
+    )
+
+    val ScreenTitle = TextStyle(
+        fontFamily = FontFamily.Default,
+        fontWeight = FontWeight.Bold,
+        fontSize = 40.sp,
+        lineHeight = 48.sp,
+        letterSpacing = 0.34.sp
+    )
+
+    val Button = TextStyle(
+        fontFamily = FontFamily.Default,
+        fontWeight = FontWeight.Medium,
+        fontSize = 36.sp,
+        lineHeight = 44.sp,
+        letterSpacing = 0.34.sp
+    )
+
+    val Field = TextStyle(
+        fontFamily = FontFamily.Default,
+        fontWeight = FontWeight.Medium,
+        fontSize = 25.sp,
+        lineHeight = 32.sp,
+        letterSpacing = 0.34.sp
+    )
+
+    val Body = TextStyle(
+        fontFamily = FontFamily.Default,
+        fontWeight = FontWeight.Medium,
+        fontSize = 20.sp,
+        lineHeight = 24.sp,
+        letterSpacing = 1.sp
+    )
+
+    val Link = TextStyle(
+        fontFamily = FontFamily.Default,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 20.sp,
+        lineHeight = 24.sp,
+        letterSpacing = 0.sp
+    )
+
+    val Helper = TextStyle(
+        fontFamily = FontFamily.Default,
+        fontWeight = FontWeight.Medium,
+        fontSize = 16.sp,
+        lineHeight = 20.sp,
+        letterSpacing = 0.8.sp
+    )
+}

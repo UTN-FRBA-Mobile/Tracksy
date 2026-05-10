@@ -218,6 +218,8 @@ fun TracksyTextField(
     label: String,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    isError: Boolean = false,
+    onFocusChanged: (Boolean) -> Unit = {},
     keyboardType: KeyboardType = KeyboardType.Text,
     imeAction: ImeAction = ImeAction.Next,
     visualTransformation: VisualTransformation = VisualTransformation.None,
@@ -225,6 +227,7 @@ fun TracksyTextField(
 ) {
     var isFocused by remember { mutableStateOf(false) }
     val showLabel = isFocused || value.isNotEmpty()
+    val borderColor = if (isError) TracksyErrorRed else TracksyBorderSoft.copy(alpha = 0.35f)
 
     Column(modifier = modifier.fillMaxWidth()) {
         AnimatedVisibility(
@@ -244,7 +247,7 @@ fun TracksyTextField(
                 .fillMaxWidth()
                 .height(44.dp)
                 .shadow(2.dp, AuthFieldShape, clip = false)
-                .border(1.dp, TracksyBorderSoft.copy(alpha = 0.35f), AuthFieldShape),
+                .border(1.dp, borderColor, AuthFieldShape),
             shape = AuthFieldShape,
             color = Color.White
         ) {
@@ -259,7 +262,10 @@ fun TracksyTextField(
                     onValueChange = onValueChange,
                     modifier = Modifier
                         .weight(1f)
-                        .onFocusChanged { isFocused = it.isFocused },
+                        .onFocusChanged {
+                            isFocused = it.isFocused
+                            onFocusChanged(it.isFocused)
+                        },
                     enabled = enabled,
                     singleLine = true,
                     textStyle = FieldTextStyle.copy(color = TracksyTextPrimary),

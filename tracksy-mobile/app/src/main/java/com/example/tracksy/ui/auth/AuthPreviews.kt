@@ -26,3 +26,62 @@ private fun LoginEmptyPreview() {
         )
     }
 }
+
+@Preview(name = "Auth Components", showBackground = true)
+@Composable
+private fun AuthComponentsPreview() {
+    LoginEmptyPreview()
+}
+
+@Preview(name = "Recover Password Empty", showBackground = true)
+@Composable
+private fun RecoverPasswordEmptyPreview() {
+    TracksyTheme {
+        RecoverPasswordScreen(
+            onBack = {},
+            onSubmit = {}
+        )
+    }
+}
+
+@Preview(name = "Recover Password Valid Email", showBackground = true)
+@Composable
+private fun RecoverPasswordValidPreview() {
+    TracksyTheme {
+        RecoverPasswordContent(
+            email = "juan.perez@gmail.com",
+            showEmailError = false,
+            onEmailChange = {},
+            onEmailFocusChanged = {},
+            onBack = {},
+            onSubmit = {}
+        )
+    }
+}
+
+@Preview(name = "Recover Password Invalid Email", showBackground = true)
+@Composable
+private fun RecoverPasswordInvalidPreview() {
+    TracksyTheme {
+        RecoverPasswordContent(
+            email = "juan.perez@gmail",
+            showEmailError = true,
+            onEmailChange = {},
+            onEmailFocusChanged = {},
+            onBack = {},
+            onSubmit = {}
+        )
+    }
+}
+
+@Preview(name = "Check Email Success", showBackground = true)
+@Composable
+private fun CheckEmailSuccessPreview() {
+    TracksyTheme {
+        CheckEmailScreen(
+            onBack = {},
+            onBackToLogin = {},
+            onResend = {}
+        )
+    }
+}

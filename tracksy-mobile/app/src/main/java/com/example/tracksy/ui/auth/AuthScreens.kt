@@ -9,10 +9,15 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -20,13 +25,31 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.example.tracksy.ui.theme.TracksyPrimaryPurple
+import com.example.tracksy.ui.theme.TracksyTextMuted
+import com.example.tracksy.ui.theme.TracksyTextSecondary
 
 private enum class AuthRoute {
     Welcome,
-    Login
+    Login,
+    RecoverPassword,
+    CheckEmail
 }
+
+private val AuthBodyTextStyle = TextStyle(
+    fontWeight = FontWeight.Medium,
+    fontSize = 11.sp,
+    lineHeight = 14.sp,
+    letterSpacing = 0.sp
+)
 
 @Composable
 fun TracksyAuthApp() {
@@ -42,11 +65,25 @@ fun TracksyAuthApp() {
 
         AuthRoute.Login -> LoginScreen(
             onLogin = { _, _ -> false },
-            onForgotPassword = {
-                // TODO: Navigate to forgot password flow when it is implemented.
-            },
+            onForgotPassword = { route = AuthRoute.RecoverPassword },
             onCreateAccount = {
                 // TODO: Navigate to create account flow when it is implemented.
+            }
+        )
+
+        AuthRoute.RecoverPassword -> RecoverPasswordScreen(
+            onBack = { route = AuthRoute.Login },
+            onSubmit = {
+                // TODO: Send recover password instructions when backend is available.
+                route = AuthRoute.CheckEmail
+            }
+        )
+
+        AuthRoute.CheckEmail -> CheckEmailScreen(
+            onBack = { route = AuthRoute.RecoverPassword },
+            onBackToLogin = { route = AuthRoute.Login },
+            onResend = {
+                // TODO: Resend recover password instructions when backend is available.
             }
         )
     }
@@ -192,4 +229,207 @@ internal fun LoginContent(
             }
         }
     }
+}
+
+@Composable
+fun RecoverPasswordScreen(
+    onBack: () -> Unit,
+    onSubmit: (email: String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var email by remember { mutableStateOf("") }
+    var hasInteracted by remember { mutableStateOf(false) }
+    var hasBlurred by remember { mutableStateOf(false) }
+    val isEmailValid = isValidEmail(email)
+    val showError = email.isNotBlank() && !isEmailValid && (hasInteracted || hasBlurred)
+
+    RecoverPasswordContent(
+        email = email,
+        showEmailError = showError,
+        onEmailChange = {
+            email = it
+            hasInteracted = true
+        },
+        onEmailFocusChanged = { isFocused ->
+            if (!isFocused && hasInteracted) {
+                hasBlurred = true
+            }
+        },
+        onBack = onBack,
+        onSubmit = {
+            if (isEmailValid) {
+                onSubmit(email)
+            }
+        },
+        modifier = modifier
+    )
+}
+
+@Composable
+internal fun RecoverPasswordContent(
+    email: String,
+    showEmailError: Boolean,
+    onEmailChange: (String) -> Unit,
+    onEmailFocusChanged: (Boolean) -> Unit,
+    onBack: () -> Unit,
+    onSubmit: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val isSubmitEnabled = isValidEmail(email)
+
+    AuthScreenContainer(modifier = modifier) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            AuthBackButton(
+                onClick = onBack,
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(top = 13.dp)
+            )
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(top = 74.dp, bottom = 28.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                AuthHeader(title = "Recuperar contraseña")
+                Spacer(modifier = Modifier.height(54.dp))
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .widthIn(max = 254.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "Ingresá tu correo electrónico y te enviaremos instrucciones para restablecer tu contraseña.",
+                        modifier = Modifier.fillMaxWidth(),
+                        color = TracksyTextSecondary,
+                        style = AuthBodyTextStyle,
+                        textAlign = TextAlign.Start
+                    )
+                    Spacer(modifier = Modifier.height(38.dp))
+                    TracksyTextField(
+                        value = email,
+                        onValueChange = onEmailChange,
+                        label = "Correo electrónico",
+                        isError = showEmailError,
+                        onFocusChanged = onEmailFocusChanged,
+                        keyboardType = KeyboardType.Email
+                    )
+                    if (showEmailError) {
+                        Spacer(modifier = Modifier.height(13.dp))
+                        ErrorMessage(text = "Ingresá un correo electrónico válido")
+                        Spacer(modifier = Modifier.height(35.dp))
+                    } else {
+                        Spacer(modifier = Modifier.height(76.dp))
+                    }
+                    TracksyPrimaryButton(
+                        text = "Enviar instrucciones",
+                        onClick = onSubmit,
+                        enabled = isSubmitEnabled
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun CheckEmailScreen(
+    onBack: () -> Unit,
+    onBackToLogin: () -> Unit,
+    onResend: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    AuthScreenContainer(modifier = modifier) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            AuthBackButton(
+                onClick = onBack,
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(top = 13.dp)
+            )
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(top = 74.dp, bottom = 28.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                AuthHeader(title = "Revisá tu correo")
+                Spacer(modifier = Modifier.height(54.dp))
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .widthIn(max = 254.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "Si existe una cuenta asociada a ese correo, te enviaremos instrucciones para restablecer tu contraseña.",
+                        modifier = Modifier.fillMaxWidth(),
+                        color = TracksyTextSecondary,
+                        style = AuthBodyTextStyle,
+                        textAlign = TextAlign.Start
+                    )
+                    Spacer(modifier = Modifier.height(30.dp))
+                    Text(
+                        text = "¿No lo recibiste? Revisá tu carpeta de spam.",
+                        modifier = Modifier.fillMaxWidth(),
+                        color = TracksyTextMuted,
+                        style = AuthBodyTextStyle.copy(fontSize = 9.5.sp, lineHeight = 12.sp),
+                        textAlign = TextAlign.Start
+                    )
+                    Spacer(modifier = Modifier.height(35.dp))
+                    TracksyPrimaryButton(
+                        text = "Volver a iniciar sesión",
+                        onClick = onBackToLogin
+                    )
+                    Spacer(modifier = Modifier.height(24.dp))
+                    TracksyLinkText(
+                        text = "Reenviar instrucciones",
+                        onClick = onResend,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AuthBackButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .size(34.dp)
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = onClick
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        Canvas(modifier = Modifier.size(22.dp)) {
+            drawLine(
+                color = TracksyPrimaryPurple,
+                start = Offset(size.width * 0.68f, size.height * 0.12f),
+                end = Offset(size.width * 0.30f, size.height * 0.50f),
+                strokeWidth = 3.6.dp.toPx(),
+                cap = StrokeCap.Square
+            )
+            drawLine(
+                color = TracksyPrimaryPurple,
+                start = Offset(size.width * 0.30f, size.height * 0.50f),
+                end = Offset(size.width * 0.68f, size.height * 0.88f),
+                strokeWidth = 3.6.dp.toPx(),
+                cap = StrokeCap.Square
+            )
+        }
+    }
+}
+
+private fun isValidEmail(email: String): Boolean {
+    return Regex("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$").matches(email)
 }

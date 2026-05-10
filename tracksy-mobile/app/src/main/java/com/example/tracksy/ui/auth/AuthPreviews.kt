@@ -24,8 +24,8 @@ private fun AuthComponentsPreview() {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 64.dp),
-                verticalArrangement = Arrangement.spacedBy(24.dp)
+                    .padding(top = 56.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 AuthHeader(title = "Iniciar sesión")
                 AuthTextField(
@@ -76,34 +76,34 @@ private fun SignInScreenPreview() {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(top = 88.dp),
+                    .padding(top = 86.dp),
                 verticalArrangement = Arrangement.Top
             ) {
                 AuthHeader(title = "Iniciar sesión")
-                Spacer(modifier = Modifier.height(78.dp))
+                Spacer(modifier = Modifier.height(60.dp))
                 AuthTextField(
                     value = "",
                     onValueChange = {},
                     placeholder = "Correo electrónico"
                 )
-                Spacer(modifier = Modifier.height(38.dp))
+                Spacer(modifier = Modifier.height(20.dp))
                 AuthPasswordField(
                     value = "",
                     onValueChange = {},
                     placeholder = "Contraseña"
                 )
-                Spacer(modifier = Modifier.height(62.dp))
+                Spacer(modifier = Modifier.height(38.dp))
                 AuthPrimaryButton(
                     text = "Ingresar",
                     onClick = {}
                 )
-                Spacer(modifier = Modifier.height(18.dp))
+                Spacer(modifier = Modifier.height(12.dp))
                 AuthLinkText(
                     text = "¿Olvidaste tu contraseña?",
                     onClick = {},
                     modifier = Modifier.fillMaxWidth()
                 )
-                Spacer(modifier = Modifier.height(14.dp))
+                Spacer(modifier = Modifier.height(8.dp))
                 AuthInlineLinkText(
                     text = "¿No tenés cuenta?",
                     linkText = "Creá una",
@@ -123,40 +123,40 @@ private fun CreateAccountScreenPreview() {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(top = 88.dp),
+                    .padding(top = 56.dp),
                 verticalArrangement = Arrangement.Top
             ) {
                 AuthHeader(title = "Crear cuenta")
-                Spacer(modifier = Modifier.height(48.dp))
+                Spacer(modifier = Modifier.height(24.dp))
                 AuthTextField(
                     value = "",
                     onValueChange = {},
                     placeholder = "Nombre"
                 )
-                Spacer(modifier = Modifier.height(34.dp))
+                Spacer(modifier = Modifier.height(18.dp))
                 AuthTextField(
                     value = "",
                     onValueChange = {},
                     placeholder = "Correo electrónico"
                 )
-                Spacer(modifier = Modifier.height(34.dp))
+                Spacer(modifier = Modifier.height(18.dp))
                 AuthPasswordField(
                     value = "",
                     onValueChange = {},
                     placeholder = "Contraseña"
                 )
-                Spacer(modifier = Modifier.height(34.dp))
+                Spacer(modifier = Modifier.height(18.dp))
                 AuthPasswordField(
                     value = "",
                     onValueChange = {},
                     placeholder = "Confirmá tu contraseña"
                 )
-                Spacer(modifier = Modifier.height(96.dp))
+                Spacer(modifier = Modifier.height(48.dp))
                 AuthPrimaryButton(
                     text = "Crear cuenta",
                     onClick = {}
                 )
-                Spacer(modifier = Modifier.height(14.dp))
+                Spacer(modifier = Modifier.height(8.dp))
                 AuthInlineLinkText(
                     text = "¿Ya tenés cuenta?",
                     linkText = "Iniciá sesión",
@@ -176,23 +176,23 @@ private fun RecoverPasswordScreenPreview() {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(top = 88.dp),
+                    .padding(top = 56.dp),
                 verticalArrangement = Arrangement.Top
             ) {
                 AuthHeader(title = "Recuperar contraseña")
-                Spacer(modifier = Modifier.height(36.dp))
+                Spacer(modifier = Modifier.height(24.dp))
                 Text(
                     text = "Ingresá tu correo electrónico y te enviaremos instrucciones para restablecer tu contraseña.",
                     color = TracksySecondaryText,
                     style = TracksyAuthTypography.Body
                 )
-                Spacer(modifier = Modifier.height(46.dp))
+                Spacer(modifier = Modifier.height(28.dp))
                 AuthTextField(
                     value = "",
                     onValueChange = {},
                     placeholder = "Correo electrónico"
                 )
-                Spacer(modifier = Modifier.height(82.dp))
+                Spacer(modifier = Modifier.height(48.dp))
                 AuthPrimaryButton(
                     text = "Enviar instrucciones",
                     onClick = {}
@@ -210,29 +210,29 @@ private fun CheckEmailScreenPreview() {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(top = 88.dp),
+                    .padding(top = 56.dp),
                 verticalArrangement = Arrangement.Top
             ) {
                 AuthHeader(title = "Revisá tu correo")
-                Spacer(modifier = Modifier.height(36.dp))
+                Spacer(modifier = Modifier.height(24.dp))
                 Text(
                     text = "Si existe una cuenta asociada a ese correo, te enviaremos instrucciones para restablecer tu contraseña.",
                     color = TracksySecondaryText,
                     style = TracksyAuthTypography.Body
                 )
-                Spacer(modifier = Modifier.height(26.dp))
+                Spacer(modifier = Modifier.height(14.dp))
                 Text(
                     text = "¿No lo recibiste? Revisá tu carpeta de spam.",
                     color = TracksySecondaryText,
                     style = TracksyAuthTypography.Helper
                 )
-                Spacer(modifier = Modifier.height(48.dp))
+                Spacer(modifier = Modifier.height(28.dp))
                 AuthPrimaryButton(
                     text = "Volver a iniciar sesión",
                     onClick = {},
                     dark = true
                 )
-                Spacer(modifier = Modifier.height(14.dp))
+                Spacer(modifier = Modifier.height(8.dp))
                 AuthLinkText(
                     text = "Reenviar instrucciones",
                     onClick = {},

@@ -1,5 +1,6 @@
 package com.example.tracksy.ui.auth
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -26,6 +27,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -35,6 +38,7 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import com.example.tracksy.R
 import com.example.tracksy.ui.theme.TracksyAuthTypography
 import com.example.tracksy.ui.theme.TracksyBrandPurple
 import com.example.tracksy.ui.theme.TracksyDarkPrimaryPurple
@@ -53,21 +57,34 @@ fun AuthScreenContainer(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(Color.White)
-            .padding(contentPadding),
+            .background(Color.White),
         contentAlignment = Alignment.Center
     ) {
-        Surface(
+        Image(
+            painter = painterResource(id = R.drawable.auth_background),
+            contentDescription = null,
             modifier = Modifier.fillMaxSize(),
-            color = TracksyPanelBackground
+            contentScale = ContentScale.Crop,
+            alpha = 0.3f
+        )
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(contentPadding),
+            contentAlignment = Alignment.Center
         ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 28.dp),
-                contentAlignment = Alignment.TopCenter
+            Surface(
+                modifier = Modifier.fillMaxSize(),
+                color = TracksyPanelBackground
             ) {
-                content()
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(horizontal = 17.dp),
+                    contentAlignment = Alignment.TopCenter
+                ) {
+                    content()
+                }
             }
         }
     }
@@ -89,7 +106,7 @@ fun AuthHeader(
             style = TracksyAuthTypography.Brand,
             textAlign = TextAlign.Center
         )
-        Spacer(modifier = Modifier.height(46.dp))
+        Spacer(modifier = Modifier.height(23.dp))
         Text(
             text = title,
             color = TracksyFieldPlaceholder,
@@ -112,10 +129,10 @@ fun AuthTextField(
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .widthIn(max = 506.dp)
-            .height(88.dp)
-            .shadow(4.dp, RoundedCornerShape(20.dp), clip = false),
-        shape = RoundedCornerShape(20.dp),
+            .widthIn(max = 254.dp)
+            .height(44.dp)
+            .shadow(2.dp, RoundedCornerShape(10.dp), clip = false),
+        shape = RoundedCornerShape(10.dp),
         color = Color.White
     ) {
         BasicTextField(
@@ -123,7 +140,7 @@ fun AuthTextField(
             onValueChange = onValueChange,
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 30.dp),
+                .padding(horizontal = 15.dp),
             enabled = enabled,
             singleLine = true,
             textStyle = textStyle.copy(color = TracksyPrimaryPurple),
@@ -180,16 +197,16 @@ fun AuthPrimaryButton(
         onClick = onClick,
         modifier = modifier
             .fillMaxWidth()
-            .widthIn(max = 506.dp)
-            .height(88.dp)
-            .shadow(4.dp, RoundedCornerShape(50.dp), clip = false),
+            .widthIn(max = 254.dp)
+            .height(44.dp)
+            .shadow(2.dp, RoundedCornerShape(25.dp), clip = false),
         enabled = enabled,
-        shape = RoundedCornerShape(50.dp),
+        shape = RoundedCornerShape(25.dp),
         colors = ButtonDefaults.buttonColors(
             containerColor = containerColor,
             contentColor = contentColor
         ),
-        contentPadding = PaddingValues(horizontal = 24.dp)
+        contentPadding = PaddingValues(horizontal = 12.dp)
     ) {
         Text(
             text = text,

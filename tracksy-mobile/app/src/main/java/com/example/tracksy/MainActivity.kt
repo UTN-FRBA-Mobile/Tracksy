@@ -17,11 +17,29 @@ import com.example.tracksy.ui.history.HistoryItem
 import com.example.tracksy.ui.history.HistoryScreen
 import com.example.tracksy.ui.theme.TracksyTheme
 
+enum class AppScreen {
+    EditarLista, DetalleLista, CompararSupermercados
+}
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
+            TracksyTheme(dynamicColor = false) {
+                var currentScreen by remember { mutableStateOf(AppScreen.EditarLista) }
+                when (currentScreen) {
+                    AppScreen.EditarLista -> EditarListaScreen(
+                        onConfirmar = { currentScreen = AppScreen.DetalleLista },
+                        onBack = { currentScreen = AppScreen.DetalleLista }
+                    )
+                    AppScreen.DetalleLista -> DetalleListaScreen(
+                        onEditar = { currentScreen = AppScreen.EditarLista },
+                        onComparar = { currentScreen = AppScreen.CompararSupermercados }
+                    )
+                    AppScreen.CompararSupermercados -> CompararSupermercadosScreen(
+                        onBack = { currentScreen = AppScreen.DetalleLista }
+                    )
             TracksyTheme {
                 var isAuthenticated      by remember { mutableStateOf(false) }
                 var selectedTab         by remember { mutableStateOf(NavTab.HOME) }

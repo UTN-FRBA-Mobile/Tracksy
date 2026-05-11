@@ -1,5 +1,6 @@
 package com.example.tracksy.screens
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -42,7 +43,72 @@ fun ProductDetailScreen(
             ListOption("Cumpleaños Juan", 6)
         )
     }
-    var selectedLists by remember { mutableStateOf(emptySet<String>()) }
+
+    // Mock: Si una lista ya tiene ese prodcuto, se muestra pre-seleccionada
+    val initialLists = remember { setOf("Compra semanal") }
+    var selectedLists by remember { mutableStateOf(initialLists) }
+
+    // Estado confirmado: refleja lo último que se confirmó
+    var confirmedLists    by remember { mutableStateOf(initialLists) }
+    var confirmedQuantity by remember { mutableStateOf(1) }
+
+    var showExitAlert    by remember { mutableStateOf(false) }
+    var showConfirmAlert by remember { mutableStateOf(false) }
+
+    val hasChanges = selectedLists != confirmedLists || quantity != confirmedQuantity
+
+    val tryBack = {
+        if (hasChanges) showExitAlert = true else onBack()
+    }
+
+    BackHandler { tryBack() }
+
+    if (showConfirmAlert) {
+        AlertDialog(
+            onDismissRequest  = { showConfirmAlert = false },
+            containerColor    = TracksySurface,
+            titleContentColor = TracksyTitleText,
+            textContentColor  = TracksySubtitleText,
+            title = { Text("¿Confirmar cambios?") },
+            text  = { Text("Se aplicarán los cambios realizados en las listas y la cantidad.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showConfirmAlert  = false
+                    confirmedLists    = selectedLists
+                    confirmedQuantity = quantity
+                    onBack()
+                }) {
+                    Text("Confirmar", color = TracksyPrimary, fontWeight = FontWeight.SemiBold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showConfirmAlert = false }) {
+                    Text("Cancelar", color = TracksySubtitleText)
+                }
+            }
+        )
+    }
+
+    if (showExitAlert) {
+        AlertDialog(
+            onDismissRequest  = { showExitAlert = false },
+            containerColor    = TracksySurface,
+            titleContentColor = TracksyTitleText,
+            textContentColor  = TracksySubtitleText,
+            title = { Text("¿Salir sin confirmar?") },
+            text  = { Text("Tenés cambios sin confirmar. Si salís ahora, se perderán.") },
+            confirmButton = {
+                TextButton(onClick = { showExitAlert = false; onBack() }) {
+                    Text("Salir", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.SemiBold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showExitAlert = false }) {
+                    Text("Cancelar", color = TracksySubtitleText)
+                }
+            }
+        )
+    }
 
     Scaffold(
         containerColor = TracksyBackground,
@@ -55,7 +121,6 @@ fun ProductDetailScreen(
                 .padding(innerPadding)
                 .fillMaxSize()
         ) {
-            // Scrollable content
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -77,7 +142,7 @@ fun ProductDetailScreen(
                         tint = TracksyTitleText,
                         modifier = Modifier
                             .size(24.dp)
-                            .clickable { onBack() }
+                            .clickable { tryBack() }
                     )
                     Text(
                         text = "Producto",
@@ -103,7 +168,7 @@ fun ProductDetailScreen(
 
                 Spacer(Modifier.height(20.dp))
 
-                // Product card with quantity stepper
+                // Producto
                 Card(
                     shape     = RoundedCornerShape(16.dp),
                     colors    = CardDefaults.cardColors(containerColor = TracksySurface),
@@ -157,7 +222,7 @@ fun ProductDetailScreen(
 
                 Spacer(Modifier.height(12.dp))
 
-                // Nueva Lista row
+                // Nueva Lista
                 Card(
                     shape     = RoundedCornerShape(16.dp),
                     colors    = CardDefaults.cardColors(containerColor = TracksySurface),
@@ -197,7 +262,7 @@ fun ProductDetailScreen(
 
                 Spacer(Modifier.height(12.dp))
 
-                // Existing lists
+                // Listas existentes
                 lists.forEach { list ->
                     val isSelected = list.name in selectedLists
                     Card(
@@ -220,19 +285,13 @@ fun ProductDetailScreen(
                                 }
                                 .padding(horizontal = 18.dp, vertical = 18.dp)
                         ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(
-                                    text       = list.name,
-                                    fontSize   = 15.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    color      = TracksyTitleText
-                                )
-                                Text(
-                                    text     = "${list.productCount} productos",
-                                    fontSize = 12.sp,
-                                    color    = TracksySubtitleText
-                                )
-                            }
+                            Text(
+                                text       = list.name,
+                                fontSize   = 15.sp,
+                                fontWeight = FontWeight.Medium,
+                                color      = TracksyTitleText,
+                                modifier   = Modifier.weight(1f)
+                            )
                             Box(
                                 contentAlignment = Alignment.Center,
                                 modifier = Modifier
@@ -257,7 +316,7 @@ fun ProductDetailScreen(
                 }
             }
 
-            // Pinned "Confirmar cambios" button
+            // Boton confirmar cambios
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
@@ -266,7 +325,7 @@ fun ProductDetailScreen(
                     .padding(horizontal = 20.dp, vertical = 14.dp)
             ) {
                 Button(
-                    onClick = onBack,
+                    onClick = { showConfirmAlert = true },
                     shape  = RoundedCornerShape(50),
                     colors = ButtonDefaults.buttonColors(containerColor = TracksyTitleText),
                     modifier = Modifier

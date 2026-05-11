@@ -1,100 +1,71 @@
 package com.example.tracksy
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.tracksy.ui.theme.BackgroundLavender
-import com.example.tracksy.ui.theme.BadgeGreenBg
-import com.example.tracksy.ui.theme.BadgeGreenText
-import com.example.tracksy.ui.theme.BadgeOrangeBg
-import com.example.tracksy.ui.theme.BadgeOrangeText
-import com.example.tracksy.ui.theme.CardWhite
-import com.example.tracksy.ui.theme.LocationPinRed
-import com.example.tracksy.ui.theme.PlaceholderGray
-import com.example.tracksy.ui.theme.PrimaryDeepPurple
-import com.example.tracksy.ui.theme.TextPrimary
-import com.example.tracksy.ui.theme.TracksyTheme
+import androidx.compose.foundation.clickable
+import com.example.tracksy.ui.theme.*
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CompararSupermercadosScreen(
     onBack: () -> Unit = {}
 ) {
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = "Comparar\nsupermercados",
-                        fontWeight = FontWeight.Bold,
-                        textAlign = TextAlign.Center,
-                        lineHeight = 22.sp,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
-                    }
-                },
-                actions = {
-                    IconButton(onClick = {}) {
-                        Icon(Icons.Default.Person, contentDescription = null)
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = BackgroundLavender)
-            )
-        },
-        containerColor = BackgroundLavender
-    ) { padding ->
+    Scaffold(containerColor = TracksyBackground) { padding ->
         Column(
             modifier = Modifier
                 .padding(padding)
-                .padding(horizontal = 16.dp)
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState()),
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Spacer(Modifier.height(4.dp))
+            Spacer(Modifier.height(16.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
+                    contentDescription = "Volver",
+                    tint = TracksyTitleText,
+                    modifier = Modifier.size(24.dp).clickable { onBack() }
+                )
+                Text(
+                    text = "Comparar supermercados",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = TracksyTitleText
+                )
+                Box(
+                    contentAlignment = Alignment.Center,
+                    modifier = Modifier.size(42.dp).clip(CircleShape).background(TracksyDivider)
+                ) {
+                    Icon(Icons.Outlined.Person, contentDescription = "Perfil", tint = TracksySectionText, modifier = Modifier.size(24.dp))
+                }
+            }
 
             Text(
                 "Basado en: Compra semanal (8 productos)",
                 fontSize = 13.sp,
-                color = PlaceholderGray
+                color = TracksySubtitleText
             )
 
             SupermercadoCard(
@@ -130,7 +101,7 @@ fun CompararSupermercadosScreen(
             Text(
                 "* La app no calcula el costo de transporte. La distancia es referencial.",
                 fontSize = 12.sp,
-                color = PlaceholderGray
+                color = TracksySubtitleText
             )
 
             Spacer(Modifier.height(8.dp))
@@ -151,10 +122,8 @@ private fun SupermercadoCard(
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = CardWhite),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = if (rank == 1) 4.dp else 1.dp
-        )
+        colors = CardDefaults.cardColors(containerColor = TracksySurface),
+        elevation = CardDefaults.cardElevation(defaultElevation = if (rank == 1) 4.dp else 1.dp)
     ) {
         Row(
             modifier = Modifier
@@ -171,19 +140,19 @@ private fun SupermercadoCard(
                         "#$rank",
                         fontSize = 22.sp,
                         fontWeight = FontWeight.ExtraBold,
-                        color = TextPrimary
+                        color = TracksyTitleText
                     )
                     if (recomendado) {
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(50))
-                                .background(BadgeGreenBg)
+                                .background(TracksySuccessBadgeBackground)
                                 .padding(horizontal = 8.dp, vertical = 3.dp)
                         ) {
                             Text(
                                 "Recomendado",
                                 fontSize = 11.sp,
-                                color = BadgeGreenText,
+                                color = TracksySuccessGreen,
                                 fontWeight = FontWeight.Medium
                             )
                         }
@@ -192,12 +161,7 @@ private fun SupermercadoCard(
 
                 Spacer(Modifier.height(2.dp))
 
-                Text(
-                    nombre,
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 15.sp,
-                    color = TextPrimary
-                )
+                Text(nombre, fontWeight = FontWeight.SemiBold, fontSize = 15.sp, color = TracksyTitleText)
 
                 Spacer(Modifier.height(4.dp))
 
@@ -205,15 +169,11 @@ private fun SupermercadoCard(
                     Icon(
                         Icons.Default.LocationOn,
                         contentDescription = null,
-                        tint = LocationPinRed,
+                        tint = TracksyErrorRed,
                         modifier = Modifier.size(14.dp)
                     )
                     Spacer(Modifier.width(2.dp))
-                    Text(
-                        "$distancia · $disponibilidad",
-                        fontSize = 12.sp,
-                        color = PlaceholderGray
-                    )
+                    Text("$distancia · $disponibilidad", fontSize = 12.sp, color = TracksySubtitleText)
                 }
 
                 if (productoFaltante != null) {
@@ -221,15 +181,10 @@ private fun SupermercadoCard(
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(50))
-                            .background(BadgeOrangeBg)
+                            .background(TracksyWarningBadgeBackground)
                             .padding(horizontal = 8.dp, vertical = 3.dp)
                     ) {
-                        Text(
-                            productoFaltante,
-                            fontSize = 11.sp,
-                            color = BadgeOrangeText,
-                            fontWeight = FontWeight.Medium
-                        )
+                        Text(productoFaltante, fontSize = 11.sp, color = TracksyWarningText, fontWeight = FontWeight.Medium)
                     }
                 }
             }
@@ -240,17 +195,9 @@ private fun SupermercadoCard(
                 precio,
                 fontSize = 22.sp,
                 fontWeight = FontWeight.ExtraBold,
-                color = PrimaryDeepPurple,
+                color = TracksyTitleText,
                 modifier = Modifier.align(Alignment.CenterVertically)
             )
         }
-    }
-}
-
-@Preview(showBackground = true, showSystemUi = true)
-@Composable
-fun CompararSupermercadosPreview() {
-    TracksyTheme(dynamicColor = false) {
-        CompararSupermercadosScreen()
     }
 }

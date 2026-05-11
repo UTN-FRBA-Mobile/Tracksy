@@ -11,6 +11,7 @@ import com.example.tracksy.screens.NavTab
 import com.example.tracksy.screens.Product
 import com.example.tracksy.screens.ProductDetailScreen
 import com.example.tracksy.screens.ProductsScreen
+import com.example.tracksy.screens.ShoppingList
 import com.example.tracksy.ui.auth.TracksyAuthApp
 import com.example.tracksy.ui.history.HistoryDetailScreen
 import com.example.tracksy.ui.history.HistoryItem
@@ -26,26 +27,14 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            TracksyTheme(dynamicColor = false) {
-                var currentScreen by remember { mutableStateOf(AppScreen.EditarLista) }
-                when (currentScreen) {
-                    AppScreen.EditarLista -> EditarListaScreen(
-                        onConfirmar = { currentScreen = AppScreen.DetalleLista },
-                        onBack = { currentScreen = AppScreen.DetalleLista }
-                    )
-                    AppScreen.DetalleLista -> DetalleListaScreen(
-                        onEditar = { currentScreen = AppScreen.EditarLista },
-                        onComparar = { currentScreen = AppScreen.CompararSupermercados }
-                    )
-                    AppScreen.CompararSupermercados -> CompararSupermercadosScreen(
-                        onBack = { currentScreen = AppScreen.DetalleLista }
-                    )
             TracksyTheme {
                 var isAuthenticated      by remember { mutableStateOf(false) }
                 var selectedTab         by remember { mutableStateOf(NavTab.HOME) }
                 var showScanner         by remember { mutableStateOf(false) }
                 var selectedProduct     by remember { mutableStateOf<Product?>(null) }
                 var selectedHistoryItem by remember { mutableStateOf<HistoryItem?>(null) }
+                var selectedList        by remember { mutableStateOf<ShoppingList?>(null) }
+                var currentScreen       by remember { mutableStateOf(AppScreen.EditarLista) }
 
                 if (!isAuthenticated) {
                     TracksyAuthApp(onAuthenticated = { isAuthenticated = true })
@@ -53,6 +42,8 @@ class MainActivity : ComponentActivity() {
                     val onTabChange: (NavTab) -> Unit = { tab ->
                         selectedProduct     = null
                         selectedHistoryItem = null
+                        selectedList        = null
+                        currentScreen       = AppScreen.EditarLista
                         if (tab == NavTab.SCANNER) showScanner = true
                         else selectedTab = tab
                     }
@@ -72,9 +63,25 @@ class MainActivity : ComponentActivity() {
                             selectedTab = selectedTab,
                             onTabChange = onTabChange
                         )
+                        selectedList != null -> when (currentScreen) {
+                            AppScreen.DetalleLista -> DetalleListaScreen(
+                                onEditar   = { currentScreen = AppScreen.EditarLista },
+                                onComparar = { currentScreen = AppScreen.CompararSupermercados },
+                                onBack     = { selectedList = null; currentScreen = AppScreen.DetalleLista }
+                            )
+                            AppScreen.EditarLista -> EditarListaScreen(
+                                onConfirmar = { currentScreen = AppScreen.DetalleLista },
+                                onBack      = { currentScreen = AppScreen.DetalleLista }
+                            )
+                            AppScreen.CompararSupermercados -> CompararSupermercadosScreen(
+                                onBack = { currentScreen = AppScreen.DetalleLista }
+                            )
+                        }
                         selectedTab == NavTab.HISTORY -> HistoryScreen(
                             onBackClick = { selectedTab = NavTab.HOME },
-                            onItemClick = { item -> selectedHistoryItem = item }
+                            onItemClick = { item -> selectedHistoryItem = item },
+                            selectedTab = selectedTab,
+                            onTabChange = onTabChange
                         )
                         selectedTab == NavTab.PRODUCTS -> ProductsScreen(
                             selectedTab  = selectedTab,
@@ -83,7 +90,11 @@ class MainActivity : ComponentActivity() {
                         )
                         else -> HomeScreen(
                             selectedTab = selectedTab,
-                            onTabChange = onTabChange
+                            onTabChange = onTabChange,
+                            onListTap   = { list ->
+                                selectedList  = list
+                                currentScreen = AppScreen.DetalleLista
+                            }
                         )
                     }
                 }

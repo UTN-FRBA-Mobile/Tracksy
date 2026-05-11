@@ -44,7 +44,8 @@ enum class NavTab { HOME, LISTS, SCANNER, PRODUCTS, HISTORY }
 @Composable
 fun HomeScreen(
     selectedTab: NavTab,
-    onTabChange: (NavTab) -> Unit
+    onTabChange: (NavTab) -> Unit,
+    onListTap: (ShoppingList) -> Unit = {}
 ) {
     val suggestions = listOf(
         Suggestion("🥛", "Leche entera",  "La comprás cada 2 semanas"),
@@ -89,7 +90,7 @@ fun HomeScreen(
             SectionTitle("Mis listas")
             Spacer(Modifier.height(12.dp))
             lists.forEach { list ->
-                ListCard(list)
+                ListCard(list, onClick = { onListTap(list) })
                 Spacer(Modifier.height(12.dp))
             }
 
@@ -218,7 +219,7 @@ private fun SuggestionCard(suggestion: Suggestion) {
 
 // Listas
 @Composable
-private fun ListCard(list: ShoppingList) {
+private fun ListCard(list: ShoppingList, onClick: () -> Unit = {}) {
     val pendingLabel = if (list.pendingProducts == list.totalProducts)
         "todos pendientes"
     else
@@ -228,7 +229,7 @@ private fun ListCard(list: ShoppingList) {
         shape     = RoundedCornerShape(16.dp),
         colors    = CardDefaults.cardColors(containerColor = TracksySurface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        modifier  = Modifier.fillMaxWidth()
+        modifier  = Modifier.fillMaxWidth().clickable(onClick = onClick)
     ) {
         Column(
             modifier = Modifier

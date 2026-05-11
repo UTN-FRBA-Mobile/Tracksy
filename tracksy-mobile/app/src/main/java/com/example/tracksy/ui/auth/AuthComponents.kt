@@ -305,7 +305,11 @@ fun TracksyPasswordField(
     onValueChange: (String) -> Unit,
     label: String,
     modifier: Modifier = Modifier,
-    enabled: Boolean = true
+    enabled: Boolean = true,
+    isError: Boolean = false,
+    onFocusChanged: (Boolean) -> Unit = {},
+    imeAction: ImeAction = ImeAction.Done,
+    keyboardActions: KeyboardActions = KeyboardActions.Default
 ) {
     var passwordVisible by remember { mutableStateOf(false) }
 
@@ -315,8 +319,11 @@ fun TracksyPasswordField(
         label = label,
         modifier = modifier,
         enabled = enabled,
+        isError = isError,
+        onFocusChanged = onFocusChanged,
         keyboardType = KeyboardType.Password,
-        imeAction = ImeAction.Done,
+        imeAction = imeAction,
+        keyboardActions = keyboardActions,
         visualTransformation = if (passwordVisible) {
             VisualTransformation.None
         } else {

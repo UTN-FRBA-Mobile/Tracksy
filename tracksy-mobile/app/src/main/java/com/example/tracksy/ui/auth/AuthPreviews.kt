@@ -85,3 +85,144 @@ private fun CheckEmailSuccessPreview() {
         )
     }
 }
+
+@Preview(name = "Create Account Empty", showBackground = true)
+@Composable
+private fun CreateAccountEmptyPreview() {
+    TracksyTheme {
+        CreateAccountPreviewContent()
+    }
+}
+
+@Preview(name = "Create Account Invalid Email", showBackground = true)
+@Composable
+private fun CreateAccountInvalidEmailPreview() {
+    TracksyTheme {
+        CreateAccountPreviewContent(
+            name = "Juan",
+            email = "juan.perez@gmail",
+            password = "*3",
+            showPasswordRequirements = true,
+            emailErrorText = "Ingresá un correo electrónico válido"
+        )
+    }
+}
+
+@Preview(name = "Create Account Password Checklist Neutral", showBackground = true)
+@Composable
+private fun CreateAccountPasswordChecklistNeutralPreview() {
+    TracksyTheme {
+        CreateAccountPreviewContent(
+            name = "Juan",
+            email = "juan.perez@gmail.com",
+            password = "mobile123",
+            showPasswordRequirements = true
+        )
+    }
+}
+
+@Preview(name = "Create Account Password Checklist Errors", showBackground = true)
+@Composable
+private fun CreateAccountPasswordChecklistErrorsPreview() {
+    TracksyTheme {
+        CreateAccountPreviewContent(
+            name = "Juan",
+            email = "juan.perez@gmail.com",
+            password = "mobile123",
+            showPasswordRequirements = true,
+            showPasswordRequirementErrors = true
+        )
+    }
+}
+
+@Preview(name = "Create Account Password Valid", showBackground = true)
+@Composable
+private fun CreateAccountPasswordValidPreview() {
+    TracksyTheme {
+        CreateAccountPreviewContent(
+            name = "Juan",
+            email = "juan.perez@gmail.com",
+            password = "Mobile*123",
+            showPasswordRequirements = true
+        )
+    }
+}
+
+@Preview(name = "Create Account Password Mismatch", showBackground = true)
+@Composable
+private fun CreateAccountPasswordMismatchPreview() {
+    TracksyTheme {
+        CreateAccountPreviewContent(
+            name = "Juan",
+            email = "juan.perez@gmail.com",
+            password = "Mobile*123",
+            confirmPassword = "Mobile*124",
+            showPasswordRequirements = true,
+            showConfirmMismatch = true
+        )
+    }
+}
+
+@Preview(name = "Create Account Email Already Registered", showBackground = true)
+@Composable
+private fun CreateAccountEmailAlreadyRegisteredPreview() {
+    TracksyTheme {
+        CreateAccountPreviewContent(
+            name = "Juan",
+            email = "juan.perez@gmail.com",
+            password = "Mobile*123",
+            confirmPassword = "Mobile*123",
+            emailErrorText = "Este correo ya está registrado",
+            showPasswordRequirements = true
+        )
+    }
+}
+
+@Preview(name = "Create Account Fully Valid", showBackground = true)
+@Composable
+private fun CreateAccountFullyValidPreview() {
+    TracksyTheme {
+        CreateAccountPreviewContent(
+            name = "Juan",
+            email = "juan.perez@gmail.com",
+            password = "Mobile*123",
+            confirmPassword = "Mobile*123",
+            showPasswordRequirements = true,
+            isCreateEnabled = true
+        )
+    }
+}
+
+@Composable
+private fun CreateAccountPreviewContent(
+    name: String = "",
+    email: String = "",
+    password: String = "",
+    confirmPassword: String = "",
+    emailErrorText: String? = null,
+    showPasswordRequirements: Boolean = false,
+    showPasswordRequirementErrors: Boolean = false,
+    showConfirmMismatch: Boolean = false,
+    isCreateEnabled: Boolean = false
+) {
+    CreateAccountContent(
+        name = name,
+        email = email,
+        password = password,
+        confirmPassword = confirmPassword,
+        emailErrorText = emailErrorText,
+        showPasswordRequirements = showPasswordRequirements,
+        passwordRequirements = passwordRequirements(password),
+        showPasswordRequirementErrors = showPasswordRequirementErrors,
+        showConfirmMismatch = showConfirmMismatch,
+        isCreateEnabled = isCreateEnabled,
+        onNameChange = {},
+        onEmailChange = {},
+        onEmailFocusChanged = {},
+        onPasswordChange = {},
+        onPasswordFocusChanged = {},
+        onConfirmPasswordChange = {},
+        onSubmit = {},
+        onLogin = {}
+    )
+}

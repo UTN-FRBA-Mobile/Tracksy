@@ -21,6 +21,8 @@ val TracksyBorderSoft = Color(0xFFE2D8EE)
 val TracksyDisabledButtonBackground = Color(0xFFEEDDF0)
 val TracksyDisabledButtonText = Color(0xFF6F4B8B)
 val TracksyErrorRed = Color(0xFFC62828)
+val TracksySuccessGreen = Color(0xFF388E3C)
+val TracksyChecklistNeutral = Color(0xFF6F5F7D)
 
 val TracksyBrandPurple = TracksyPrimaryPurple
 val TracksyDarkPrimaryPurple = TracksyPrimaryDark

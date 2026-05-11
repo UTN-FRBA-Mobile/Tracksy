@@ -7,6 +7,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -15,6 +16,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
@@ -39,12 +41,16 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.tracksy.ui.theme.TracksyPrimaryPurple
+import com.example.tracksy.ui.theme.TracksyChecklistNeutral
+import com.example.tracksy.ui.theme.TracksyErrorRed
+import com.example.tracksy.ui.theme.TracksySuccessGreen
 import com.example.tracksy.ui.theme.TracksyTextMuted
 import com.example.tracksy.ui.theme.TracksyTextSecondary
 
 private enum class AuthRoute {
     Welcome,
     Login,
+    CreateAccount,
     RecoverPassword,
     CheckEmail
 }
@@ -56,24 +62,35 @@ private val AuthBodyTextStyle = TextStyle(
     letterSpacing = 0.sp
 )
 
+private val PasswordRequirementTextStyle = TextStyle(
+    fontWeight = FontWeight.Medium,
+    fontSize = 10.sp,
+    lineHeight = 12.sp,
+    letterSpacing = 0.sp
+)
+
 @Composable
 fun TracksyAuthApp() {
     var route by remember { mutableStateOf(AuthRoute.Welcome) }
 
     when (route) {
         AuthRoute.Welcome -> WelcomeScreen(
-            onCreateAccount = {
-                // TODO: Navigate to create account flow when it is implemented.
-            },
+            onCreateAccount = { route = AuthRoute.CreateAccount },
             onLogin = { route = AuthRoute.Login }
         )
 
         AuthRoute.Login -> LoginScreen(
             onLogin = { _, _ -> false },
             onForgotPassword = { route = AuthRoute.RecoverPassword },
-            onCreateAccount = {
-                // TODO: Navigate to create account flow when it is implemented.
-            }
+            onCreateAccount = { route = AuthRoute.CreateAccount }
+        )
+
+        AuthRoute.CreateAccount -> CreateAccountScreen(
+            onCreateAccount = { _, email, _ ->
+                // TODO: Replace with backend auth registration when available.
+                email != CreateAccountSampleRegisteredEmail
+            },
+            onLogin = { route = AuthRoute.Login }
         )
 
         AuthRoute.RecoverPassword -> RecoverPasswordScreen(
@@ -93,6 +110,13 @@ fun TracksyAuthApp() {
         )
     }
 }
+
+internal data class PasswordRequirement(
+    val text: String,
+    val isValid: Boolean
+)
+
+private val CreateAccountSampleRegisteredEmail = "juan.perez@gmail.com"
 
 @Composable
 fun WelcomeScreen(
@@ -231,6 +255,206 @@ internal fun LoginContent(
                     onClick = onCreateAccount,
                     modifier = Modifier.fillMaxWidth()
                 )
+            }
+        }
+    }
+}
+
+@Composable
+fun CreateAccountScreen(
+    onCreateAccount: (name: String, email: String, password: String) -> Boolean,
+    onLogin: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var name by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+    var confirmPassword by remember { mutableStateOf("") }
+    var emailBlurred by remember { mutableStateOf(false) }
+    var passwordFocused by remember { mutableStateOf(false) }
+    var passwordBlurred by remember { mutableStateOf(false) }
+    var confirmInteracted by remember { mutableStateOf(false) }
+    var submitAttempted by remember { mutableStateOf(false) }
+    var isEmailAlreadyRegistered by remember { mutableStateOf(false) }
+    val focusManager = LocalFocusManager.current
+    val passwordRequirements = passwordRequirements(password)
+    val isPasswordValid = passwordRequirements.all { it.isValid }
+    val isEmailFormatValid = isValidEmail(email)
+    val isConfirmValid = confirmPassword.isNotEmpty() && confirmPassword == password
+    val isFrontendValid = name.isNotBlank() &&
+        isEmailFormatValid &&
+        password.isNotEmpty() &&
+        isPasswordValid &&
+        isConfirmValid
+    val emailErrorText = when {
+        isEmailAlreadyRegistered -> "Este correo ya está registrado"
+        email.isNotBlank() && !isEmailFormatValid && (emailBlurred || submitAttempted) ->
+            "Ingresá un correo electrónico válido"
+        else -> null
+    }
+    val showConfirmMismatch = confirmPassword.isNotEmpty() &&
+        confirmPassword != password &&
+        (confirmInteracted || submitAttempted)
+
+    CreateAccountContent(
+        name = name,
+        email = email,
+        password = password,
+        confirmPassword = confirmPassword,
+        emailErrorText = emailErrorText,
+        showPasswordRequirements = passwordFocused || password.isNotEmpty(),
+        passwordRequirements = passwordRequirements,
+        showPasswordRequirementErrors = passwordBlurred || submitAttempted,
+        showConfirmMismatch = showConfirmMismatch,
+        isCreateEnabled = isFrontendValid && !isEmailAlreadyRegistered,
+        onNameChange = { name = it },
+        onEmailChange = {
+            email = it
+            emailBlurred = false
+            isEmailAlreadyRegistered = false
+        },
+        onEmailFocusChanged = { isFocused ->
+            if (!isFocused && email.isNotBlank()) {
+                emailBlurred = true
+            }
+        },
+        onPasswordChange = {
+            password = it
+            if (confirmPassword.isNotEmpty()) {
+                confirmInteracted = true
+            }
+        },
+        onPasswordFocusChanged = { isFocused ->
+            passwordFocused = isFocused
+            if (!isFocused && password.isNotEmpty()) {
+                passwordBlurred = true
+            }
+        },
+        onConfirmPasswordChange = {
+            confirmPassword = it
+            confirmInteracted = true
+        },
+        onSubmit = {
+            submitAttempted = true
+            focusManager.clearFocus()
+            if (isFrontendValid) {
+                isEmailAlreadyRegistered = !onCreateAccount(name, email, password)
+            }
+        },
+        onLogin = onLogin,
+        modifier = modifier
+    )
+}
+
+@Composable
+internal fun CreateAccountContent(
+    name: String,
+    email: String,
+    password: String,
+    confirmPassword: String,
+    emailErrorText: String?,
+    showPasswordRequirements: Boolean,
+    passwordRequirements: List<PasswordRequirement>,
+    showPasswordRequirementErrors: Boolean,
+    showConfirmMismatch: Boolean,
+    isCreateEnabled: Boolean,
+    onNameChange: (String) -> Unit,
+    onEmailChange: (String) -> Unit,
+    onEmailFocusChanged: (Boolean) -> Unit,
+    onPasswordChange: (String) -> Unit,
+    onPasswordFocusChanged: (Boolean) -> Unit,
+    onConfirmPasswordChange: (String) -> Unit,
+    onSubmit: () -> Unit,
+    onLogin: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val focusManager = LocalFocusManager.current
+
+    AuthScreenContainer(modifier = modifier) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .pointerInput(Unit) {
+                    detectTapGestures(onTap = { focusManager.clearFocus() })
+                }
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(top = 56.dp, bottom = 28.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                AuthHeader(title = "Crear cuenta")
+                Spacer(modifier = Modifier.height(34.dp))
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .widthIn(max = 254.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    TracksyTextField(
+                        value = name,
+                        onValueChange = onNameChange,
+                        label = "Nombre"
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    TracksyTextField(
+                        value = email,
+                        onValueChange = onEmailChange,
+                        label = "Correo electrónico",
+                        isError = emailErrorText != null,
+                        onFocusChanged = onEmailFocusChanged,
+                        keyboardType = KeyboardType.Email
+                    )
+                    if (emailErrorText != null) {
+                        Spacer(modifier = Modifier.height(10.dp))
+                        ErrorMessage(text = emailErrorText)
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                    TracksyPasswordField(
+                        value = password,
+                        onValueChange = onPasswordChange,
+                        label = "Contraseña",
+                        onFocusChanged = onPasswordFocusChanged,
+                        imeAction = ImeAction.Next
+                    )
+                    if (showPasswordRequirements) {
+                        Spacer(modifier = Modifier.height(10.dp))
+                        PasswordRequirementChecklist(
+                            requirements = passwordRequirements,
+                            showErrors = showPasswordRequirementErrors,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                    TracksyPasswordField(
+                        value = confirmPassword,
+                        onValueChange = onConfirmPasswordChange,
+                        label = "Confirmá tu contraseña",
+                        isError = showConfirmMismatch,
+                        keyboardActions = KeyboardActions(
+                            onDone = { focusManager.clearFocus() }
+                        )
+                    )
+                    if (showConfirmMismatch) {
+                        Spacer(modifier = Modifier.height(10.dp))
+                        ErrorMessage(text = "Las contraseñas no coinciden")
+                    }
+                    Spacer(modifier = Modifier.height(36.dp))
+                    TracksyPrimaryButton(
+                        text = "Crear cuenta",
+                        onClick = onSubmit,
+                        enabled = isCreateEnabled
+                    )
+                    Spacer(modifier = Modifier.height(20.dp))
+                    TracksyInlineLink(
+                        text = "¿Ya tenés cuenta?",
+                        linkText = "Iniciá sesión",
+                        onClick = onLogin,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
             }
         }
     }
@@ -450,6 +674,108 @@ private fun AuthBackButton(
             )
         }
     }
+}
+
+@Composable
+private fun PasswordRequirementChecklist(
+    requirements: List<PasswordRequirement>,
+    showErrors: Boolean,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier.padding(start = 17.dp),
+        verticalArrangement = Arrangement.spacedBy(2.dp)
+    ) {
+        requirements.forEach { requirement ->
+            PasswordRequirementRow(
+                text = requirement.text,
+                isValid = requirement.isValid,
+                showError = showErrors && !requirement.isValid
+            )
+        }
+    }
+}
+
+@Composable
+private fun PasswordRequirementRow(
+    text: String,
+    isValid: Boolean,
+    showError: Boolean,
+    modifier: Modifier = Modifier
+) {
+    val color = when {
+        isValid -> TracksySuccessGreen
+        showError -> TracksyErrorRed
+        else -> TracksyChecklistNeutral
+    }
+
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Canvas(modifier = Modifier.size(11.dp)) {
+            when {
+                isValid -> {
+                    drawLine(
+                        color = color,
+                        start = Offset(size.width * 0.12f, size.height * 0.55f),
+                        end = Offset(size.width * 0.40f, size.height * 0.82f),
+                        strokeWidth = 1.6.dp.toPx(),
+                        cap = StrokeCap.Round
+                    )
+                    drawLine(
+                        color = color,
+                        start = Offset(size.width * 0.40f, size.height * 0.82f),
+                        end = Offset(size.width * 0.88f, size.height * 0.18f),
+                        strokeWidth = 1.6.dp.toPx(),
+                        cap = StrokeCap.Round
+                    )
+                }
+
+                showError -> {
+                    drawLine(
+                        color = color,
+                        start = Offset(size.width * 0.18f, size.height * 0.18f),
+                        end = Offset(size.width * 0.82f, size.height * 0.82f),
+                        strokeWidth = 1.5.dp.toPx(),
+                        cap = StrokeCap.Round
+                    )
+                    drawLine(
+                        color = color,
+                        start = Offset(size.width * 0.82f, size.height * 0.18f),
+                        end = Offset(size.width * 0.18f, size.height * 0.82f),
+                        strokeWidth = 1.5.dp.toPx(),
+                        cap = StrokeCap.Round
+                    )
+                }
+
+                else -> {
+                    drawCircle(
+                        color = color,
+                        radius = size.minDimension * 0.34f,
+                        center = center,
+                        style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1.4.dp.toPx())
+                    )
+                }
+            }
+        }
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            text = text,
+            color = TracksyPrimaryPurple,
+            style = PasswordRequirementTextStyle
+        )
+    }
+}
+
+internal fun passwordRequirements(password: String): List<PasswordRequirement> {
+    return listOf(
+        PasswordRequirement("8+ caracteres", password.length >= 8),
+        PasswordRequirement("Carácter especial", password.any { !it.isLetterOrDigit() }),
+        PasswordRequirement("Una mayúscula", password.any { it.isUpperCase() }),
+        PasswordRequirement("Una minúscula", password.any { it.isLowerCase() }),
+        PasswordRequirement("Un número", password.any { it.isDigit() })
+    )
 }
 
 private fun isValidEmail(email: String): Boolean {

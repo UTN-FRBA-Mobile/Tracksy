@@ -75,7 +75,7 @@ private val PasswordRequirementTextStyle = TextStyle(
 )
 
 @Composable
-fun TracksyAuthApp() {
+fun TracksyAuthApp(onAuthenticated: () -> Unit = {}) {
     var route by remember { mutableStateOf(AuthRoute.Welcome) }
     var selectedHistoryItem by remember { mutableStateOf<HistoryItem?>(null) }
 
@@ -86,9 +86,9 @@ fun TracksyAuthApp() {
         )
 
         AuthRoute.Login -> LoginScreen(
-            onLogin = { _, _ -> 
-                route = AuthRoute.History
-                true 
+            onLogin = { _, _ ->
+                onAuthenticated()
+                true
             },
             onForgotPassword = { route = AuthRoute.RecoverPassword },
             onCreateAccount = { route = AuthRoute.CreateAccount }
@@ -96,7 +96,7 @@ fun TracksyAuthApp() {
 
         AuthRoute.CreateAccount -> CreateAccountScreen(
             onCreateAccount = { _, _, _ ->
-                route = AuthRoute.History
+                onAuthenticated()
                 true
             },
             onLogin = { route = AuthRoute.Login }

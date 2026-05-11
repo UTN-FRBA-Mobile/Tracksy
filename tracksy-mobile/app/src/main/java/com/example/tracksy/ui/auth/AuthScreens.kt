@@ -64,8 +64,8 @@ private val AuthBodyTextStyle = TextStyle(
 
 private val PasswordRequirementTextStyle = TextStyle(
     fontWeight = FontWeight.Medium,
-    fontSize = 10.sp,
-    lineHeight = 12.sp,
+    fontSize = 11.sp,
+    lineHeight = 14.sp,
     letterSpacing = 0.sp
 )
 
@@ -684,7 +684,7 @@ private fun PasswordRequirementChecklist(
 ) {
     Column(
         modifier = modifier.padding(start = 17.dp),
-        verticalArrangement = Arrangement.spacedBy(2.dp)
+        verticalArrangement = Arrangement.spacedBy(3.dp)
     ) {
         requirements.forEach { requirement ->
             PasswordRequirementRow(
@@ -713,7 +713,7 @@ private fun PasswordRequirementRow(
         modifier = modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Canvas(modifier = Modifier.size(11.dp)) {
+        Canvas(modifier = Modifier.size(13.dp)) {
             when {
                 isValid -> {
                     drawLine(

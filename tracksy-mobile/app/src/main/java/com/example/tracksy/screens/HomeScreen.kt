@@ -264,11 +264,17 @@ private fun TracksyBottomBar(
     selected: NavTab,
     onSelect: (NavTab) -> Unit
 ) {
+    // The outer Box height = Surface height + 32dp (top half of the 64dp QR button).
+    // QrNavButton is at TopCenter → fully inside Box bounds → touch events work correctly.
+    // Surface is pushed down 32dp so the QR button visually floats above it.
     Box(modifier = Modifier.fillMaxWidth()) {
         Surface(
             color           = TracksySurface,
             shadowElevation = 12.dp,
-            modifier        = Modifier.fillMaxWidth()
+            modifier        = Modifier
+                .fillMaxWidth()
+                .align(Alignment.BottomCenter)
+                .padding(top = 16.dp)
         ) {
             Row(
                 modifier              = Modifier
@@ -307,9 +313,7 @@ private fun TracksyBottomBar(
         }
         QrNavButton(
             onClick  = { onSelect(NavTab.SCANNER) },
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .offset(y = (-10).dp, x = (-10).dp)
+            modifier = Modifier.align(Alignment.TopCenter).offset(x = -10.dp)
         )
     }
 }
@@ -326,7 +330,7 @@ private fun NavItem(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier            = Modifier
             .clickable(onClick = onClick)
-            .padding(vertical = 10.dp, horizontal = 4.dp)
+            .padding(vertical = 10.dp, horizontal = 20.dp)
     ) {
         Icon(
             imageVector        = icon,
@@ -351,14 +355,22 @@ private fun QrNavButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
         modifier         = modifier
             .size(64.dp)
             .clip(CircleShape)
-            .background(TracksyPrimary)
+            .background(TracksyQrBorder)
             .clickable(onClick = onClick)
     ) {
-        Icon(
-            imageVector        = Icons.Outlined.QrCodeScanner,
-            contentDescription = "Escanear código",
-            tint               = Color.White,
-            modifier           = Modifier.size(30.dp)
-        )
+        Box(
+            contentAlignment = Alignment.Center,
+            modifier         = Modifier
+                .size(60.dp)
+                .clip(CircleShape)
+                .background(TracksyPrimary)
+        ) {
+            Icon(
+                imageVector        = Icons.Outlined.QrCodeScanner,
+                contentDescription = "Escanear código",
+                tint               = Color.White,
+                modifier           = Modifier.size(30.dp)
+            )
+        }
     }
 }

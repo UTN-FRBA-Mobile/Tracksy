@@ -62,19 +62,29 @@ fun BarcodeScannerScreen(
                 == PackageManager.PERMISSION_GRANTED
         )
     }
+    // Only true after the user explicitly denied the dialog
+    var permissionDenied by remember { mutableStateOf(false) }
 
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
-    ) { granted -> hasPermission = granted }
+    ) { granted ->
+        hasPermission = granted
+        if (!granted) permissionDenied = true
+    }
 
     LaunchedEffect(Unit) {
         if (!hasPermission) permissionLauncher.launch(Manifest.permission.CAMERA)
     }
 
-    if (hasPermission) {
-        ScannerView(onBarcodeDetected = onBarcodeDetected, onDismiss = onDismiss)
-    } else {
-        PermissionDeniedView(onDismiss = onDismiss)
+    when {
+        hasPermission   -> ScannerView(onBarcodeDetected = onBarcodeDetected, onDismiss = onDismiss)
+        permissionDenied -> PermissionDeniedView(onDismiss = onDismiss)
+        // Show a plain dark screen while the system dialog is visible
+        else -> Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black)
+        )
     }
 }
 

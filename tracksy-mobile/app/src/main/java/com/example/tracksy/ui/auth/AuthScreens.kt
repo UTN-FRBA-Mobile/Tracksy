@@ -40,6 +40,9 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.tracksy.ui.history.HistoryItem
+import com.example.tracksy.ui.history.HistoryScreen
+import com.example.tracksy.ui.history.HistoryDetailScreen
 import com.example.tracksy.ui.theme.TracksyPrimaryPurple
 import com.example.tracksy.ui.theme.TracksyChecklistNeutral
 import com.example.tracksy.ui.theme.TracksyErrorRed
@@ -52,7 +55,9 @@ private enum class AuthRoute {
     Login,
     CreateAccount,
     RecoverPassword,
-    CheckEmail
+    CheckEmail,
+    History,
+    HistoryDetail
 }
 
 private val AuthBodyTextStyle = TextStyle(
@@ -72,6 +77,7 @@ private val PasswordRequirementTextStyle = TextStyle(
 @Composable
 fun TracksyAuthApp() {
     var route by remember { mutableStateOf(AuthRoute.Welcome) }
+    var selectedHistoryItem by remember { mutableStateOf<HistoryItem?>(null) }
 
     when (route) {
         AuthRoute.Welcome -> WelcomeScreen(
@@ -80,15 +86,18 @@ fun TracksyAuthApp() {
         )
 
         AuthRoute.Login -> LoginScreen(
-            onLogin = { _, _ -> false },
+            onLogin = { _, _ -> 
+                route = AuthRoute.History
+                true 
+            },
             onForgotPassword = { route = AuthRoute.RecoverPassword },
             onCreateAccount = { route = AuthRoute.CreateAccount }
         )
 
         AuthRoute.CreateAccount -> CreateAccountScreen(
-            onCreateAccount = { _, email, _ ->
-                // TODO: Replace with backend auth registration when available.
-                email != CreateAccountSampleRegisteredEmail
+            onCreateAccount = { _, _, _ ->
+                route = AuthRoute.History
+                true
             },
             onLogin = { route = AuthRoute.Login }
         )
@@ -108,6 +117,23 @@ fun TracksyAuthApp() {
                 // TODO: Resend recover password instructions when backend is available.
             }
         )
+
+        AuthRoute.History -> HistoryScreen(
+            onBackClick = { route = AuthRoute.Login },
+            onItemClick = { item ->
+                selectedHistoryItem = item
+                route = AuthRoute.HistoryDetail
+            }
+        )
+
+        AuthRoute.HistoryDetail -> {
+            selectedHistoryItem?.let { item ->
+                HistoryDetailScreen(
+                    item = item,
+                    onBackClick = { route = AuthRoute.History }
+                )
+            }
+        }
     }
 }
 

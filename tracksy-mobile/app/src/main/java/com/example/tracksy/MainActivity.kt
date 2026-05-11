@@ -11,6 +11,7 @@ import com.example.tracksy.screens.NavTab
 import com.example.tracksy.screens.Product
 import com.example.tracksy.screens.ProductDetailScreen
 import com.example.tracksy.screens.ProductsScreen
+import com.example.tracksy.ui.auth.TracksyAuthApp
 import com.example.tracksy.ui.theme.TracksyTheme
 
 class MainActivity : ComponentActivity() {
@@ -50,6 +51,11 @@ class MainActivity : ComponentActivity() {
                         onTabChange = onTabChange
                     )
                 }
+            }
+        }
+    }
+}
+                TracksyAuthApp()
             }
         }
     }

@@ -43,10 +43,9 @@ enum class NavTab { HOME, LISTS, SCANNER, PRODUCTS, HISTORY }
 // Pantalla principal
 @Composable
 fun HomeScreen(
-    onScannerOpen: () -> Unit
+    selectedTab: NavTab,
+    onTabChange: (NavTab) -> Unit
 ) {
-    var selectedTab by remember { mutableStateOf(NavTab.HOME) }
-
     val suggestions = listOf(
         Suggestion("🥛", "Leche entera",  "La comprás cada 2 semanas"),
         Suggestion("🍞", "Pan lactal",    "Se te puede estar terminando")
@@ -59,13 +58,7 @@ fun HomeScreen(
     Scaffold(
         containerColor = TracksyBackground,
         bottomBar = {
-            TracksyBottomBar(
-                selected   = selectedTab,
-                onSelect   = { tab ->
-                    if (tab == NavTab.SCANNER) onScannerOpen()
-                    else selectedTab = tab
-                }
-            )
+            TracksyBottomBar(selected = selectedTab, onSelect = onTabChange)
         }
     ) { innerPadding ->
         Column(
@@ -260,7 +253,7 @@ private fun ListCard(list: ShoppingList) {
 
 // Navegación entre screens
 @Composable
-private fun TracksyBottomBar(
+fun TracksyBottomBar(
     selected: NavTab,
     onSelect: (NavTab) -> Unit
 ) {
@@ -271,6 +264,7 @@ private fun TracksyBottomBar(
         Surface(
             color           = TracksySurface,
             shadowElevation = 12.dp,
+            shape           = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
             modifier        = Modifier
                 .fillMaxWidth()
                 .align(Alignment.BottomCenter)
@@ -319,7 +313,7 @@ private fun TracksyBottomBar(
 }
 
 @Composable
-private fun NavItem(
+fun NavItem(
     icon: ImageVector,
     label: String,
     selected: Boolean,
@@ -349,7 +343,7 @@ private fun NavItem(
 }
 
 @Composable
-private fun QrNavButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
+fun QrNavButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
     Box(
         contentAlignment = Alignment.Center,
         modifier         = modifier

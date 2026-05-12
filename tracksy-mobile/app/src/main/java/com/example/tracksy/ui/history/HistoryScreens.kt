@@ -181,10 +181,21 @@ fun HistoryDetailScreen(
                     .padding(24.dp)
                     .navigationBarsPadding()
             ) {
-                TracksyPrimaryButton(
-                    text = "Reutilizar lista",
-                    onClick = {}
-                )
+                Button(
+                    onClick = {},
+                    shape  = RoundedCornerShape(50),
+                    colors = ButtonDefaults.buttonColors(containerColor = TracksyTitleText),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(52.dp)
+                ) {
+                    Text(
+                        text       = "Reutilizar Lista",
+                        fontSize   = 16.sp,
+                        fontWeight = FontWeight.Medium,
+                        color      = Color.White
+                    )
+                }
             }
         }
     }

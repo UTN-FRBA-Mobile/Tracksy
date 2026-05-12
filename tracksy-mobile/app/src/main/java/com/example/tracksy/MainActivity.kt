@@ -16,6 +16,9 @@ import com.example.tracksy.ui.auth.TracksyAuthApp
 import com.example.tracksy.ui.history.HistoryDetailScreen
 import com.example.tracksy.ui.history.HistoryItem
 import com.example.tracksy.ui.history.HistoryScreen
+import com.example.tracksy.ui.lists.DetalleListaScreen
+import com.example.tracksy.ui.lists.EditarListaScreen
+import com.example.tracksy.ui.supermarket.CompararSupermercadosScreen
 import com.example.tracksy.ui.theme.TracksyTheme
 
 enum class AppScreen {
@@ -65,13 +68,15 @@ class MainActivity : ComponentActivity() {
                         )
                         selectedList != null -> when (currentScreen) {
                             AppScreen.DetalleLista -> DetalleListaScreen(
-                                onEditar   = { currentScreen = AppScreen.EditarLista },
+                                onEditar = { currentScreen = AppScreen.EditarLista },
                                 onComparar = { currentScreen = AppScreen.CompararSupermercados },
-                                onBack     = { selectedList = null; currentScreen = AppScreen.DetalleLista }
+                                onBack = {
+                                    selectedList = null; currentScreen = AppScreen.DetalleLista
+                                }
                             )
                             AppScreen.EditarLista -> EditarListaScreen(
                                 onConfirmar = { currentScreen = AppScreen.DetalleLista },
-                                onBack      = { currentScreen = AppScreen.DetalleLista }
+                                onBack = { currentScreen = AppScreen.DetalleLista }
                             )
                             AppScreen.CompararSupermercados -> CompararSupermercadosScreen(
                                 onBack = { currentScreen = AppScreen.DetalleLista }

@@ -1,4 +1,4 @@
-package com.example.tracksy
+package com.example.tracksy.ui.lists
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -24,6 +24,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.tracksy.ui.theme.*
+import com.example.tracksy.ui.utils.dashedBorder
 
 @Composable
 fun EditarListaScreen(

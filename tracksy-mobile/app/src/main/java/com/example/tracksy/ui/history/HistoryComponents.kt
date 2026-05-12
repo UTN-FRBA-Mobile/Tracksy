@@ -37,19 +37,19 @@ import com.example.tracksy.ui.theme.*
 private val HistoryTitleStyle = TextStyle(
     fontWeight = FontWeight.Bold,
     fontSize = 20.sp,
-    color = TracksyPrimaryPurple
+    color = TracksyTitleText
 )
 
 private val CardTitleStyle = TextStyle(
     fontWeight = FontWeight.SemiBold,
     fontSize = 16.sp,
-    color = TracksyPrimaryPurple
+    color = TracksyTitleText
 )
 
 private val CardAmountStyle = TextStyle(
     fontWeight = FontWeight.Bold,
     fontSize = 16.sp,
-    color = TracksyPrimaryPurple
+    color = TracksyTitleText
 )
 
 private val CardSubtitleStyle = TextStyle(
@@ -192,7 +192,7 @@ fun ProductItemRow(
         verticalAlignment = Alignment.CenterVertically
     ) {
         val icon = if (product.isCompleted) Icons.Default.Check else Icons.Default.Close
-        val color = if (product.isCompleted) TracksyPrimaryPurple else TracksyErrorRed
+        val color = if (product.isCompleted) TracksyPrimary else TracksyErrorRed
         
         Surface(
             modifier = Modifier.size(24.dp),
@@ -213,7 +213,7 @@ fun ProductItemRow(
             text = product.name,
             style = CardSubtitleStyle.copy(
                 fontSize = 14.sp, 
-                color = if (product.isCompleted) TracksyTextSecondary else TracksyTextSecondary.copy(alpha = 0.6f)
+                color = if (product.isCompleted) TracksyPrimary else TracksyTextSecondary.copy(alpha = 0.6f)
             ),
             modifier = Modifier.weight(1f)
         )
@@ -222,65 +222,9 @@ fun ProductItemRow(
             text = product.price,
             style = CardAmountStyle.copy(
                 fontSize = 14.sp,
-                color = if (product.isCompleted) TracksyPrimaryPurple else TracksyErrorRed.copy(alpha = 0.8f)
+                color = if (product.isCompleted) TracksyPrimary else TracksyErrorRed.copy(alpha = 0.8f)
             ),
             textAlign = TextAlign.End
         )
     }
 }
-
-@Composable
-fun TracksyBottomNavigation(
-    selectedItem: String = "Historial",
-    modifier: Modifier = Modifier
-) {
-    NavigationBar(
-        containerColor = Color.White,
-        tonalElevation = 8.dp,
-        modifier = modifier
-    ) {
-        val items = listOf(
-            BottomNavItem("Inicio", Icons.Outlined.Home, Icons.Default.Home),
-            BottomNavItem("Listas", Icons.Outlined.List, Icons.Default.List),
-            BottomNavItem("Escanear", Icons.Outlined.CropFree, Icons.Default.CropFree, "Escanear Producto"),
-            BottomNavItem("Productos", Icons.Outlined.StarOutline, Icons.Default.Star),
-            BottomNavItem("Historial", Icons.Outlined.History, Icons.Default.History)
-        )
-
-        items.forEach { item ->
-            val isSelected = selectedItem == item.label
-            NavigationBarItem(
-                selected = isSelected,
-                onClick = { /* Navegar */ },
-                icon = {
-                    Icon(
-                        imageVector = if (isSelected) item.selectedIcon else item.unselectedIcon,
-                        contentDescription = item.label,
-                        modifier = Modifier.size(24.dp)
-                    )
-                },
-                label = {
-                    Text(
-                        text = item.shortLabel ?: item.label,
-                        fontSize = 10.sp,
-                        textAlign = TextAlign.Center
-                    )
-                },
-                colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor = TracksyPrimaryPurple,
-                    selectedTextColor = TracksyPrimaryPurple,
-                    unselectedIconColor = TracksyTextMuted,
-                    unselectedTextColor = TracksyTextMuted,
-                    indicatorColor = Color.Transparent
-                )
-            )
-        }
-    }
-}
-
-private data class BottomNavItem(
-    val label: String,
-    val unselectedIcon: ImageVector,
-    val selectedIcon: ImageVector,
-    val shortLabel: String? = null
-)

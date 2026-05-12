@@ -1,4 +1,4 @@
-package com.example.tracksy
+package com.example.tracksy.ui.lists
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border

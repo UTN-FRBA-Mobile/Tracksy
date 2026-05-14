@@ -37,7 +37,8 @@ data class Product(
 fun ProductsScreen(
     selectedTab: NavTab,
     onTabChange: (NavTab) -> Unit,
-    onProductTap: (Product) -> Unit = {}
+    onProductTap: (Product) -> Unit = {},
+    onProfileClick: () -> Unit = {}
 ) {
     var searchQuery by remember { mutableStateOf("") }
     var favorites by remember {
@@ -190,6 +191,7 @@ fun ProductsScreen(
                         .size(42.dp)
                         .clip(CircleShape)
                         .background(TracksyDivider)
+                        .clickable(onClick = onProfileClick)
                 ) {
                     Icon(
                         imageVector = Icons.Outlined.Person,

@@ -27,6 +27,7 @@ import com.example.tracksy.ui.theme.*
 fun DetalleListaScreen(
     onEditar: () -> Unit = {},
     onComparar: () -> Unit = {},
+    onFinalizar: () -> Unit = {},
     onBack: () -> Unit = {}
 ) {
     var tabSeleccionado by remember { mutableIntStateOf(0) }
@@ -163,7 +164,7 @@ fun DetalleListaScreen(
                     }
                 }
                 Button(
-                    onClick = {},
+                    onClick = onFinalizar,
                     modifier = Modifier.fillMaxWidth().height(52.dp),
                     shape = RoundedCornerShape(50),
                     colors = ButtonDefaults.buttonColors(containerColor = TracksyTitleText)

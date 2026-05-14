@@ -30,6 +30,7 @@ fun HistoryScreen(
     onItemClick: (HistoryItem) -> Unit,
     selectedTab: NavTab = NavTab.HISTORY,
     onTabChange: (NavTab) -> Unit = {},
+    onProfileClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Scaffold(
@@ -59,7 +60,7 @@ fun HistoryScreen(
                 )
                 Box(
                     contentAlignment = Alignment.Center,
-                    modifier = Modifier.size(42.dp).clip(CircleShape).background(TracksyDivider)
+                    modifier = Modifier.size(42.dp).clip(CircleShape).background(TracksyDivider).clickable(onClick = onProfileClick)
                 ) {
                     Icon(Icons.Outlined.Person, contentDescription = "Perfil", tint = TracksySectionText, modifier = Modifier.size(24.dp))
                 }

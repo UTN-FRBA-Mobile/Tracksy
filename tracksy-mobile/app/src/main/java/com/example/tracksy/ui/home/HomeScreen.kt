@@ -45,7 +45,8 @@ enum class NavTab { HOME, LISTS, SCANNER, PRODUCTS, HISTORY }
 fun HomeScreen(
     selectedTab: NavTab,
     onTabChange: (NavTab) -> Unit,
-    onListTap: (ShoppingList) -> Unit = {}
+    onListTap: (ShoppingList) -> Unit = {},
+    onProfileClick: () -> Unit = {}
 ) {
     val suggestions = listOf(
         Suggestion("🥛", "Leche entera",  "La comprás cada 2 semanas"),
@@ -72,7 +73,7 @@ fun HomeScreen(
             Spacer(Modifier.height(16.dp))
 
             // Top bar
-            TopBar()
+            TopBar(onProfileClick = onProfileClick)
 
             Spacer(Modifier.height(24.dp))
 
@@ -101,7 +102,7 @@ fun HomeScreen(
 
 // Top Bar
 @Composable
-private fun TopBar() {
+private fun TopBar(onProfileClick: () -> Unit = {}) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -119,6 +120,7 @@ private fun TopBar() {
                 .size(42.dp)
                 .clip(CircleShape)
                 .background(TracksyDivider)
+                .clickable(onClick = onProfileClick)
         ) {
             Icon(
                 imageVector        = Icons.Outlined.Person,

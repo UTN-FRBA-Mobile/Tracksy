@@ -11,6 +11,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -23,6 +25,7 @@ import com.example.tracksy.screens.NavTab
 import com.example.tracksy.screens.TracksyBottomBar
 import com.example.tracksy.ui.theme.LocalTracksyColors
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HistoryScreen(
     onBackClick: () -> Unit,
@@ -31,9 +34,12 @@ fun HistoryScreen(
     selectedTab: NavTab = NavTab.HISTORY,
     onTabChange: (NavTab) -> Unit = {},
     onProfileClick: () -> Unit = {},
+    isRefreshing: Boolean = false,
+    onRefresh: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val colors = LocalTracksyColors.current
+    val pullRefreshState = rememberPullToRefreshState()
 
     Scaffold(
         containerColor = colors.background,
@@ -41,10 +47,15 @@ fun HistoryScreen(
             TracksyBottomBar(selected = selectedTab, onSelect = onTabChange)
         }
     ) { paddingValues ->
+        PullToRefreshBox(
+            isRefreshing = isRefreshing,
+            onRefresh = onRefresh,
+            state = pullRefreshState,
+            modifier = modifier.padding(paddingValues)
+        ) {
         Column(
-            modifier = modifier
+            modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
                 .padding(horizontal = 20.dp)
         ) {
             Spacer(Modifier.height(16.dp))
@@ -92,6 +103,7 @@ fun HistoryScreen(
                 }
             }
         }
+        } // PullToRefreshBox
     }
 }
 

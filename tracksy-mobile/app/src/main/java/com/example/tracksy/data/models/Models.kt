@@ -40,7 +40,7 @@ data class Usuario(
 data class ProductoUsuario(
     val id: Int,
     val usuario: Int,
-    val producto: Int,
+    val producto: Long,   // EAN-13 barcode = product PK
     val favorito: Boolean
 )
 
@@ -52,7 +52,7 @@ data class Marca(
 )
 
 data class Producto(
-    val id: Int,
+    val id: Long,           // EAN-13 barcode IS the primary key
     val nombre: String,
     val marca: Int?,
     @SerializedName("marca_nombre") val marcaNombre: String?
@@ -70,7 +70,7 @@ data class Supermercado(
 
 data class ProductoListado(
     val id: Int,
-    val producto: Int,
+    val producto: Long,   // EAN-13 barcode
     @SerializedName("producto_nombre") val productoNombre: String,
     val supermercado: Int,
     @SerializedName("supermercado_nombre") val supermercadoNombre: String,
@@ -89,7 +89,7 @@ data class EstadoProducto(
 data class ItemProducto(
     val id: Int,
     val lista: Int,
-    val producto: Int,
+    val producto: Long,   // EAN-13 barcode
     @SerializedName("producto_nombre") val productoNombre: String,
     val cantidad: Int,
     val estado: Int,
@@ -115,7 +115,7 @@ data class ListaCompraRequest(
 )
 
 data class ItemProductoRequest(
-    val producto: Int,
+    val producto: Long,   // EAN-13 barcode
     val cantidad: Int,
     val estado: Int,
     @SerializedName("precio_unitario") val precioUnitario: Double
@@ -126,7 +126,7 @@ data class ItemProductoRequest(
 data class ProductoComprado(
     val id: Int,
     val compra: Int,
-    val producto: Int,
+    val producto: Long,   // EAN-13 barcode
     @SerializedName("producto_nombre") val productoNombre: String,
     val cantidad: Int,
     @SerializedName("precio_unitario") val precioUnitario: Double
@@ -149,7 +149,7 @@ data class CompraRequest(
 )
 
 data class ProductoCompradoRequest(
-    val producto: Int,
+    val producto: Long,   // EAN-13 barcode
     val cantidad: Int,
     @SerializedName("precio_unitario") val precioUnitario: Double
 )
@@ -171,7 +171,7 @@ data class FeedbackSugerencia(
 data class Sugerencia(
     val id: Int,
     val usuario: Int,
-    val producto: Int,
+    val producto: Long,   // EAN-13 barcode
     @SerializedName("producto_nombre") val productoNombre: String,
     val fecha: String,
     val estado: Int,
@@ -181,7 +181,7 @@ data class Sugerencia(
 )
 
 data class SugerenciaRequest(
-    val producto: Int,
+    val producto: Long,   // EAN-13 barcode
     val estado: Int,
     val motivo: String
 )

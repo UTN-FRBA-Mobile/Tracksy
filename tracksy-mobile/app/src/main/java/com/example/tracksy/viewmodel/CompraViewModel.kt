@@ -29,6 +29,9 @@ class CompraViewModel(
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
 
+    // Exposed as StateFlow for pull-to-refresh indicator compatibility
+    val isRefreshing: StateFlow<Boolean> = _isLoading
+
     private val token get() = tokenManager.accessToken ?: ""
 
     fun cargarCompras() {
@@ -47,7 +50,7 @@ class CompraViewModel(
     fun crearCompra(
         supermercadoId: Int,
         total: Double,
-        productos: List<Triple<Int, Int, Double>>   // (productoId, cantidad, precioUnitario)
+        productos: List<Triple<Long, Int, Double>>   // (productoId EAN-13, cantidad, precioUnitario)
     ) {
         viewModelScope.launch {
             try {

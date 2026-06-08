@@ -60,7 +60,7 @@ class SugerenciaViewModel(
         }
     }
 
-    fun crearSugerencia(productoId: Int, motivo: String) {
+    fun crearSugerencia(productoId: Long, motivo: String) {
         viewModelScope.launch {
             val estadoId = _estados.value.firstOrNull()?.id ?: return@launch
             try {

@@ -77,6 +77,8 @@ data class TracksyColors(
     val divider: Color,
     val errorRed: Color,
     val successGreen: Color,
+    val navActive: Color,
+    val navInactive: Color,
     val isDark: Boolean
 )
 
@@ -90,6 +92,8 @@ fun lightTracksyColors() = TracksyColors(
     divider      = Color(0xFFDDD8F0),
     errorRed     = Color(0xFFC62828),
     successGreen = Color(0xFF388E3C),
+    navActive    = Color(0xFF1A0B5C),   // dark purple — visible on light surface
+    navInactive  = Color(0xFF9B8FD4),
     isDark       = false
 )
 
@@ -99,10 +103,12 @@ fun darkTracksyColors() = TracksyColors(
     titleText    = Color(0xFFEDE8FF),
     sectionText  = Color(0xFFB0A8E0),
     subtitleText = Color(0xFF8880C0),
-    primary      = Color(0xFF9B8FD4),
+    primary      = Color(0xFFB8AFEE),
     divider      = Color(0xFF2E2660),
     errorRed     = Color(0xFFEF5350),
     successGreen = Color(0xFF66BB6A),
+    navActive    = Color(0xFFEDE8FF),   // near-white lavender — high contrast on dark surface
+    navInactive  = Color(0xFF5C5490),
     isDark       = true
 )
 

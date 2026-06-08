@@ -61,7 +61,7 @@ interface ApiService {
     @GET("api/v1/productos/{id}/")
     suspend fun getProducto(
         @Header("Authorization") token: String,
-        @Path("id") id: Int
+        @Path("id") id: Long
     ): Response<Producto>
 
     @GET("api/v1/productos/marcas/")
@@ -85,7 +85,7 @@ interface ApiService {
     suspend fun getListados(
         @Header("Authorization") token: String,
         @Query("supermercado") supermercadoId: Int? = null,
-        @Query("producto") productoId: Int? = null,
+        @Query("producto") productoId: Long? = null,
         @Query("disponible") disponible: Boolean? = null
     ): Response<PaginatedResponse<ProductoListado>>
 

@@ -61,14 +61,15 @@ class MainActivity : ComponentActivity() {
             TracksyTheme(darkTheme = isDarkMode) {
 
                 // ── ViewModel state ──────────────────────────────────────────
-                val isAuthenticated  by authViewModel.isAuthenticated.collectAsState()
-                val perfilState      by perfilViewModel.perfil.collectAsState()
-                val productos        by productoViewModel.productos.collectAsState()
-                val favoritos        by productoViewModel.favoritos.collectAsState()
-                val listas           by listaViewModel.listas.collectAsState()
-                val listaActual      by listaViewModel.listaActual.collectAsState()
-                val supermercados    by listaViewModel.supermercados.collectAsState()
-                val compras          by compraViewModel.compras.collectAsState()
+                val isAuthenticated      by authViewModel.isAuthenticated.collectAsState()
+                val perfilState          by perfilViewModel.perfil.collectAsState()
+                val productos            by productoViewModel.productos.collectAsState()
+                val favoritos            by productoViewModel.favoritos.collectAsState()
+                val productosBusqueda    by productoViewModel.productosBusqueda.collectAsState()
+                val listas               by listaViewModel.listas.collectAsState()
+                val listaActual          by listaViewModel.listaActual.collectAsState()
+                val supermercados        by listaViewModel.supermercados.collectAsState()
+                val compras              by compraViewModel.compras.collectAsState()
 
                 // ── Sugerencias derivadas del historial de compras ───────────
                 val sugerenciasGeneradas by remember(compras, productos) {
@@ -92,9 +93,9 @@ class MainActivity : ComponentActivity() {
                             }
                     }
                 }
-                var dismissedSuggestionIds by remember { mutableStateOf(emptySet<Int>()) }
+                var dismissedSuggestionIds by remember { mutableStateOf(emptySet<Long>()) }
                 val sugerenciasVisibles = remember(sugerenciasGeneradas, dismissedSuggestionIds) {
-                    sugerenciasGeneradas.filter { (it.productoId ?: -1) !in dismissedSuggestionIds }
+                    sugerenciasGeneradas.filter { (it.productoId ?: -1L) !in dismissedSuggestionIds }
                 }
 
                 // ── UI navigation state ──────────────────────────────────────
@@ -121,6 +122,25 @@ class MainActivity : ComponentActivity() {
                         listaViewModel.cargarEstadosProducto()
                         listaViewModel.cargarSupermercados()
                         compraViewModel.cargarCompras()
+                    }
+                }
+
+                // Auto-refresh al cambiar de tab (sincroniza los datos de la pantalla activa)
+                LaunchedEffect(selectedTab) {
+                    if (isAuthenticated) {
+                        when (selectedTab) {
+                            NavTab.HOME -> {
+                                listaViewModel.cargarListas()
+                                compraViewModel.cargarCompras()
+                            }
+                            NavTab.LISTS -> listaViewModel.cargarListas()
+                            NavTab.PRODUCTS -> {
+                                productoViewModel.cargarProductos()
+                                productoViewModel.cargarFavoritos()
+                            }
+                            NavTab.HISTORY -> compraViewModel.cargarCompras()
+                            NavTab.SCANNER -> Unit
+                        }
                     }
                 }
 
@@ -152,6 +172,11 @@ class MainActivity : ComponentActivity() {
                             if (tab == NavTab.SCANNER) showScanner = true
                             else selectedTab = tab
                         }
+
+                        // ── Pull-to-refresh helpers por tab ───────────────────
+                        val isLoadingProductos by productoViewModel.isLoading.collectAsState()
+                        val isLoadingListas    by listaViewModel.isLoading.collectAsState()
+                        val isLoadingCompras   by compraViewModel.isRefreshing.collectAsState()
 
                         when {
                             showCambiarContrasena -> CambiarContrasenaScreen(
@@ -225,7 +250,7 @@ class MainActivity : ComponentActivity() {
                             // ── Nueva lista standalone ────────────────────────
                             showEditarListaStandalone -> EditarListaScreen(
                                 listaActual          = null,
-                                productosDisponibles = productos,
+                                productosDisponibles = productosBusqueda,
                                 supermercados        = supermercados,
                                 onConfirmar = { nombre, supermercadoId, items ->
                                     listaViewModel.crearListaConItems(
@@ -233,19 +258,22 @@ class MainActivity : ComponentActivity() {
                                         supermercadoId = supermercadoId,
                                         items          = items.map { it.productoId to it.cantidad }
                                     )
+                                    productoViewModel.limpiarBusquedaLista()
                                     showEditarListaStandalone = false
                                     pendingBarcode            = null
                                     selectedTab               = NavTab.LISTS
                                 },
                                 onBack = {
+                                    productoViewModel.limpiarBusquedaLista()
                                     showEditarListaStandalone = false
                                     pendingBarcode            = null
                                 },
-                                onScanBarcode  = {
+                                onScanBarcode    = {
                                     scannerFromList = true
                                     showScanner     = true
                                 },
-                                scannedBarcode = pendingBarcode
+                                onBuscarCatalogo = { productoViewModel.buscarProductosParaLista(it) },
+                                scannedBarcode   = pendingBarcode
                             )
 
                             // ── Flujo de lista seleccionada ───────────────────
@@ -267,7 +295,7 @@ class MainActivity : ComponentActivity() {
 
                                 AppScreen.EditarLista -> EditarListaScreen(
                                     listaActual          = listaActual,
-                                    productosDisponibles = productos,
+                                    productosDisponibles = productosBusqueda,
                                     supermercados        = supermercados,
                                     onConfirmar = { nombre, supermercadoId, items ->
                                         val listaId = listaActual?.id
@@ -284,14 +312,19 @@ class MainActivity : ComponentActivity() {
                                                 }
                                             listaViewModel.cargarLista(listaId)
                                         }
+                                        productoViewModel.limpiarBusquedaLista()
                                         currentScreen = AppScreen.DetalleLista
                                     },
-                                    onBack        = { currentScreen = AppScreen.DetalleLista },
-                                    onScanBarcode = {
+                                    onBack = {
+                                        productoViewModel.limpiarBusquedaLista()
+                                        currentScreen = AppScreen.DetalleLista
+                                    },
+                                    onScanBarcode    = {
                                         scannerFromList = true
                                         showScanner     = true
                                     },
-                                    scannedBarcode = pendingBarcode
+                                    onBuscarCatalogo = { productoViewModel.buscarProductosParaLista(it) },
+                                    scannedBarcode   = pendingBarcode
                                 )
 
                                 AppScreen.CompararSupermercados -> CompararSupermercadosScreen(
@@ -354,7 +387,9 @@ class MainActivity : ComponentActivity() {
                                 },
                                 onCreateNewList = { showEditarListaStandalone = true },
                                 onDeleteList    = { list -> listaViewModel.eliminarLista(list.id) },
-                                onProfileClick  = { showPerfil = true }
+                                onProfileClick  = { showPerfil = true },
+                                isRefreshing    = isLoadingListas,
+                                onRefresh       = { listaViewModel.cargarListas() }
                             )
 
                             selectedTab == NavTab.HISTORY -> HistoryScreen(
@@ -363,18 +398,28 @@ class MainActivity : ComponentActivity() {
                                 items          = compras,
                                 selectedTab    = selectedTab,
                                 onTabChange    = onTabChange,
-                                onProfileClick = { showPerfil = true }
+                                onProfileClick = { showPerfil = true },
+                                isRefreshing   = isLoadingCompras,
+                                onRefresh      = { compraViewModel.cargarCompras() }
                             )
 
                             selectedTab == NavTab.PRODUCTS -> ProductsScreen(
-                                selectedTab    = selectedTab,
-                                onTabChange    = onTabChange,
-                                productosApi   = productos,
-                                favoritosApi   = favoritos,
-                                onProductTap   = { product -> selectedProduct = product },
-                                onProfileClick = { showPerfil = true },
-                                onSearchChange = { query ->
+                                selectedTab      = selectedTab,
+                                onTabChange      = onTabChange,
+                                productosApi     = productos,
+                                favoritosApi     = favoritos,
+                                onProductTap     = { product -> selectedProduct = product },
+                                onProfileClick   = { showPerfil = true },
+                                onSearchChange   = { query ->
                                     productoViewModel.cargarProductos(query.takeIf { it.isNotBlank() })
+                                },
+                                onToggleFavorito = { id, esFavorito ->
+                                    productoViewModel.toggleFavorito(id, esFavorito)
+                                },
+                                isRefreshing     = isLoadingProductos,
+                                onRefresh        = {
+                                    productoViewModel.cargarProductos()
+                                    productoViewModel.cargarFavoritos()
                                 }
                             )
 
@@ -383,6 +428,11 @@ class MainActivity : ComponentActivity() {
                                 onTabChange    = onTabChange,
                                 listas         = listas,
                                 sugerencias    = sugerenciasVisibles,
+                                isRefreshing   = isLoadingListas,
+                                onRefresh      = {
+                                    listaViewModel.cargarListas()
+                                    compraViewModel.cargarCompras()
+                                },
                                 onListTap      = { list ->
                                     selectedList  = list
                                     currentScreen = AppScreen.DetalleLista

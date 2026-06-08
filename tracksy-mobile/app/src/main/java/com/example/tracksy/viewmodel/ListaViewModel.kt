@@ -102,24 +102,44 @@ class ListaViewModel(
     fun crearListaConItems(
         nombre: String,
         supermercadoId: Int?,
-        items: List<Pair<Int, Int>>  // (productoId, cantidad)
+        items: List<Pair<Long, Int>>  // (productoId EAN-13, cantidad)
     ) {
         viewModelScope.launch {
             _isLoading.value = true
             try {
+                // Fetch estados synchronously if not yet loaded (avoids race condition)
+                if (_estadosProducto.value.isEmpty()) {
+                    val estadosResp = repo.getEstadosProducto(token)
+                    if (estadosResp.isSuccessful) {
+                        _estadosProducto.value = estadosResp.body()?.results ?: emptyList()
+                    }
+                }
+
                 val listaResp = repo.crearLista(token, nombre, supermercadoId)
                 if (listaResp.isSuccessful) {
                     val listaId = listaResp.body()!!.id
-                    val estadoId = idEstadoPendiente()
-                        ?: _estadosProducto.value.firstOrNull()?.id
-                        ?: return@launch
-                    items.forEach { (productoId, cantidad) ->
-                        repo.agregarItem(token, listaId, productoId, cantidad, estadoId, 0.0)
+
+                    // Add items only if an estado exists (don't bail with return@launch
+                    // before the finally block — that would leave _isLoading stuck at true)
+                    val estadoId = idEstadoPendiente() ?: _estadosProducto.value.firstOrNull()?.id
+                    if (estadoId != null) {
+                        items.forEach { (productoId, cantidad) ->
+                            repo.agregarItem(token, listaId, productoId, cantidad, estadoId, 0.0)
+                        }
                     }
-                    cargarListas()
+
+                    // Reload lists inline (avoid launching a child coroutine that races
+                    // with this one for _isLoading, causing infinite spinner)
+                    val listasResp = repo.getListas(token)
+                    if (listasResp.isSuccessful) {
+                        _listas.value = listasResp.body()?.results?.map { it.toUiModel() } ?: emptyList()
+                    }
                 }
-            } catch (_: Exception) { }
-            _isLoading.value = false
+            } catch (_: Exception) {
+            } finally {
+                // Always reached — no more stuck spinner
+                _isLoading.value = false
+            }
         }
     }
 
@@ -143,7 +163,7 @@ class ListaViewModel(
         }
     }
 
-    fun agregarItem(listaId: Int, productoId: Int, cantidad: Int, estadoId: Int, precio: Double) {
+    fun agregarItem(listaId: Int, productoId: Long, cantidad: Int, estadoId: Int, precio: Double) {
         viewModelScope.launch {
             try {
                 val response = repo.agregarItem(token, listaId, productoId, cantidad, estadoId, precio)

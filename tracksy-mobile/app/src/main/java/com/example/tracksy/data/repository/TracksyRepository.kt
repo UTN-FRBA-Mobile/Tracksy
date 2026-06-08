@@ -32,7 +32,7 @@ class TracksyRepository(
 
     suspend fun getFavoritos(token: String) = api.getFavoritos(bearer(token))
 
-    suspend fun addFavorito(token: String, productoId: Int) =
+    suspend fun addFavorito(token: String, productoId: Long) =
         api.addFavorito(bearer(token), mapOf("producto" to productoId, "favorito" to true))
 
     suspend fun removeFavorito(token: String, id: Int) =
@@ -43,7 +43,7 @@ class TracksyRepository(
     suspend fun getProductos(token: String, search: String? = null, page: Int? = null) =
         api.getProductos(bearer(token), search, page)
 
-    suspend fun getProducto(token: String, id: Int) = api.getProducto(bearer(token), id)
+    suspend fun getProducto(token: String, id: Long) = api.getProducto(bearer(token), id)
 
     suspend fun getMarcas(token: String) = api.getMarcas(bearer(token))
 
@@ -57,7 +57,7 @@ class TracksyRepository(
     suspend fun getListados(
         token: String,
         supermercadoId: Int? = null,
-        productoId: Int? = null,
+        productoId: Long? = null,
         disponible: Boolean? = null
     ) = api.getListados(bearer(token), supermercadoId, productoId, disponible)
 
@@ -78,7 +78,7 @@ class TracksyRepository(
     suspend fun agregarItem(
         token: String,
         listaId: Int,
-        productoId: Int,
+        productoId: Long,
         cantidad: Int,
         estadoId: Int,
         precioUnitario: Double
@@ -108,7 +108,7 @@ class TracksyRepository(
 
     suspend fun getSugerencias(token: String) = api.getSugerencias(bearer(token))
 
-    suspend fun crearSugerencia(token: String, productoId: Int, estadoId: Int, motivo: String) =
+    suspend fun crearSugerencia(token: String, productoId: Long, estadoId: Int, motivo: String) =
         api.crearSugerencia(bearer(token), SugerenciaRequest(productoId, estadoId, motivo))
 
     suspend fun agregarFeedback(token: String, sugerenciaId: Int, fueUtil: Boolean) =

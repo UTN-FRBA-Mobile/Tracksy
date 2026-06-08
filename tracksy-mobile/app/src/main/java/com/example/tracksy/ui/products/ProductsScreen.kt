@@ -15,6 +15,8 @@ import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -28,12 +30,13 @@ import androidx.compose.ui.unit.sp
 import com.example.tracksy.ui.theme.LocalTracksyColors
 
 data class Product(
-    val id: Int = 0,
+    val id: Long = 0L,
     val name: String,
     val category: String,
-    val barcode: String? = null
+    val barcode: String? = null   // id.toString() — kept for display ("Cód: …")
 )
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProductsScreen(
     selectedTab: NavTab,
@@ -42,9 +45,13 @@ fun ProductsScreen(
     favoritosApi: List<Product> = emptyList(),
     onProductTap: (Product) -> Unit = {},
     onProfileClick: () -> Unit = {},
-    onSearchChange: (String) -> Unit = {}
+    onSearchChange: (String) -> Unit = {},
+    onToggleFavorito: (Long, Boolean) -> Unit = { _, _ -> },
+    isRefreshing: Boolean = false,
+    onRefresh: () -> Unit = {}
 ) {
     val colors = LocalTracksyColors.current
+    val pullRefreshState = rememberPullToRefreshState()
     var searchQuery by remember { mutableStateOf("") }
     var favorites by remember(favoritosApi) { mutableStateOf(favoritosApi) }
     var allProducts by remember(productosApi) { mutableStateOf(productosApi) }
@@ -85,6 +92,7 @@ fun ProductsScreen(
             confirmButton = {
                 TextButton(onClick = {
                     val removed = favorites.filter { it.name in selectedFavorites }
+                    removed.forEach { onToggleFavorito(it.id, false) }
                     favorites         = favorites.filter { it.name !in selectedFavorites }
                     allProducts       = allProducts + removed
                     selectedFavorites = emptySet()
@@ -111,6 +119,7 @@ fun ProductsScreen(
             when {
                 hasAllSelected -> ProductsFab(color = fabColor, onClick = {
                     val toMove  = allProducts.filter { it.name in selectedAll }
+                    toMove.forEach { onToggleFavorito(it.id, true) }
                     favorites   = favorites + toMove
                     allProducts = allProducts.filter { it.name !in selectedAll }
                     selectedAll = emptySet()
@@ -137,9 +146,14 @@ fun ProductsScreen(
             }
         }
     ) { innerPadding ->
+        PullToRefreshBox(
+            isRefreshing = isRefreshing,
+            onRefresh = onRefresh,
+            state = pullRefreshState,
+            modifier = Modifier.padding(innerPadding)
+        ) {
         Column(
             modifier = Modifier
-                .padding(innerPadding)
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp)
@@ -218,6 +232,7 @@ fun ProductsScreen(
                 )
             }
         }
+        } // PullToRefreshBox
     }
 }
 

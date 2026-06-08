@@ -12,6 +12,8 @@ import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -26,6 +28,7 @@ import com.example.tracksy.screens.TracksyBottomBar
 import com.example.tracksy.ui.theme.LocalTracksyColors
 import com.example.tracksy.ui.theme.TracksyColors
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MisListasScreen(
     selectedTab: NavTab,
@@ -34,10 +37,13 @@ fun MisListasScreen(
     onListClick: (ShoppingList) -> Unit = {},
     onCreateNewList: () -> Unit = {},
     onDeleteList: (ShoppingList) -> Unit = {},
-    onProfileClick: () -> Unit = {}
+    onProfileClick: () -> Unit = {},
+    isRefreshing: Boolean = false,
+    onRefresh: () -> Unit = {}
 ) {
     val colors = LocalTracksyColors.current
     var listPendingDeletionIndex by remember { mutableStateOf<Int?>(null) }
+    val pullRefreshState = rememberPullToRefreshState()
 
     Scaffold(
         containerColor = colors.background,
@@ -60,9 +66,14 @@ fun MisListasScreen(
             }
         }
     ) { innerPadding ->
+        PullToRefreshBox(
+            isRefreshing = isRefreshing,
+            onRefresh = onRefresh,
+            state = pullRefreshState,
+            modifier = Modifier.padding(innerPadding)
+        ) {
         Column(
             modifier = Modifier
-                .padding(innerPadding)
                 .fillMaxSize()
                 .padding(horizontal = 20.dp)
         ) {
@@ -117,6 +128,7 @@ fun MisListasScreen(
                 }
             }
         }
+        } // PullToRefreshBox
     }
 
     listPendingDeletionIndex?.let { index ->

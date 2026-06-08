@@ -8,6 +8,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import kotlinx.coroutines.delay
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.filled.CameraAlt
@@ -32,7 +33,7 @@ import com.example.tracksy.ui.theme.TracksyColors
 import com.example.tracksy.ui.utils.dashedBorder
 
 data class ItemDeLista(
-    val productoId: Int,
+    val productoId: Long,   // EAN-13 barcode
     val nombre: String,
     val cantidad: Int = 1
 )
@@ -41,11 +42,12 @@ data class ItemDeLista(
 @Composable
 fun EditarListaScreen(
     listaActual: ListaCompra? = null,
-    productosDisponibles: List<Product> = emptyList(),
+    productosDisponibles: List<Product> = emptyList(),  // resultados de búsqueda del servidor
     supermercados: List<Supermercado> = emptyList(),
     onConfirmar: (nombre: String, supermercadoId: Int?, items: List<ItemDeLista>) -> Unit = { _, _, _ -> },
     onBack: () -> Unit = {},
     onScanBarcode: () -> Unit = {},
+    onBuscarCatalogo: (String) -> Unit = {},   // dispara búsqueda en la API
     scannedBarcode: String? = null
 ) {
     val colors = LocalTracksyColors.current
@@ -76,14 +78,19 @@ fun EditarListaScreen(
         }
     }
 
-    val productosFiltrados = remember(busquedaCatalogo, barcodeManual, usarBarcodeManual, productosDisponibles) {
-        val query = if (usarBarcodeManual) barcodeManual else busquedaCatalogo
-        if (query.isBlank()) emptyList()
-        else productosDisponibles.filter {
-            it.name.contains(query, ignoreCase = true) ||
-                it.category.contains(query, ignoreCase = true) ||
-                it.barcode?.contains(query, ignoreCase = true) == true
-        }.take(5)
+    // Dispara la búsqueda en la API con debounce de 300 ms cada vez que cambia la query.
+    // LaunchedEffect se reinicia al cambiar la clave, cancelando el delay anterior (debounce natural).
+    val queryActual = if (usarBarcodeManual) barcodeManual else busquedaCatalogo
+    LaunchedEffect(queryActual) {
+        delay(300)
+        onBuscarCatalogo(queryActual)
+    }
+
+    // Los resultados vienen del servidor (productosDisponibles = productosBusqueda del VM).
+    // Solo mostramos cuando hay query y hay resultados.
+    val productosFiltrados = remember(queryActual, productosDisponibles) {
+        if (queryActual.isBlank()) emptyList()
+        else productosDisponibles.take(5)
     }
 
     val tituloScreen = if (listaActual == null) "Nueva lista" else "Editar lista"

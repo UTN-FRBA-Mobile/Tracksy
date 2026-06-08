@@ -10,6 +10,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -22,7 +24,7 @@ import androidx.compose.ui.unit.sp
 import com.example.tracksy.ui.theme.*
 
 data class Suggestion(
-    val productoId: Int? = null,
+    val productoId: Long? = null,   // EAN-13 barcode
     val emoji: String,
     val name: String,
     val reason: String
@@ -37,6 +39,7 @@ data class ShoppingList(
 
 enum class NavTab { HOME, LISTS, SCANNER, PRODUCTS, HISTORY }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     selectedTab: NavTab,
@@ -46,9 +49,12 @@ fun HomeScreen(
     onListTap: (ShoppingList) -> Unit = {},
     onProfileClick: () -> Unit = {},
     onAgregarSugerencia: (Suggestion) -> Unit = {},
-    onDismissSugerencia: (Suggestion) -> Unit = {}
+    onDismissSugerencia: (Suggestion) -> Unit = {},
+    isRefreshing: Boolean = false,
+    onRefresh: () -> Unit = {}
 ) {
     val colors = LocalTracksyColors.current
+    val pullRefreshState = rememberPullToRefreshState()
 
     Scaffold(
         containerColor = colors.background,
@@ -56,9 +62,14 @@ fun HomeScreen(
             TracksyBottomBar(selected = selectedTab, onSelect = onTabChange)
         }
     ) { innerPadding ->
+        PullToRefreshBox(
+            isRefreshing = isRefreshing,
+            onRefresh = onRefresh,
+            state = pullRefreshState,
+            modifier = Modifier.padding(innerPadding)
+        ) {
         Column(
             modifier = Modifier
-                .padding(innerPadding)
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp)
@@ -110,6 +121,7 @@ fun HomeScreen(
 
             Spacer(Modifier.height(8.dp))
         }
+        } // PullToRefreshBox
     }
 }
 
@@ -299,7 +311,8 @@ fun TracksyBottomBar(selected: NavTab, onSelect: (NavTab) -> Unit) {
 
 @Composable
 fun NavItem(icon: ImageVector, label: String, selected: Boolean, onClick: () -> Unit) {
-    val tint = if (selected) TracksyNavActive else TracksyNavInactive
+    val colors = LocalTracksyColors.current
+    val tint = if (selected) colors.navActive else colors.navInactive
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier

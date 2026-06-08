@@ -69,6 +69,7 @@ class MainActivity : ComponentActivity() {
                 val listas               by listaViewModel.listas.collectAsState()
                 val listaActual          by listaViewModel.listaActual.collectAsState()
                 val supermercados        by listaViewModel.supermercados.collectAsState()
+                val listados             by listaViewModel.listados.collectAsState()
                 val compras              by compraViewModel.compras.collectAsState()
 
                 // ── Sugerencias derivadas del historial de compras ───────────
@@ -147,6 +148,13 @@ class MainActivity : ComponentActivity() {
                 // Cargar detalle de lista cuando se selecciona una
                 LaunchedEffect(selectedList) {
                     selectedList?.let { listaViewModel.cargarLista(it.id) }
+                }
+
+                // Cargar listados de precios al entrar a la pantalla de comparación
+                LaunchedEffect(currentScreen) {
+                    if (currentScreen == AppScreen.CompararSupermercados) {
+                        listaViewModel.cargarListados()
+                    }
                 }
 
                 val usuario = perfilState ?: PerfilUsuario("", "")
@@ -280,8 +288,9 @@ class MainActivity : ComponentActivity() {
                             selectedList != null -> when (currentScreen) {
 
                                 AppScreen.DetalleLista -> DetalleListaScreen(
-                                    lista        = listaActual,
-                                    onToggleItem = { listaId, itemId, estaComprado ->
+                                    lista         = listaActual,
+                                    supermercados = supermercados,
+                                    onToggleItem  = { listaId, itemId, estaComprado ->
                                         listaViewModel.toggleItem(listaId, itemId, estaComprado)
                                     },
                                     onEditar    = { currentScreen = AppScreen.EditarLista },
@@ -300,17 +309,15 @@ class MainActivity : ComponentActivity() {
                                     onConfirmar = { nombre, supermercadoId, items ->
                                         val listaId = listaActual?.id
                                         if (listaId != null) {
-                                            val existentesIds = listaActual?.items?.map { it.producto }?.toSet() ?: emptySet()
-                                            val estadoId = listaViewModel.idEstadoPendiente()
-                                                ?: listaViewModel.estadosProducto.value.firstOrNull()?.id
-                                            items
-                                                .filter { it.productoId !in existentesIds }
-                                                .forEach { item ->
-                                                    estadoId?.let {
-                                                        listaViewModel.agregarItem(listaId, item.productoId, item.cantidad, it, 0.0)
-                                                    }
-                                                }
-                                            listaViewModel.cargarLista(listaId)
+                                            // editarListaConItems hace el diff completo:
+                                            // agrega items nuevos, elimina los quitados,
+                                            // y recarga _listaActual al finalizar.
+                                            listaViewModel.editarListaConItems(
+                                                listaId        = listaId,
+                                                nombre         = nombre,
+                                                supermercadoId = supermercadoId,
+                                                items          = items.map { it.productoId to it.cantidad }
+                                            )
                                         }
                                         productoViewModel.limpiarBusquedaLista()
                                         currentScreen = AppScreen.DetalleLista
@@ -328,7 +335,10 @@ class MainActivity : ComponentActivity() {
                                 )
 
                                 AppScreen.CompararSupermercados -> CompararSupermercadosScreen(
-                                    onBack = { currentScreen = AppScreen.DetalleLista }
+                                    lista         = listaActual,
+                                    supermercados = supermercados,
+                                    listados      = listados,
+                                    onBack        = { currentScreen = AppScreen.DetalleLista }
                                 )
 
                                 AppScreen.FinalizarCompra -> {

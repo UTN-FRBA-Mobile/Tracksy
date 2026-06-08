@@ -40,7 +40,7 @@ interface ApiService {
     @POST("api/v1/usuarios/favoritos/")
     suspend fun addFavorito(
         @Header("Authorization") token: String,
-        @Body body: Map<String, Any>
+        @Body body: AddFavoritoRequest          // data class en lugar de Map<String, Any>
     ): Response<ProductoUsuario>
 
     @DELETE("api/v1/usuarios/favoritos/{id}/")
@@ -110,7 +110,9 @@ interface ApiService {
     suspend fun updateLista(
         @Header("Authorization") token: String,
         @Path("id") id: Int,
-        @Body body: Map<String, Any?>
+        // @JvmSuppressWildcards: evita Map<String, ? extends Any?> en bytecode JVM →
+        // Gson puede serializar correctamente el cuerpo con GsonConverterFactory.
+        @Body body: Map<String, @JvmSuppressWildcards Any?>
     ): Response<ListaCompra>
 
     @DELETE("api/v1/listas/{id}/")
@@ -131,7 +133,7 @@ interface ApiService {
         @Header("Authorization") token: String,
         @Path("id") listaId: Int,
         @Path("itemId") itemId: Int,
-        @Body body: Map<String, Any>
+        @Body body: Map<String, @JvmSuppressWildcards Any>
     ): Response<ItemProducto>
 
     @DELETE("api/v1/listas/{id}/items/{itemId}/delete/")

@@ -44,6 +44,14 @@ data class ProductoUsuario(
     val favorito: Boolean
 )
 
+// Request body para POST /api/v1/usuarios/favoritos/
+// Usar data class en lugar de Map<String, Any> evita el problema de wildcards
+// que Kotlin genera para Map<K, out V> en el bytecode JVM.
+data class AddFavoritoRequest(
+    val producto: Long,
+    val favorito: Boolean = true
+)
+
 // ── Productos ─────────────────────────────────────────────────────────────────
 
 data class Marca(

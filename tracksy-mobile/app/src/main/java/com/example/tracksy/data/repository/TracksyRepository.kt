@@ -33,7 +33,7 @@ class TracksyRepository(
     suspend fun getFavoritos(token: String) = api.getFavoritos(bearer(token))
 
     suspend fun addFavorito(token: String, productoId: Long) =
-        api.addFavorito(bearer(token), mapOf("producto" to productoId, "favorito" to true))
+        api.addFavorito(bearer(token), AddFavoritoRequest(producto = productoId, favorito = true))
 
     suspend fun removeFavorito(token: String, id: Int) =
         api.removeFavorito(bearer(token), id)

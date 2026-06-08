@@ -50,14 +50,22 @@ class ProductoViewModel(
             try {
                 val favResponse = repo.getFavoritos(token)
                 if (favResponse.isSuccessful) {
-                    val productoIds = favResponse.body()?.results?.map { it.producto } ?: return@launch
-                    val productosResp = repo.getProductos(token)
-                    if (productosResp.isSuccessful) {
-                        val todos = productosResp.body()?.results ?: emptyList()
-                        _favoritos.value = todos
-                            .filter { it.id in productoIds }
-                            .map { it.toUiProduct() }
+                    val favoritosItems = favResponse.body()?.results ?: return@launch
+                    if (favoritosItems.isEmpty()) {
+                        _favoritos.value = emptyList()
+                        return@launch
                     }
+                    // Busca primero en _productos (ya cargados) para evitar HTTP extra.
+                    // Si no está en caché local, cae al getProducto individual.
+                    val productosEnMemoria = _productos.value
+                    val productos = favoritosItems.mapNotNull { fav ->
+                        productosEnMemoria.firstOrNull { it.id == fav.producto }
+                            ?: try {
+                                val r = repo.getProducto(token, fav.producto)
+                                if (r.isSuccessful) r.body()?.toUiProduct() else null
+                            } catch (_: Exception) { null }
+                    }
+                    _favoritos.value = productos
                 }
             } catch (_: Exception) { }
         }
@@ -65,17 +73,41 @@ class ProductoViewModel(
 
     fun toggleFavorito(productoId: Long, esFavorito: Boolean) {
         viewModelScope.launch {
+            // ── Optimistic update ────────────────────────────────────────────────
+            // Actualizar _favoritos ANTES de la llamada a la red para dar feedback
+            // visual inmediato (la estrella cambia de estado sin esperar la respuesta).
+            val snapshotAntes = _favoritos.value
+            if (esFavorito) {
+                // Buscar el producto en _productos (visible en pantalla) o en favoritos actuales
+                val producto = _productos.value.firstOrNull { it.id == productoId }
+                    ?: _favoritos.value.firstOrNull { it.id == productoId }
+                if (producto != null && productoId !in _favoritos.value.map { it.id }) {
+                    _favoritos.value = _favoritos.value + producto
+                }
+            } else {
+                _favoritos.value = _favoritos.value.filter { it.id != productoId }
+            }
+
+            // ── Persistir en la API ──────────────────────────────────────────────
             try {
                 if (esFavorito) {
                     repo.addFavorito(token, productoId)
                 } else {
+                    // Necesitamos el ID del registro ProductoUsuario para DELETE /{id}/
                     val favResponse = repo.getFavoritos(token)
-                    val favId = favResponse.body()?.results
-                        ?.firstOrNull { it.producto == productoId }?.id
-                    if (favId != null) repo.removeFavorito(token, favId)
+                    if (favResponse.isSuccessful) {
+                        val favId = favResponse.body()?.results
+                            ?.firstOrNull { it.producto == productoId }?.id
+                        if (favId != null) repo.removeFavorito(token, favId)
+                    }
                 }
+            } catch (_: Exception) {
+                // Error de red → revertir el estado optimista al snapshot anterior
+                _favoritos.value = snapshotAntes
+            } finally {
+                // Sincronizar con el estado real del servidor (confirma o revierte)
                 cargarFavoritos()
-            } catch (_: Exception) { }
+            }
         }
     }
 

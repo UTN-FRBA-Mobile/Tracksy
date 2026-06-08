@@ -23,12 +23,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.tracksy.data.models.ItemProducto
 import com.example.tracksy.data.models.ListaCompra
+import com.example.tracksy.data.models.Supermercado
 import com.example.tracksy.ui.theme.LocalTracksyColors
 import com.example.tracksy.ui.theme.TracksyColors
 
 @Composable
 fun DetalleListaScreen(
     lista: ListaCompra?,
+    supermercados: List<Supermercado> = emptyList(),
     onToggleItem: (listaId: Int, itemId: Int, estaComprado: Boolean) -> Unit = { _, _, _ -> },
     onEditar: () -> Unit = {},
     onComparar: () -> Unit = {},
@@ -89,7 +91,7 @@ fun DetalleListaScreen(
                     }
                 }
 
-                Text("Supermercado:", fontSize = 13.sp, color = colors.sectionText, fontWeight = FontWeight.Medium)
+                Text("Supermercado", fontSize = 13.sp, color = colors.sectionText, fontWeight = FontWeight.Medium)
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -98,7 +100,10 @@ fun DetalleListaScreen(
                         .padding(horizontal = 16.dp, vertical = 14.dp)
                 ) {
                     Text(
-                        text = if (lista?.supermercado != null) "Supermercado #${lista.supermercado}" else "Sin supermercado",
+                        text = if (lista?.supermercado != null) {
+                        supermercados.firstOrNull { it.id == lista.supermercado }?.nombre
+                            ?: "Supermercado #${lista.supermercado}"
+                    } else "Sin supermercado",
                         color = colors.subtitleText,
                         fontSize = 15.sp
                     )

@@ -153,10 +153,11 @@ private fun ShoppingListCard(
     onClick: () -> Unit,
     onDelete: () -> Unit
 ) {
-    val pendingLabel = if (list.pendingProducts == list.totalProducts)
-        "todos pendientes"
-    else
-        "${list.pendingProducts} pendientes"
+    val infoText = when {
+        list.totalProducts == 0 -> "${list.totalProducts} productos · no hay productos pendientes"
+        list.pendingProducts == list.totalProducts -> "${list.totalProducts} productos · todos pendientes"
+        else -> "${list.totalProducts} productos · ${list.pendingProducts} pendientes"
+    }
 
     Card(
         shape = RoundedCornerShape(16.dp),
@@ -174,7 +175,7 @@ private fun ShoppingListCard(
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = list.name, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = colors.titleText)
                 Spacer(Modifier.height(4.dp))
-                Text(text = "${list.totalProducts} productos · $pendingLabel", fontSize = 13.sp, color = colors.subtitleText)
+                Text(text = infoText, fontSize = 13.sp, color = colors.subtitleText)
             }
             Box(
                 contentAlignment = Alignment.Center,

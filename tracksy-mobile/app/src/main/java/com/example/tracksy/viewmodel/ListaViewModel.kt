@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.tracksy.data.local.TokenManager
 import com.example.tracksy.data.models.EstadoProducto
 import com.example.tracksy.data.models.ListaCompra
+import com.example.tracksy.data.models.ProductoListado
 import com.example.tracksy.data.models.Supermercado
 import com.example.tracksy.data.repository.TracksyRepository
 import com.example.tracksy.screens.ShoppingList
@@ -30,6 +31,10 @@ class ListaViewModel(
 
     private val _supermercados = MutableStateFlow<List<Supermercado>>(emptyList())
     val supermercados: StateFlow<List<Supermercado>> = _supermercados
+
+    // Listados de precios por supermercado (para comparación)
+    private val _listados = MutableStateFlow<List<ProductoListado>>(emptyList())
+    val listados: StateFlow<List<ProductoListado>> = _listados
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
@@ -97,6 +102,18 @@ class ListaViewModel(
         }
     }
 
+    /** Carga todos los listados de precios disponibles (para la pantalla de comparación). */
+    fun cargarListados() {
+        viewModelScope.launch {
+            try {
+                val response = repo.getListados(token)
+                if (response.isSuccessful) {
+                    _listados.value = response.body()?.results ?: emptyList()
+                }
+            } catch (_: Exception) { }
+        }
+    }
+
     // ── Crear lista con items ─────────────────────────────────────────────────
 
     fun crearListaConItems(
@@ -107,7 +124,7 @@ class ListaViewModel(
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                // Fetch estados synchronously if not yet loaded (avoids race condition)
+                // Fetch estados synchronously si no están cargados (evita race condition)
                 if (_estadosProducto.value.isEmpty()) {
                     val estadosResp = repo.getEstadosProducto(token)
                     if (estadosResp.isSuccessful) {
@@ -119,8 +136,6 @@ class ListaViewModel(
                 if (listaResp.isSuccessful) {
                     val listaId = listaResp.body()!!.id
 
-                    // Add items only if an estado exists (don't bail with return@launch
-                    // before the finally block — that would leave _isLoading stuck at true)
                     val estadoId = idEstadoPendiente() ?: _estadosProducto.value.firstOrNull()?.id
                     if (estadoId != null) {
                         items.forEach { (productoId, cantidad) ->
@@ -128,8 +143,7 @@ class ListaViewModel(
                         }
                     }
 
-                    // Reload lists inline (avoid launching a child coroutine that races
-                    // with this one for _isLoading, causing infinite spinner)
+                    // Recarga inline (evita child coroutine que compita con _isLoading)
                     val listasResp = repo.getListas(token)
                     if (listasResp.isSuccessful) {
                         _listas.value = listasResp.body()?.results?.map { it.toUiModel() } ?: emptyList()
@@ -137,7 +151,83 @@ class ListaViewModel(
                 }
             } catch (_: Exception) {
             } finally {
-                // Always reached — no more stuck spinner
+                _isLoading.value = false
+            }
+        }
+    }
+
+    /**
+     * Edita una lista existente: agrega los items nuevos y elimina los que
+     * fueron quitados por el usuario durante la edición.
+     * Hace el diff contra los items actuales de _listaActual.
+     */
+    fun editarListaConItems(
+        listaId: Int,
+        nombre: String,
+        supermercadoId: Int?,
+        items: List<Pair<Long, Int>>   // lista COMPLETA (final) de (productoId, cantidad)
+    ) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            try {
+                // 1. Ensure estados loaded synchronously
+                if (_estadosProducto.value.isEmpty()) {
+                    val estadosResp = repo.getEstadosProducto(token)
+                    if (estadosResp.isSuccessful) {
+                        _estadosProducto.value = estadosResp.body()?.results ?: emptyList()
+                    }
+                }
+                val estadoId = idEstadoPendiente() ?: _estadosProducto.value.firstOrNull()?.id
+
+                // 2. Items actuales de la lista (carga fresca si hace falta)
+                val itemsActuales: List<com.example.tracksy.data.models.ItemProducto> =
+                    _listaActual.value?.takeIf { it.id == listaId }?.items
+                        ?: run {
+                            val r = repo.getLista(token, listaId)
+                            if (r.isSuccessful) {
+                                _listaActual.value = r.body()
+                                r.body()?.items
+                            } else null
+                        } ?: emptyList()
+
+                val existentesIds = itemsActuales.map { it.producto }.toSet()
+                val nuevosIds     = items.map { it.first }.toSet()
+
+                // 3. Agregar items nuevos
+                if (estadoId != null) {
+                    items
+                        .filter { (pid, _) -> pid !in existentesIds }
+                        .forEach { (productoId, cantidad) ->
+                            repo.agregarItem(token, listaId, productoId, cantidad, estadoId, 0.0)
+                        }
+                }
+
+                // 3.5. Actualizar cantidad de items ya existentes si el usuario la modificó
+                items
+                    .filter { (pid, _) -> pid in existentesIds }
+                    .forEach { (productoId, nuevaCantidad) ->
+                        val itemExistente = itemsActuales.firstOrNull { it.producto == productoId }
+                        if (itemExistente != null && itemExistente.cantidad != nuevaCantidad) {
+                            repo.updateItem(token, listaId, itemExistente.id, mapOf("cantidad" to nuevaCantidad))
+                        }
+                    }
+
+                // 4. Eliminar items que fueron quitados en la edición
+                itemsActuales
+                    .filter { it.producto !in nuevosIds }
+                    .forEach { item -> repo.eliminarItem(token, listaId, item.id) }
+
+                // 5. Recargar la lista (detalle) y el listado general (cards de MisListas)
+                val reloadResp = repo.getLista(token, listaId)
+                if (reloadResp.isSuccessful) {
+                    _listaActual.value = reloadResp.body()
+                }
+                val listasResp = repo.getListas(token)
+                if (listasResp.isSuccessful) {
+                    _listas.value = listasResp.body()?.results?.map { it.toUiModel() } ?: emptyList()
+                }
+            } catch (_: Exception) {
+            } finally {
                 _isLoading.value = false
             }
         }
@@ -167,7 +257,14 @@ class ListaViewModel(
         viewModelScope.launch {
             try {
                 val response = repo.agregarItem(token, listaId, productoId, cantidad, estadoId, precio)
-                if (response.isSuccessful) cargarLista(listaId)
+                if (response.isSuccessful) {
+                    cargarLista(listaId)      // actualiza _listaActual (detalle)
+                    // Recarga _listas para que la card de MisListas refleje el nuevo total
+                    val listasResp = repo.getListas(token)
+                    if (listasResp.isSuccessful) {
+                        _listas.value = listasResp.body()?.results?.map { it.toUiModel() } ?: emptyList()
+                    }
+                }
             } catch (_: Exception) { }
         }
     }

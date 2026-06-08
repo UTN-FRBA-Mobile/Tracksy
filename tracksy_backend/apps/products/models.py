@@ -15,6 +15,11 @@ class Marca(models.Model):
 
 
 class Producto(models.Model):
+    # Primary key IS the EAN-13 barcode — no auto-increment, always provided on import.
+    id = models.BigIntegerField(
+        primary_key=True,
+        verbose_name="Código de barras EAN-13",
+    )
     nombre = models.CharField(max_length=255, db_index=True)
     marca = models.ForeignKey(
         Marca,

@@ -29,7 +29,10 @@ class BaseImportService:
         try:
             with open(self.batch.file.path, "r", encoding="utf-8-sig") as f:
                 content = f.read()
-            reader = csv.DictReader(io.StringIO(content))
+            # Strip comment lines (starting with #) before parsing
+            clean_lines = [ln for ln in content.splitlines() if not ln.lstrip().startswith("#")]
+            clean_content = "\n".join(clean_lines)
+            reader = csv.DictReader(io.StringIO(clean_content))
             rows = list(reader)
             self.batch.total_rows = len(rows)
             self.batch.save(update_fields=["total_rows"])
@@ -71,6 +74,8 @@ class BaseImportService:
                 raw_data=raw_data,
             )
         )
+        # Count error rows as processed so success_rows = processed_rows - error_rows >= 0
+        self._inc_processed()
 
     def _inc_processed(self):
         self.batch.processed_rows += 1
@@ -81,13 +86,20 @@ class BaseImportService:
 
 class ProductImportService(BaseImportService):
     """
-    CSV esperado: nombre, marca_nombre
-    Crea o actualiza Marca y Producto.
+    CSV esperado: codigo_barra (EAN-13 = PK), nombre, marca_nombre
+    El campo `codigo_barra` es la clave primaria del Producto.
     """
-    REQUIRED_FIELDS = ["nombre"]
+    REQUIRED_FIELDS = ["codigo_barra", "nombre"]
 
     def _process_row(self, row_num: int, row: dict):
         from apps.products.models import Marca, Producto
+
+        barcode_str = row["codigo_barra"].strip()
+        try:
+            barcode_id = int(barcode_str)
+        except ValueError:
+            self._add_error(row_num, "codigo_barra", f"El código de barras '{barcode_str}' no es un número válido.", row)
+            return
 
         nombre = row["nombre"].strip()
         marca = None
@@ -95,8 +107,8 @@ class ProductImportService(BaseImportService):
             marca, _ = Marca.objects.get_or_create(nombre=row["marca_nombre"].strip())
 
         Producto.objects.update_or_create(
-            nombre=nombre,
-            defaults={"marca": marca},
+            id=barcode_id,
+            defaults={"nombre": nombre, "marca": marca},
         )
         self._inc_processed()
 

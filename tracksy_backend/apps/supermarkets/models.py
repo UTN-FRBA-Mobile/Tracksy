@@ -1,76 +1,38 @@
 from django.db import models
-from apps.common.models import BaseModel
 
 
-class SupermarketChain(BaseModel):
-    name = models.CharField(max_length=150, unique=True)
-    slug = models.SlugField(max_length=170, unique=True)
-    logo = models.ImageField(upload_to="supermarkets/logos/", null=True, blank=True)
-    website = models.URLField(blank=True)
-    is_active = models.BooleanField(default=True, db_index=True)
+class Supermercado(models.Model):
+    nombre = models.CharField(max_length=255)
+    direccion = models.CharField(max_length=500)
+    latitud = models.DecimalField(max_digits=10, decimal_places=7)
+    longitud = models.DecimalField(max_digits=10, decimal_places=7)
 
     class Meta:
-        db_table = "supermarket_chains"
-        verbose_name = "Supermarket Chain"
-        verbose_name_plural = "Supermarket Chains"
-        ordering = ["name"]
+        db_table = "supermercado"
+        verbose_name = "Supermercado"
+        verbose_name_plural = "Supermercados"
+        ordering = ["nombre"]
 
     def __str__(self):
-        return self.name
+        return self.nombre
 
 
-class SupermarketBranch(BaseModel):
-    chain = models.ForeignKey(
-        SupermarketChain, on_delete=models.CASCADE, related_name="branches"
+class ProductoListado(models.Model):
+    producto = models.ForeignKey(
+        "products.Producto", on_delete=models.CASCADE, related_name="listados"
     )
-    name = models.CharField(max_length=200)
-    code = models.CharField(max_length=50, blank=True, db_index=True)
-    address = models.CharField(max_length=300)
-    city = models.CharField(max_length=100, db_index=True)
-    province = models.CharField(max_length=100, db_index=True)
-    postal_code = models.CharField(max_length=20, blank=True)
-    latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
-    longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
-    phone = models.CharField(max_length=30, blank=True)
-    email = models.EmailField(blank=True)
-    is_active = models.BooleanField(default=True, db_index=True)
-
-    class Meta:
-        db_table = "supermarket_branches"
-        verbose_name = "Branch"
-        verbose_name_plural = "Branches"
-        indexes = [
-            models.Index(fields=["city", "province"], name="idx_branch_location"),
-            models.Index(fields=["latitude", "longitude"], name="idx_branch_geo"),
-        ]
-
-    def __str__(self):
-        return f"{self.chain.name} — {self.name} ({self.city})"
-
-
-class BranchOpeningHours(BaseModel):
-    WEEKDAYS = [
-        (0, "Monday"),
-        (1, "Tuesday"),
-        (2, "Wednesday"),
-        (3, "Thursday"),
-        (4, "Friday"),
-        (5, "Saturday"),
-        (6, "Sunday"),
-    ]
-
-    branch = models.ForeignKey(
-        SupermarketBranch, on_delete=models.CASCADE, related_name="opening_hours"
+    supermercado = models.ForeignKey(
+        Supermercado, on_delete=models.CASCADE, related_name="listados"
     )
-    weekday = models.PositiveSmallIntegerField(choices=WEEKDAYS)
-    open_time = models.TimeField()
-    close_time = models.TimeField()
-    is_closed = models.BooleanField(default=False)
+    precio = models.DecimalField(max_digits=10, decimal_places=2)
+    disponible = models.BooleanField(default=True)
+    fecha_actualizacion = models.DateTimeField(auto_now=True)
 
     class Meta:
-        db_table = "branch_opening_hours"
-        unique_together = ("branch", "weekday")
-        verbose_name = "Branch Opening Hours"
+        db_table = "producto_listado"
+        unique_together = ("producto", "supermercado")
+        verbose_name = "Producto Listado"
+        verbose_name_plural = "Productos Listados"
 
     def __str__(self):
-        return f"{self.branch} — {self.get_weekday_display()}"
+        return f"{self.producto.nombre} @ {self.supermercado.nombre} — ${self.precio}"

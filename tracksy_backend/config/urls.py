@@ -10,34 +10,30 @@ from drf_spectacular.views import (
 
 admin.site.site_header = "Tracksy Administrator"
 admin.site.site_title = "Tracksy Admin"
-admin.site.index_title = "Administration Panel"
+admin.site.index_title = "Panel de Administración"
 
 api_v1 = [
     # Auth
     path("auth/", include("apps.users.urls.auth")),
-    # Users / profile
-    path("users/", include("apps.users.urls.users")),
-    # Products, categories, brands
-    path("products/", include("apps.products.urls")),
-    path("", include("apps.products.urls_meta")),
-    # Supermarkets
-    path("supermarkets/", include("apps.supermarkets.urls")),
-    # Prices
-    path("prices/", include("apps.prices.urls")),
-    # Promotions
-    path("promotions/", include("apps.promotions.urls")),
-    # Shopping lists
-    path("shopping-lists/", include("apps.shopping_lists.urls")),
-    # Comparisons
-    path("comparisons/", include("apps.comparisons.urls")),
-    # Admin / backoffice
-    path("admin-api/", include("apps.imports.urls")),
+    # Usuarios / perfil / favoritos
+    path("usuarios/", include("apps.users.urls.users")),
+    # Productos y marcas
+    path("productos/", include("apps.products.urls")),
+    # Supermercados y listados de precios
+    path("supermercados/", include("apps.supermarkets.urls")),
+    # Listas de compra
+    path("listas/", include("apps.shopping_lists.urls")),
+    # Compras (historial)
+    path("compras/", include("apps.compras.urls")),
+    # Sugerencias y feedback
+    path("sugerencias/", include("apps.sugerencias.urls")),
+    # Importaciones CSV (admin)
+    path("imports/", include("apps.imports.urls")),
 ]
 
 urlpatterns = [
     path("tracksy-admin/", admin.site.urls),
     path("api/v1/", include(api_v1)),
-    # OpenAPI schema
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
     path("api/docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),
     path("api/redoc/", SpectacularRedocView.as_view(url_name="schema"), name="redoc"),

@@ -1,12 +1,9 @@
-from django.urls import path, include
-from rest_framework.routers import DefaultRouter
-from apps.users.views import MeView, FavoriteProductViewSet, FavoriteSupermarketViewSet
-
-router = DefaultRouter()
-router.register(r"favorites/products", FavoriteProductViewSet, basename="favorite-products")
-router.register(r"favorites/supermarkets", FavoriteSupermarketViewSet, basename="favorite-supermarkets")
+from django.urls import path
+from apps.users.views import PerfilView, CambiarPasswordView, FavoritosView, FavoritoDetalleView
 
 urlpatterns = [
-    path("me/", MeView.as_view(), name="user-me"),
-    path("", include(router.urls)),
+    path("perfil/", PerfilView.as_view(), name="usuario-perfil"),
+    path("cambiar-password/", CambiarPasswordView.as_view(), name="usuario-cambiar-password"),
+    path("favoritos/", FavoritosView.as_view(), name="usuario-favoritos"),
+    path("favoritos/<int:pk>/", FavoritoDetalleView.as_view(), name="usuario-favorito-detalle"),
 ]

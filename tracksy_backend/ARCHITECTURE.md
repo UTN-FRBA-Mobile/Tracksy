@@ -334,6 +334,14 @@ cp .env.example .env
 # 4. Crear base de datos PostgreSQL
 createdb tracksy_db
 
+python manage.py makemigrations users
+python manage.py makemigrations products
+python manage.py makemigrations supermarkets
+python manage.py makemigrations shopping_lists
+python manage.py makemigrations compras
+python manage.py makemigrations sugerencias
+python manage.py makemigrations imports
+
 # 5. Aplicar migraciones
 python manage.py migrate
 

@@ -36,6 +36,3 @@ class ImportBatchSerializer(serializers.ModelSerializer):
             "notes", "uploaded_by_email", "errors", "created_at",
         )
 
-    def create(self, validated_data):
-        validated_data["uploaded_by"] = self.context["request"].user
-        return super().create(validated_data)

@@ -7,19 +7,15 @@ User = get_user_model()
 
 class ImportBatch(BaseModel):
     TYPE_PRODUCTS = "products"
-    TYPE_PRICES = "prices"
     TYPE_SUPERMARKETS = "supermarkets"
-    TYPE_BRANCHES = "branches"
-    TYPE_PROMOTIONS = "promotions"
-    TYPE_SEPA_ZIP = "sepa_zip"
+    TYPE_LISTADOS = "listados"
+    TYPE_MARCAS = "marcas"
 
     TYPE_CHOICES = [
-        (TYPE_PRODUCTS, "Products"),
-        (TYPE_PRICES, "Prices"),
-        (TYPE_SUPERMARKETS, "Supermarkets"),
-        (TYPE_BRANCHES, "Branches"),
-        (TYPE_PROMOTIONS, "Promotions"),
-        (TYPE_SEPA_ZIP, "SEPA ZIP (chains + branches + products)"),
+        (TYPE_PRODUCTS, "Productos"),
+        (TYPE_SUPERMARKETS, "Supermercados"),
+        (TYPE_LISTADOS, "Listados de precios"),
+        (TYPE_MARCAS, "Marcas"),
     ]
 
     STATUS_PENDING = "pending"

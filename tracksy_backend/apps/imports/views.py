@@ -1,34 +1,26 @@
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from drf_spectacular.utils import extend_schema, extend_schema_view
 
-from apps.common.permissions import IsAdminOrBackoffice
+from apps.common.permissions import IsAdminUser
 from .models import ImportBatch
 from .serializers import ImportBatchSerializer
-from .services import PriceImportService, ProductImportService, SepaZipImportService
+from .services import ProductImportService, SupermercadoImportService, ListadoImportService, MarcaImportService
 
 
 SERVICE_MAP = {
     ImportBatch.TYPE_PRODUCTS: ProductImportService,
-    ImportBatch.TYPE_PRICES: PriceImportService,
-    ImportBatch.TYPE_SEPA_ZIP: SepaZipImportService,
+    ImportBatch.TYPE_SUPERMARKETS: SupermercadoImportService,
+    ImportBatch.TYPE_LISTADOS: ListadoImportService,
+    ImportBatch.TYPE_MARCAS: MarcaImportService,
 }
 
 
-@extend_schema(tags=["imports"])
-@extend_schema_view(
-    list=extend_schema(summary="Listar lotes de importación"),
-    create=extend_schema(summary="Subir un archivo CSV para importar datos"),
-    retrieve=extend_schema(summary="Ver detalle y errores de un lote"),
-)
 class ImportBatchViewSet(viewsets.ModelViewSet):
-    """
-    Upload CSV files to import products, prices, supermarkets, etc.
-    The processing runs synchronously; for large files connect a Celery worker.
-    """
+    """Subir archivos CSV para importar datos en lote. Solo administradores."""
 
-    permission_classes = [IsAdminOrBackoffice]
+    permission_classes = [IsAdminUser]
     serializer_class = ImportBatchSerializer
     filterset_fields = ["import_type", "status"]
     ordering = ["-created_at"]
@@ -38,12 +30,11 @@ class ImportBatchViewSet(viewsets.ModelViewSet):
         return ImportBatch.objects.prefetch_related("errors").all()
 
     def perform_create(self, serializer):
-        batch = serializer.save()
+        batch = serializer.save(uploaded_by=self.request.user)
         service_cls = SERVICE_MAP.get(batch.import_type)
         if service_cls:
             service_cls(batch).process()
 
-    @extend_schema(summary="Re-procesar un lote fallido")
     @action(detail=True, methods=["post"], url_path="reprocess")
     def reprocess(self, request, pk=None):
         batch = self.get_object()

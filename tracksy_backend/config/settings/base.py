@@ -24,7 +24,6 @@ THIRD_PARTY_APPS = [
     "corsheaders",
     "django_filters",
     "drf_spectacular",
-    "django_celery_results",
 ]
 
 LOCAL_APPS = [
@@ -32,12 +31,10 @@ LOCAL_APPS = [
     "apps.users",
     "apps.products",
     "apps.supermarkets",
-    "apps.prices",
-    "apps.promotions",
     "apps.shopping_lists",
-    "apps.comparisons",
+    "apps.compras",
+    "apps.sugerencias",
     "apps.imports",
-    "apps.audit",
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -51,7 +48,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
-    "apps.audit.middleware.AuditMiddleware",
+    "apps.common.middleware.RequestLoggingMiddleware",
 ]
 
 ROOT_URLCONF = "config.urls"
@@ -88,7 +85,7 @@ DATABASES = {
     }
 }
 
-AUTH_USER_MODEL = "users.User"
+AUTH_USER_MODEL = "users.Usuario"
 
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
@@ -130,6 +127,8 @@ REST_FRAMEWORK = {
         "rest_framework.renderers.JSONRenderer",
     ],
     "EXCEPTION_HANDLER": "apps.common.exceptions.custom_exception_handler",
+    # Return decimals as JSON numbers, not strings — avoids Gson parse failures on mobile
+    "COERCE_DECIMAL_TO_STRING": False,
 }
 
 SIMPLE_JWT = {
@@ -169,15 +168,12 @@ SPECTACULAR_SETTINGS = {
     ],
 }
 
-CORS_ALLOWED_ORIGINS = config("CORS_ALLOWED_ORIGINS", default="http://localhost:3000").split(",")
+CORS_ALLOWED_ORIGINS = config(
+    "CORS_ALLOWED_ORIGINS",
+    default="http://localhost:8000,http://10.0.2.2:8000",
+).split(",")
+CORS_ALLOW_ALL_ORIGINS = config("CORS_ALLOW_ALL_ORIGINS", default=True, cast=bool)
 CORS_ALLOW_CREDENTIALS = True
-
-CELERY_BROKER_URL = config("CELERY_BROKER_URL", default="redis://localhost:6379/0")
-CELERY_RESULT_BACKEND = "django-db"
-CELERY_CACHE_BACKEND = "django-cache"
-CELERY_ACCEPT_CONTENT = ["json"]
-CELERY_TASK_SERIALIZER = "json"
-CELERY_RESULT_SERIALIZER = "json"
 
 LOGGING = {
     "version": 1,
@@ -187,11 +183,19 @@ LOGGING = {
             "format": "{levelname} {asctime} {module} {process:d} {thread:d} {message}",
             "style": "{",
         },
+        "request": {
+            "format": "{asctime} {message}",
+            "style": "{",
+        },
     },
     "handlers": {
         "console": {
             "class": "logging.StreamHandler",
             "formatter": "verbose",
+        },
+        "request_console": {
+            "class": "logging.StreamHandler",
+            "formatter": "request",
         },
     },
     "root": {
@@ -201,6 +205,11 @@ LOGGING = {
     "loggers": {
         "django": {"handlers": ["console"], "level": "INFO", "propagate": False},
         "apps": {"handlers": ["console"], "level": "DEBUG", "propagate": False},
+        "tracksy.requests": {
+            "handlers": ["request_console"],
+            "level": "INFO",
+            "propagate": False,
+        },
     },
 }
 
@@ -216,9 +225,9 @@ JAZZMIN_SETTINGS = {
     "welcome_sign": "Welcome to the Tracksy Administration Panel",
     "copyright": "Tracksy — DAMM TP 2026",
     "search_model": [
-        "users.User",
-        "products.Product",
-        "supermarkets.SupermarketBranch",
+        "users.Usuario",
+        "products.Producto",
+        "supermarkets.Supermercado",
     ],
     "user_avatar": None,
     "topmenu_links": [
@@ -239,39 +248,58 @@ JAZZMIN_SETTINGS = {
         "imports",
         "supermarkets",
         "products",
-        "prices",
-        "promotions",
+        "shopping_lists",
+        "compras",
+        "sugerencias",
         "users",
         "auth",
-        "audit",
     ],
     "custom_links": {
         "imports": [
             {
-                "name": "Import SEPA ZIP",
-                "url": "admin:imports_sepa_zip_upload",
-                "icon": "fas fa-file-archive",
+                "name": "Importar Productos",
+                "url": "imports_productos_upload",
+                "icon": "fas fa-box",
                 "permissions": ["imports.add_importbatch"],
-            }
-        ]
+            },
+            {
+                "name": "Importar Marcas",
+                "url": "imports_marcas_upload",
+                "icon": "fas fa-trademark",
+                "permissions": ["imports.add_importbatch"],
+            },
+            {
+                "name": "Importar Supermercados",
+                "url": "imports_supermercados_upload",
+                "icon": "fas fa-store",
+                "permissions": ["imports.add_importbatch"],
+            },
+            {
+                "name": "Importar Listados",
+                "url": "imports_listados_upload",
+                "icon": "fas fa-dollar-sign",
+                "permissions": ["imports.add_importbatch"],
+            },
+        ],
     },
     "icons": {
         "auth": "fas fa-users-cog",
         "auth.user": "fas fa-user",
         "auth.Group": "fas fa-users",
-        "users.User": "fas fa-user-circle",
-        "products.Product": "fas fa-box",
-        "products.Category": "fas fa-tags",
-        "products.SubCategory": "fas fa-tag",
-        "products.Brand": "fas fa-trademark",
-        "supermarkets.SupermarketChain": "fas fa-store",
-        "supermarkets.SupermarketBranch": "fas fa-map-marker-alt",
-        "supermarkets.BranchOpeningHours": "fas fa-clock",
-        "prices.ProductPrice": "fas fa-dollar-sign",
-        "prices.PriceHistory": "fas fa-history",
+        "users.Usuario": "fas fa-user-circle",
+        "users.ProductoUsuario": "fas fa-heart",
+        "products.Producto": "fas fa-box",
+        "products.Marca": "fas fa-trademark",
+        "supermarkets.Supermercado": "fas fa-store",
+        "supermarkets.ProductoListado": "fas fa-dollar-sign",
+        "shopping_lists.ListaCompra": "fas fa-list",
+        "shopping_lists.ItemProducto": "fas fa-shopping-basket",
+        "shopping_lists.EstadoProducto": "fas fa-tags",
+        "compras.Compra": "fas fa-receipt",
+        "compras.ProductoComprado": "fas fa-check",
+        "sugerencias.Sugerencia": "fas fa-lightbulb",
+        "sugerencias.Estado": "fas fa-flag",
         "imports.ImportBatch": "fas fa-file-import",
-        "promotions.Promotion": "fas fa-percent",
-        "audit.AuditLog": "fas fa-shield-alt",
     },
     "default_icon_parents": "fas fa-chevron-circle-right",
     "default_icon_children": "fas fa-circle",

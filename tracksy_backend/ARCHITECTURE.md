@@ -341,6 +341,7 @@ python manage.py makemigrations shopping_lists
 python manage.py makemigrations compras
 python manage.py makemigrations sugerencias
 python manage.py makemigrations imports
+python manage.py migrate shopping_lists
 
 # 5. Aplicar migraciones
 python manage.py migrate

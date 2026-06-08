@@ -28,7 +28,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.tracksy.ui.theme.*
+import com.example.tracksy.ui.theme.LocalTracksyColors
+import com.example.tracksy.ui.theme.TracksyColors
 
 data class PerfilUsuario(
     val nombre: String,
@@ -38,14 +39,18 @@ data class PerfilUsuario(
 @Composable
 fun PerfilScreen(
     usuario: PerfilUsuario,
+    isDarkMode: Boolean,
     onBack: () -> Unit,
-    onLogout: () -> Unit
+    onLogout: () -> Unit,
+    onEditarPerfil: () -> Unit,
+    onCambiarContrasena: () -> Unit,
+    onModoOscuroChange: (Boolean) -> Unit
 ) {
+    val colors = LocalTracksyColors.current
     var notificaciones by remember { mutableStateOf(true) }
     var alertasSupermercado by remember { mutableStateOf(true) }
-    var modoOscuro by remember { mutableStateOf(false) }
 
-    Scaffold(containerColor = TracksyBackground) { padding ->
+    Scaffold(containerColor = colors.background) { padding ->
         Column(
             modifier = Modifier
                 .padding(padding)
@@ -54,90 +59,71 @@ fun PerfilScreen(
                 .padding(horizontal = 20.dp)
         ) {
             Spacer(Modifier.height(16.dp))
-
-            PerfilTopBar(onBack = onBack)
-
+            PerfilTopBar(onBack = onBack, colors = colors)
             Spacer(Modifier.height(24.dp))
-
-            PerfilHeader(usuario = usuario)
-
+            PerfilHeader(usuario = usuario, colors = colors)
             Spacer(Modifier.height(28.dp))
 
-            SectionTitle("Cuenta")
+            SectionTitle("Cuenta", colors)
             Spacer(Modifier.height(10.dp))
-            PerfilCard {
-                PerfilNavRow(
-                    icon = Icons.Outlined.Person,
-                    label = "Editar perfil",
-                    onClick = {}
-                )
-                Divisor()
-                PerfilNavRow(
-                    icon = Icons.Outlined.Lock,
-                    label = "Cambiar contraseña",
-                    onClick = {}
-                )
+            PerfilCard(colors) {
+                PerfilNavRow(Icons.Outlined.Person, "Editar perfil", onEditarPerfil, colors)
+                Divisor(colors)
+                PerfilNavRow(Icons.Outlined.Lock, "Cambiar contraseña", onCambiarContrasena, colors)
             }
 
             Spacer(Modifier.height(20.dp))
 
-            SectionTitle("Preferencias")
+            SectionTitle("Preferencias", colors)
             Spacer(Modifier.height(10.dp))
-            PerfilCard {
+            PerfilCard(colors) {
                 PerfilToggleRow(
                     icon = Icons.Outlined.Notifications,
                     label = "Notificaciones",
                     description = "Recordatorios de compra y sugerencias",
                     checked = notificaciones,
-                    onCheckedChange = { notificaciones = it }
+                    onCheckedChange = { notificaciones = it },
+                    colors = colors
                 )
-                Divisor()
+                Divisor(colors)
                 PerfilToggleRow(
                     icon = Icons.Outlined.LocationOn,
                     label = "Alertas de supermercado",
                     description = "Avisos al entrar a un comercio cercano",
                     checked = alertasSupermercado,
-                    onCheckedChange = { alertasSupermercado = it }
+                    onCheckedChange = { alertasSupermercado = it },
+                    colors = colors
                 )
-                Divisor()
+                Divisor(colors)
                 PerfilToggleRow(
                     icon = Icons.Outlined.DarkMode,
                     label = "Modo oscuro",
                     description = null,
-                    checked = modoOscuro,
-                    onCheckedChange = { modoOscuro = it }
+                    checked = isDarkMode,
+                    onCheckedChange = onModoOscuroChange,
+                    colors = colors
                 )
             }
 
             Spacer(Modifier.height(20.dp))
 
-            SectionTitle("Sobre Tracksy")
+            SectionTitle("Sobre Tracksy", colors)
             Spacer(Modifier.height(10.dp))
-            PerfilCard {
-                PerfilNavRow(
-                    icon = Icons.AutoMirrored.Outlined.HelpOutline,
-                    label = "Ayuda y soporte",
-                    onClick = {}
-                )
-                Divisor()
-                PerfilNavRow(
-                    icon = Icons.Outlined.Description,
-                    label = "Términos y privacidad",
-                    onClick = {}
-                )
-                Divisor()
-                PerfilInfoRow(label = "Versión", value = "1.0.0")
+            PerfilCard(colors) {
+                PerfilNavRow(Icons.AutoMirrored.Outlined.HelpOutline, "Ayuda y soporte", {}, colors)
+                Divisor(colors)
+                PerfilNavRow(Icons.Outlined.Description, "Términos y privacidad", {}, colors)
+                Divisor(colors)
+                PerfilInfoRow("Versión", "1.0.0", colors)
             }
 
             Spacer(Modifier.height(28.dp))
 
             OutlinedButton(
                 onClick = onLogout,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(52.dp),
+                modifier = Modifier.fillMaxWidth().height(52.dp),
                 shape = RoundedCornerShape(50),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = TracksyErrorRed)
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = colors.errorRed)
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Outlined.Logout,
@@ -145,11 +131,7 @@ fun PerfilScreen(
                     modifier = Modifier.size(20.dp)
                 )
                 Spacer(Modifier.width(8.dp))
-                Text(
-                    text = "Cerrar sesión",
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold
-                )
+                Text("Cerrar sesión", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
             }
 
             Spacer(Modifier.height(28.dp))
@@ -158,7 +140,7 @@ fun PerfilScreen(
 }
 
 @Composable
-private fun PerfilTopBar(onBack: () -> Unit) {
+private fun PerfilTopBar(onBack: () -> Unit, colors: TracksyColors) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -167,72 +149,48 @@ private fun PerfilTopBar(onBack: () -> Unit) {
         Icon(
             imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
             contentDescription = "Volver",
-            tint = TracksyTitleText,
-            modifier = Modifier
-                .size(24.dp)
-                .clickable(onClick = onBack)
+            tint = colors.titleText,
+            modifier = Modifier.size(24.dp).clickable(onClick = onBack)
         )
-        Text(
-            text = "Perfil",
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Bold,
-            color = TracksyTitleText
-        )
+        Text("Perfil", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = colors.titleText)
         Spacer(Modifier.size(24.dp))
     }
 }
 
 @Composable
-private fun PerfilHeader(usuario: PerfilUsuario) {
+private fun PerfilHeader(usuario: PerfilUsuario, colors: TracksyColors) {
     Column(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Box(
             contentAlignment = Alignment.Center,
-            modifier = Modifier
-                .size(84.dp)
-                .clip(CircleShape)
-                .background(TracksyDivider)
+            modifier = Modifier.size(84.dp).clip(CircleShape).background(colors.divider)
         ) {
             Icon(
                 imageVector = Icons.Outlined.Person,
                 contentDescription = "Avatar",
-                tint = TracksySectionText,
+                tint = colors.sectionText,
                 modifier = Modifier.size(44.dp)
             )
         }
         Spacer(Modifier.height(12.dp))
-        Text(
-            text = usuario.nombre,
-            fontSize = 20.sp,
-            fontWeight = FontWeight.Bold,
-            color = TracksyTitleText
-        )
+        Text(text = usuario.nombre, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = colors.titleText)
         Spacer(Modifier.height(4.dp))
-        Text(
-            text = usuario.email,
-            fontSize = 13.sp,
-            color = TracksySubtitleText
-        )
+        Text(text = usuario.email, fontSize = 13.sp, color = colors.subtitleText)
     }
 }
 
 @Composable
-private fun SectionTitle(text: String) {
-    Text(
-        text = text,
-        fontSize = 13.sp,
-        fontWeight = FontWeight.SemiBold,
-        color = TracksySectionText
-    )
+internal fun SectionTitle(text: String, colors: TracksyColors) {
+    Text(text = text, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = colors.sectionText)
 }
 
 @Composable
-private fun PerfilCard(content: @Composable ColumnScope.() -> Unit) {
+internal fun PerfilCard(colors: TracksyColors, content: @Composable ColumnScope.() -> Unit) {
     Card(
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = TracksySurface),
+        colors = CardDefaults.cardColors(containerColor = colors.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -241,11 +199,7 @@ private fun PerfilCard(content: @Composable ColumnScope.() -> Unit) {
 }
 
 @Composable
-private fun PerfilNavRow(
-    icon: ImageVector,
-    label: String,
-    onClick: () -> Unit
-) {
+private fun PerfilNavRow(icon: ImageVector, label: String, onClick: () -> Unit, colors: TracksyColors) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -253,25 +207,10 @@ private fun PerfilNavRow(
             .padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = TracksyPrimary,
-            modifier = Modifier.size(22.dp)
-        )
+        Icon(imageVector = icon, contentDescription = null, tint = colors.primary, modifier = Modifier.size(22.dp))
         Spacer(Modifier.width(14.dp))
-        Text(
-            text = label,
-            fontSize = 15.sp,
-            color = TracksyTitleText,
-            modifier = Modifier.weight(1f)
-        )
-        Icon(
-            imageVector = Icons.Outlined.ChevronRight,
-            contentDescription = null,
-            tint = TracksySubtitleText,
-            modifier = Modifier.size(20.dp)
-        )
+        Text(text = label, fontSize = 15.sp, color = colors.titleText, modifier = Modifier.weight(1f))
+        Icon(imageVector = Icons.Outlined.ChevronRight, contentDescription = null, tint = colors.subtitleText, modifier = Modifier.size(20.dp))
     }
 }
 
@@ -281,34 +220,20 @@ private fun PerfilToggleRow(
     label: String,
     description: String?,
     checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit
+    onCheckedChange: (Boolean) -> Unit,
+    colors: TracksyColors
 ) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = TracksyPrimary,
-            modifier = Modifier.size(22.dp)
-        )
+        Icon(imageVector = icon, contentDescription = null, tint = colors.primary, modifier = Modifier.size(22.dp))
         Spacer(Modifier.width(14.dp))
         Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = label,
-                fontSize = 15.sp,
-                color = TracksyTitleText
-            )
+            Text(text = label, fontSize = 15.sp, color = colors.titleText)
             if (description != null) {
                 Spacer(Modifier.height(2.dp))
-                Text(
-                    text = description,
-                    fontSize = 12.sp,
-                    color = TracksySubtitleText
-                )
+                Text(text = description, fontSize = 12.sp, color = colors.subtitleText)
             }
         }
         Switch(
@@ -316,42 +241,27 @@ private fun PerfilToggleRow(
             onCheckedChange = onCheckedChange,
             colors = SwitchDefaults.colors(
                 checkedThumbColor = Color.White,
-                checkedTrackColor = TracksyPrimary,
+                checkedTrackColor = colors.primary,
                 uncheckedThumbColor = Color.White,
-                uncheckedTrackColor = TracksyDivider,
-                uncheckedBorderColor = TracksyDivider
+                uncheckedTrackColor = colors.divider,
+                uncheckedBorderColor = colors.divider
             )
         )
     }
 }
 
 @Composable
-private fun PerfilInfoRow(label: String, value: String) {
+private fun PerfilInfoRow(label: String, value: String, colors: TracksyColors) {
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 14.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(
-            text = label,
-            fontSize = 15.sp,
-            color = TracksyTitleText,
-            modifier = Modifier.weight(1f)
-        )
-        Text(
-            text = value,
-            fontSize = 14.sp,
-            color = TracksySubtitleText
-        )
+        Text(text = label, fontSize = 15.sp, color = colors.titleText, modifier = Modifier.weight(1f))
+        Text(text = value, fontSize = 14.sp, color = colors.subtitleText)
     }
 }
 
 @Composable
-private fun Divisor() {
-    HorizontalDivider(
-        thickness = 1.dp,
-        color = TracksyDivider,
-        modifier = Modifier.padding(start = 52.dp)
-    )
+internal fun Divisor(colors: TracksyColors) {
+    HorizontalDivider(thickness = 1.dp, color = colors.divider, modifier = Modifier.padding(start = 52.dp))
 }

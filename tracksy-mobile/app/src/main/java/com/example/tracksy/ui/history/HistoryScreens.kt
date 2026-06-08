@@ -1,6 +1,7 @@
 package com.example.tracksy.ui.history
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -18,23 +19,24 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.foundation.clickable
 import com.example.tracksy.screens.NavTab
 import com.example.tracksy.screens.TracksyBottomBar
-import com.example.tracksy.ui.auth.TracksyPrimaryButton
-import com.example.tracksy.ui.theme.*
+import com.example.tracksy.ui.theme.LocalTracksyColors
 
 @Composable
 fun HistoryScreen(
     onBackClick: () -> Unit,
     onItemClick: (HistoryItem) -> Unit,
+    items: List<HistoryItem> = HistoryMockData,
     selectedTab: NavTab = NavTab.HISTORY,
     onTabChange: (NavTab) -> Unit = {},
     onProfileClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    val colors = LocalTracksyColors.current
+
     Scaffold(
-        containerColor = TracksyBackground,
+        containerColor = colors.background,
         bottomBar = {
             TracksyBottomBar(selected = selectedTab, onSelect = onTabChange)
         }
@@ -56,27 +58,37 @@ fun HistoryScreen(
                     text = "Historial",
                     fontSize = 22.sp,
                     fontWeight = FontWeight.Bold,
-                    color = TracksyTitleText
+                    color = colors.titleText
                 )
                 Box(
                     contentAlignment = Alignment.Center,
-                    modifier = Modifier.size(42.dp).clip(CircleShape).background(TracksyDivider).clickable(onClick = onProfileClick)
+                    modifier = Modifier
+                        .size(42.dp)
+                        .clip(CircleShape)
+                        .background(colors.divider)
+                        .clickable(onClick = onProfileClick)
                 ) {
-                    Icon(Icons.Outlined.Person, contentDescription = "Perfil", tint = TracksySectionText, modifier = Modifier.size(24.dp))
+                    Icon(Icons.Outlined.Person, contentDescription = "Perfil", tint = colors.sectionText, modifier = Modifier.size(24.dp))
                 }
             }
 
             Spacer(Modifier.height(16.dp))
 
-            LazyColumn(
-                contentPadding = PaddingValues(bottom = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                items(HistoryMockData) { item ->
-                    HistoryCard(
-                        item = item,
-                        onClick = { onItemClick(item) }
-                    )
+            if (items.isEmpty()) {
+                Box(
+                    modifier = Modifier.fillMaxWidth().padding(top = 64.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("No hay compras registradas", color = colors.subtitleText, fontSize = 14.sp)
+                }
+            } else {
+                LazyColumn(
+                    contentPadding = PaddingValues(bottom = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    items(items) { item ->
+                        HistoryCard(item = item, onClick = { onItemClick(item) })
+                    }
                 }
             }
         }
@@ -89,7 +101,9 @@ fun HistoryDetailScreen(
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Scaffold(containerColor = TracksyBackground) { paddingValues ->
+    val colors = LocalTracksyColors.current
+
+    Scaffold(containerColor = colors.background) { paddingValues ->
         Column(
             modifier = modifier
                 .fillMaxSize()
@@ -106,20 +120,20 @@ fun HistoryDetailScreen(
                     Icon(
                         imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
                         contentDescription = "Volver",
-                        tint = TracksyTitleText,
+                        tint = colors.titleText,
                         modifier = Modifier.size(24.dp).clickable { onBackClick() }
                     )
                     Text(
                         text = item.supermarketName,
                         fontSize = 22.sp,
                         fontWeight = FontWeight.Bold,
-                        color = TracksyTitleText
+                        color = colors.titleText
                     )
                     Box(
                         contentAlignment = Alignment.Center,
-                        modifier = Modifier.size(42.dp).clip(CircleShape).background(TracksyDivider)
+                        modifier = Modifier.size(42.dp).clip(CircleShape).background(colors.divider)
                     ) {
-                        Icon(Icons.Outlined.Person, contentDescription = "Perfil", tint = TracksySectionText, modifier = Modifier.size(24.dp))
+                        Icon(Icons.Outlined.Person, contentDescription = "Perfil", tint = colors.sectionText, modifier = Modifier.size(24.dp))
                     }
                 }
 
@@ -129,7 +143,7 @@ fun HistoryDetailScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(TracksyTitleText)
+                    .background(colors.titleText)
                     .padding(horizontal = 24.dp, vertical = 24.dp)
             ) {
                 val statusText = if (item.status == PurchaseStatus.COMPLETED) "Completada" else "Incompleta"
@@ -140,12 +154,7 @@ fun HistoryDetailScreen(
                     fontWeight = FontWeight.Medium
                 )
                 Spacer(modifier = Modifier.height(8.dp))
-                Text(
-                    text = item.totalAmount,
-                    color = Color.White,
-                    fontSize = 32.sp,
-                    fontWeight = FontWeight.Bold
-                )
+                Text(text = item.totalAmount, color = Color.White, fontSize = 32.sp, fontWeight = FontWeight.Bold)
             }
 
             Box(
@@ -155,7 +164,7 @@ fun HistoryDetailScreen(
                     .padding(top = 16.dp)
             ) {
                 Surface(
-                    color = TracksySurface,
+                    color = colors.surface,
                     shape = RoundedCornerShape(16.dp),
                     modifier = Modifier.fillMaxWidth()
                 ) {
@@ -169,7 +178,7 @@ fun HistoryDetailScreen(
                                 HorizontalDivider(
                                     modifier = Modifier.padding(horizontal = 4.dp),
                                     thickness = 1.dp,
-                                    color = TracksyDivider
+                                    color = colors.divider
                                 )
                             }
                         }
@@ -184,18 +193,11 @@ fun HistoryDetailScreen(
             ) {
                 Button(
                     onClick = {},
-                    shape  = RoundedCornerShape(50),
-                    colors = ButtonDefaults.buttonColors(containerColor = TracksyTitleText),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(52.dp)
+                    shape = RoundedCornerShape(50),
+                    colors = ButtonDefaults.buttonColors(containerColor = colors.titleText),
+                    modifier = Modifier.fillMaxWidth().height(52.dp)
                 ) {
-                    Text(
-                        text       = "Reutilizar Lista",
-                        fontSize   = 16.sp,
-                        fontWeight = FontWeight.Medium,
-                        color      = Color.White
-                    )
+                    Text(text = "Reutilizar Lista", fontSize = 16.sp, fontWeight = FontWeight.Medium, color = Color.White)
                 }
             }
         }

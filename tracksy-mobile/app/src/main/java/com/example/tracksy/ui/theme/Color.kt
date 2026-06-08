@@ -1,5 +1,6 @@
 package com.example.tracksy.ui.theme
 
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.ui.graphics.Color
 
 // Material baseline (kept for theme compatibility)
@@ -26,39 +27,83 @@ val PlaceholderGray = Color(0xFFAEABBE)
 val DashedBorderGray = Color(0xFFADADB3)
 val PurchasedText = Color(0xFF9E9EC8)
 val LocationPinRed = Color(0xFFE53935)
+
 // Tracksy design tokens
-val TracksyBackground  = Color(0xFFEBE7F5)
-val TracksyPrimary     = Color(0xFF6553D8)
-val TracksySurface     = Color(0xFFFFFFFF)
-val TracksyTitleText   = Color(0xFF1A0B5C)
-val TracksySectionText = Color(0xFF7B6FD0)
-val TracksySubtitleText= Color(0xFF9B8FD4)
-val TracksyDivider     = Color(0xFFDDD8F0)
-val TracksyNavActive   = Color(0xFF1A0B5C)
-val TracksyNavInactive = Color(0xFF9B8FD4)
-val TracksyQrBorder    = Color(0xFFEBE7F5)
+val TracksyBackground   = Color(0xFFEBE7F5)
+val TracksyPrimary      = Color(0xFF6553D8)
+val TracksySurface      = Color(0xFFFFFFFF)
+val TracksyTitleText    = Color(0xFF1A0B5C)
+val TracksySectionText  = Color(0xFF7B6FD0)
+val TracksySubtitleText = Color(0xFF9B8FD4)
+val TracksyDivider      = Color(0xFFDDD8F0)
+val TracksyNavActive    = Color(0xFF1A0B5C)
+val TracksyNavInactive  = Color(0xFF9B8FD4)
+val TracksyQrBorder     = Color(0xFFEBE7F5)
 val TracksyPrimaryPurple = Color(0xFF6F3F97)
-val TracksyPrimaryDark = Color(0xFF5A317E)
-val TracksyTextPrimary = Color(0xFF3F245F)
+val TracksyPrimaryDark  = Color(0xFF5A317E)
+val TracksyTextPrimary  = Color(0xFF3F245F)
 val TracksyTextSecondary = Color(0xFF7E669A)
-val TracksyTextMuted = Color(0xFFA895C0)
-val TracksyPlaceholder = Color(0xFF9279AD)
-val TracksySurfaceCard = Color(0xE6FFFFFF)
-val TracksyBorderSoft = Color(0xFFE2D8EE)
+val TracksyTextMuted    = Color(0xFFA895C0)
+val TracksyPlaceholder  = Color(0xFF9279AD)
+val TracksySurfaceCard  = Color(0xE6FFFFFF)
+val TracksyBorderSoft   = Color(0xFFE2D8EE)
 val TracksyDisabledButtonBackground = Color(0xFFEEDDF0)
 val TracksyDisabledButtonText = Color(0xFF6F4B8B)
-val TracksyErrorRed = Color(0xFFC62828)
+val TracksyErrorRed     = Color(0xFFC62828)
 val TracksySuccessGreen = Color(0xFF388E3C)
 val TracksyChecklistNeutral = Color(0xFF6F5F7D)
 
 val TracksyBackgroundLight = Color(0xFFF5F0FA)
 val TracksySuccessBadgeBackground = Color(0xFFE8F5E9)
 val TracksyWarningBadgeBackground = Color(0xFFFFF9C4)
-val TracksyWarningText = Color(0xFFFBC02D)
+val TracksyWarningText  = Color(0xFFFBC02D)
 
-val TracksyBrandPurple = TracksyPrimaryPurple
+val TracksyBrandPurple       = TracksyPrimaryPurple
 val TracksyDarkPrimaryPurple = TracksyPrimaryDark
-val TracksySoftPrimary = TracksyDisabledButtonBackground
-val TracksySecondaryText = TracksyTextSecondary
-val TracksyPanelBackground = TracksySurfaceCard
-val TracksyFieldPlaceholder = TracksyPlaceholder
+val TracksySoftPrimary       = TracksyDisabledButtonBackground
+val TracksySecondaryText     = TracksyTextSecondary
+val TracksyPanelBackground   = TracksySurfaceCard
+val TracksyFieldPlaceholder  = TracksyPlaceholder
+
+// ─── Dynamic color tokens (used by LocalTracksyColors) ──────────────────────
+
+data class TracksyColors(
+    val background: Color,
+    val surface: Color,
+    val titleText: Color,
+    val sectionText: Color,
+    val subtitleText: Color,
+    val primary: Color,
+    val divider: Color,
+    val errorRed: Color,
+    val successGreen: Color,
+    val isDark: Boolean
+)
+
+fun lightTracksyColors() = TracksyColors(
+    background   = Color(0xFFEBE7F5),
+    surface      = Color(0xFFFFFFFF),
+    titleText    = Color(0xFF1A0B5C),
+    sectionText  = Color(0xFF7B6FD0),
+    subtitleText = Color(0xFF9B8FD4),
+    primary      = Color(0xFF6553D8),
+    divider      = Color(0xFFDDD8F0),
+    errorRed     = Color(0xFFC62828),
+    successGreen = Color(0xFF388E3C),
+    isDark       = false
+)
+
+fun darkTracksyColors() = TracksyColors(
+    background   = Color(0xFF0F0A2E),
+    surface      = Color(0xFF1C1544),
+    titleText    = Color(0xFFEDE8FF),
+    sectionText  = Color(0xFFB0A8E0),
+    subtitleText = Color(0xFF8880C0),
+    primary      = Color(0xFF9B8FD4),
+    divider      = Color(0xFF2E2660),
+    errorRed     = Color(0xFFEF5350),
+    successGreen = Color(0xFF66BB6A),
+    isDark       = true
+)
+
+val LocalTracksyColors = compositionLocalOf { lightTracksyColors() }

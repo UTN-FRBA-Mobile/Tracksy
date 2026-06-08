@@ -23,29 +23,24 @@ import androidx.compose.ui.unit.sp
 import com.example.tracksy.screens.NavTab
 import com.example.tracksy.screens.ShoppingList
 import com.example.tracksy.screens.TracksyBottomBar
-import com.example.tracksy.ui.theme.*
+import com.example.tracksy.ui.theme.LocalTracksyColors
+import com.example.tracksy.ui.theme.TracksyColors
 
 @Composable
 fun MisListasScreen(
     selectedTab: NavTab,
     onTabChange: (NavTab) -> Unit,
+    listas: List<ShoppingList> = emptyList(),
     onListClick: (ShoppingList) -> Unit = {},
     onCreateNewList: () -> Unit = {},
+    onDeleteList: (ShoppingList) -> Unit = {},
     onProfileClick: () -> Unit = {}
 ) {
-    var lists by remember {
-        mutableStateOf(
-            listOf(
-                ShoppingList("Compra semanal", totalProducts = 8,  pendingProducts = 3),
-                ShoppingList("Lista del mes",  totalProducts = 14, pendingProducts = 14),
-                ShoppingList("Cumpleaños Juan", totalProducts = 6,  pendingProducts = 6)
-            )
-        )
-    }
+    val colors = LocalTracksyColors.current
     var listPendingDeletionIndex by remember { mutableStateOf<Int?>(null) }
 
     Scaffold(
-        containerColor = TracksyBackground,
+        containerColor = colors.background,
         bottomBar = { TracksyBottomBar(selected = selectedTab, onSelect = onTabChange) },
         floatingActionButton = {
             Box(
@@ -53,7 +48,7 @@ fun MisListasScreen(
                 modifier = Modifier
                     .size(56.dp)
                     .clip(CircleShape)
-                    .background(TracksyPrimary)
+                    .background(colors.primary)
                     .clickable(onClick = onCreateNewList)
             ) {
                 Icon(
@@ -82,20 +77,20 @@ fun MisListasScreen(
                     text = "Mis listas",
                     fontSize = 22.sp,
                     fontWeight = FontWeight.Bold,
-                    color = TracksyTitleText
+                    color = colors.titleText
                 )
                 Box(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
                         .size(42.dp)
                         .clip(CircleShape)
-                        .background(TracksyDivider)
+                        .background(colors.divider)
                         .clickable(onClick = onProfileClick)
                 ) {
                     Icon(
                         imageVector = Icons.Outlined.Person,
                         contentDescription = "Perfil",
-                        tint = TracksySectionText,
+                        tint = colors.sectionText,
                         modifier = Modifier.size(24.dp)
                     )
                 }
@@ -103,17 +98,18 @@ fun MisListasScreen(
 
             Spacer(Modifier.height(20.dp))
 
-            if (lists.isEmpty()) {
-                EmptyState(modifier = Modifier.fillMaxWidth().padding(top = 64.dp))
+            if (listas.isEmpty()) {
+                EmptyState(colors = colors, modifier = Modifier.fillMaxWidth().padding(top = 64.dp))
             } else {
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                     contentPadding = PaddingValues(vertical = 4.dp, horizontal = 0.dp)
                 ) {
-                    itemsIndexed(items = lists) { index, list ->
+                    itemsIndexed(items = listas) { index, list ->
                         ShoppingListCard(
                             list = list,
+                            colors = colors,
                             onClick = { onListClick(list) },
                             onDelete = { listPendingDeletionIndex = index }
                         )
@@ -124,11 +120,12 @@ fun MisListasScreen(
     }
 
     listPendingDeletionIndex?.let { index ->
-        if (index in lists.indices) {
+        if (index in listas.indices) {
             DeleteListDialog(
-                listName = lists[index].name,
+                listName = listas[index].name,
+                colors = colors,
                 onConfirm = {
-                    lists = lists.toMutableList().also { it.removeAt(index) }
+                    onDeleteList(listas[index])
                     listPendingDeletionIndex = null
                 },
                 onDismiss = { listPendingDeletionIndex = null }
@@ -140,6 +137,7 @@ fun MisListasScreen(
 @Composable
 private fun ShoppingListCard(
     list: ShoppingList,
+    colors: TracksyColors,
     onClick: () -> Unit,
     onDelete: () -> Unit
 ) {
@@ -150,7 +148,7 @@ private fun ShoppingListCard(
 
     Card(
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = TracksySurface),
+        colors = CardDefaults.cardColors(containerColor = colors.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -162,32 +160,15 @@ private fun ShoppingListCard(
                 .padding(horizontal = 18.dp, vertical = 18.dp)
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = list.name,
-                    fontSize = 17.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = TracksyTitleText
-                )
+                Text(text = list.name, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, color = colors.titleText)
                 Spacer(Modifier.height(4.dp))
-                Text(
-                    text = "${list.totalProducts} productos · $pendingLabel",
-                    fontSize = 13.sp,
-                    color = TracksySubtitleText
-                )
+                Text(text = "${list.totalProducts} productos · $pendingLabel", fontSize = 13.sp, color = colors.subtitleText)
             }
             Box(
                 contentAlignment = Alignment.Center,
-                modifier = Modifier
-                    .size(32.dp)
-                    .clip(CircleShape)
-                    .clickable(onClick = onDelete)
+                modifier = Modifier.size(32.dp).clip(CircleShape).clickable(onClick = onDelete)
             ) {
-                Icon(
-                    imageVector = Icons.Outlined.Close,
-                    contentDescription = "Eliminar lista",
-                    tint = TracksyPrimary,
-                    modifier = Modifier.size(20.dp)
-                )
+                Icon(imageVector = Icons.Outlined.Close, contentDescription = "Eliminar lista", tint = colors.primary, modifier = Modifier.size(20.dp))
             }
         }
     }
@@ -196,50 +177,35 @@ private fun ShoppingListCard(
 @Composable
 private fun DeleteListDialog(
     listName: String,
+    colors: TracksyColors,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = TracksySurface,
-        titleContentColor = TracksyTitleText,
-        textContentColor = TracksySubtitleText,
+        containerColor = colors.surface,
+        titleContentColor = colors.titleText,
+        textContentColor = colors.subtitleText,
         title = { Text("¿Eliminar \"$listName\"?") },
         text = { Text("Esta acción no se puede deshacer.") },
         confirmButton = {
             TextButton(onClick = onConfirm) {
-                Text(
-                    text = "Eliminar",
-                    color = TracksyErrorRed,
-                    fontWeight = FontWeight.SemiBold
-                )
+                Text(text = "Eliminar", color = colors.errorRed, fontWeight = FontWeight.SemiBold)
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancelar", color = TracksySubtitleText)
+                Text("Cancelar", color = colors.subtitleText)
             }
         }
     )
 }
 
 @Composable
-private fun EmptyState(modifier: Modifier = Modifier) {
-    Column(
-        modifier = modifier,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(
-            text = "Todavía no tenés listas",
-            fontSize = 15.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = TracksyTitleText
-        )
+private fun EmptyState(colors: TracksyColors, modifier: Modifier = Modifier) {
+    Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(text = "Todavía no tenés listas", fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = colors.titleText)
         Spacer(Modifier.height(6.dp))
-        Text(
-            text = "Tocá el + para crear tu primera lista",
-            fontSize = 13.sp,
-            color = TracksySubtitleText
-        )
+        Text(text = "Tocá el + para crear tu primera lista", fontSize = 13.sp, color = colors.subtitleText)
     }
 }

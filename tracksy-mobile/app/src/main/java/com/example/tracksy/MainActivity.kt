@@ -4,7 +4,11 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.viewModels
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
 import androidx.compose.runtime.*
+import com.example.tracksy.data.local.TokenManager
 import com.example.tracksy.screens.BarcodeScannerScreen
 import com.example.tracksy.screens.HomeScreen
 import com.example.tracksy.screens.NavTab
@@ -12,6 +16,7 @@ import com.example.tracksy.screens.Product
 import com.example.tracksy.screens.ProductDetailScreen
 import com.example.tracksy.screens.ProductsScreen
 import com.example.tracksy.screens.ShoppingList
+import com.example.tracksy.screens.Suggestion
 import com.example.tracksy.ui.auth.TracksyAuthApp
 import com.example.tracksy.ui.checkout.FinalizarCompraScreen
 import com.example.tracksy.ui.checkout.PurchaseSummary
@@ -21,153 +26,394 @@ import com.example.tracksy.ui.history.HistoryScreen
 import com.example.tracksy.ui.lists.DetalleListaScreen
 import com.example.tracksy.ui.lists.EditarListaScreen
 import com.example.tracksy.ui.lists.MisListasScreen
+import com.example.tracksy.ui.profile.CambiarContrasenaScreen
+import com.example.tracksy.ui.profile.EditarPerfilScreen
 import com.example.tracksy.ui.profile.PerfilScreen
 import com.example.tracksy.ui.profile.PerfilUsuario
 import com.example.tracksy.ui.supermarket.CompararSupermercadosScreen
 import com.example.tracksy.ui.theme.TracksyTheme
+import com.example.tracksy.viewmodel.AuthViewModel
+import com.example.tracksy.viewmodel.CompraViewModel
+import com.example.tracksy.viewmodel.ListaViewModel
+import com.example.tracksy.viewmodel.PerfilViewModel
+import com.example.tracksy.viewmodel.ProductoViewModel
 
 enum class AppScreen {
     EditarLista, DetalleLista, CompararSupermercados, FinalizarCompra
 }
 
 class MainActivity : ComponentActivity() {
+
+    private val tokenManager by lazy { TokenManager(this) }
+
+    private val authViewModel:     AuthViewModel     by viewModels { AuthViewModel.Factory(this) }
+    private val perfilViewModel:   PerfilViewModel   by viewModels { PerfilViewModel.Factory(this) }
+    private val productoViewModel: ProductoViewModel by viewModels { ProductoViewModel.Factory(this) }
+    private val listaViewModel:    ListaViewModel    by viewModels { ListaViewModel.Factory(this) }
+    private val compraViewModel:   CompraViewModel   by viewModels { CompraViewModel.Factory(this) }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            TracksyTheme {
-                var isAuthenticated      by remember { mutableStateOf(false) }
-                var selectedTab          by remember { mutableStateOf(NavTab.HOME) }
-                var showScanner          by remember { mutableStateOf(false) }
-                var selectedProduct      by remember { mutableStateOf<Product?>(null) }
-                var selectedHistoryItem  by remember { mutableStateOf<HistoryItem?>(null) }
-                var selectedList         by remember { mutableStateOf<ShoppingList?>(null) }
-                var currentScreen        by remember { mutableStateOf(AppScreen.EditarLista) }
-                var showEditarListaStandalone by remember { mutableStateOf(false) }
-                var showPerfil           by remember { mutableStateOf(false) }
+            var isDarkMode by remember { mutableStateOf(tokenManager.isDarkMode) }
 
-                if (!isAuthenticated) {
-                    TracksyAuthApp(onAuthenticated = { isAuthenticated = true })
-                } else {
-                    val onTabChange: (NavTab) -> Unit = { tab ->
-                        selectedProduct     = null
-                        selectedHistoryItem = null
-                        selectedList        = null
-                        currentScreen       = AppScreen.EditarLista
-                        showEditarListaStandalone = false
-                        if (tab == NavTab.SCANNER) showScanner = true
-                        else selectedTab = tab
+            TracksyTheme(darkTheme = isDarkMode) {
+
+                // ── ViewModel state ──────────────────────────────────────────
+                val isAuthenticated  by authViewModel.isAuthenticated.collectAsState()
+                val perfilState      by perfilViewModel.perfil.collectAsState()
+                val productos        by productoViewModel.productos.collectAsState()
+                val favoritos        by productoViewModel.favoritos.collectAsState()
+                val listas           by listaViewModel.listas.collectAsState()
+                val listaActual      by listaViewModel.listaActual.collectAsState()
+                val supermercados    by listaViewModel.supermercados.collectAsState()
+                val compras          by compraViewModel.compras.collectAsState()
+
+                // ── Sugerencias derivadas del historial de compras ───────────
+                val sugerenciasGeneradas by remember(compras, productos) {
+                    derivedStateOf {
+                        compras
+                            .flatMap { it.products }
+                            .groupBy { it.name }
+                            .entries
+                            .sortedByDescending { it.value.size }
+                            .take(5)
+                            .map { entry ->
+                                val nombre = entry.key
+                                val veces = entry.value.size
+                                val productoId = productos.firstOrNull { p -> p.name == nombre }?.id
+                                Suggestion(
+                                    productoId = productoId,
+                                    emoji = "🛒",
+                                    name = nombre,
+                                    reason = "Comprado $veces ${if (veces == 1) "vez" else "veces"}"
+                                )
+                            }
                     }
+                }
+                var dismissedSuggestionIds by remember { mutableStateOf(emptySet<Int>()) }
+                val sugerenciasVisibles = remember(sugerenciasGeneradas, dismissedSuggestionIds) {
+                    sugerenciasGeneradas.filter { (it.productoId ?: -1) !in dismissedSuggestionIds }
+                }
 
-                    when {
-                        showPerfil -> PerfilScreen(
-                            usuario  = PerfilUsuario(
-                                nombre = "Juan Pérez",
-                                email  = "juan.perez@gmail.com"
-                            ),
-                            onBack   = { showPerfil = false },
-                            onLogout = {
-                                showPerfil = false
-                                isAuthenticated = false
-                                selectedTab = NavTab.HOME
-                                selectedProduct = null
-                                selectedHistoryItem = null
-                                selectedList = null
-                                showEditarListaStandalone = false
-                                showScanner = false
-                            }
+                // ── UI navigation state ──────────────────────────────────────
+                var selectedTab               by remember { mutableStateOf(NavTab.HOME) }
+                var showScanner               by remember { mutableStateOf(false) }
+                var selectedProduct           by remember { mutableStateOf<Product?>(null) }
+                var selectedHistoryItem       by remember { mutableStateOf<HistoryItem?>(null) }
+                var selectedList              by remember { mutableStateOf<ShoppingList?>(null) }
+                var currentScreen             by remember { mutableStateOf(AppScreen.EditarLista) }
+                var showEditarListaStandalone by remember { mutableStateOf(false) }
+                var showPerfil                by remember { mutableStateOf(false) }
+                var showEditarPerfil          by remember { mutableStateOf(false) }
+                var showCambiarContrasena     by remember { mutableStateOf(false) }
+                var scannerFromList           by remember { mutableStateOf(false) }
+                var pendingBarcode            by remember { mutableStateOf<String?>(null) }
+
+                // Cargar datos al autenticarse
+                LaunchedEffect(isAuthenticated) {
+                    if (isAuthenticated) {
+                        perfilViewModel.cargarPerfil()
+                        productoViewModel.cargarProductos()
+                        productoViewModel.cargarFavoritos()
+                        listaViewModel.cargarListas()
+                        listaViewModel.cargarEstadosProducto()
+                        listaViewModel.cargarSupermercados()
+                        compraViewModel.cargarCompras()
+                    }
+                }
+
+                // Cargar detalle de lista cuando se selecciona una
+                LaunchedEffect(selectedList) {
+                    selectedList?.let { listaViewModel.cargarLista(it.id) }
+                }
+
+                val usuario = perfilState ?: PerfilUsuario("", "")
+
+                Crossfade(
+                    targetState = isAuthenticated,
+                    animationSpec = tween(400),
+                    label = "auth_transition"
+                ) { authenticated ->
+                    if (!authenticated) {
+                        TracksyAuthApp(
+                            onAuthenticated = { },
+                            onLogin = { email, password -> authViewModel.login(email, password) },
+                            onCreateAccount = { nombre, email, password -> authViewModel.registro(nombre, email, password) }
                         )
-                        showScanner -> BarcodeScannerScreen(
-                            onBarcodeDetected = { showScanner = false },
-                            onDismiss         = { showScanner = false }
-                        )
-                        selectedHistoryItem != null -> HistoryDetailScreen(
-                            item        = selectedHistoryItem!!,
-                            onBackClick = { selectedHistoryItem = null }
-                        )
-                        selectedProduct != null -> ProductDetailScreen(
-                            product     = selectedProduct!!,
-                            onBack      = { selectedProduct = null },
-                            selectedTab = selectedTab,
-                            onTabChange = onTabChange
-                        )
-                        showEditarListaStandalone -> EditarListaScreen(
-                            onConfirmar = {
-                                showEditarListaStandalone = false
-                                selectedTab = NavTab.LISTS
-                            },
-                            onBack = {
-                                showEditarListaStandalone = false
-                            }
-                        )
-                        selectedList != null -> when (currentScreen) {
-                            AppScreen.DetalleLista -> DetalleListaScreen(
-                                onEditar = { currentScreen = AppScreen.EditarLista },
-                                onComparar = { currentScreen = AppScreen.CompararSupermercados },
-                                onFinalizar = { currentScreen = AppScreen.FinalizarCompra },
-                                onBack = {
-                                    selectedList = null; currentScreen = AppScreen.DetalleLista
+                    } else {
+                        val onTabChange: (NavTab) -> Unit = { tab ->
+                            selectedProduct           = null
+                            selectedHistoryItem       = null
+                            selectedList              = null
+                            currentScreen             = AppScreen.EditarLista
+                            showEditarListaStandalone = false
+                            if (tab == NavTab.SCANNER) showScanner = true
+                            else selectedTab = tab
+                        }
+
+                        when {
+                            showCambiarContrasena -> CambiarContrasenaScreen(
+                                emailUsuario = usuario.email,
+                                onBack    = { showCambiarContrasena = false },
+                                onSuccess = { showCambiarContrasena = false }
+                            )
+
+                            showEditarPerfil -> EditarPerfilScreen(
+                                usuario = usuario,
+                                onSave = { updated ->
+                                    perfilViewModel.actualizarPerfil(updated.nombre)
+                                    showEditarPerfil = false
+                                },
+                                onBack = { showEditarPerfil = false }
+                            )
+
+                            showPerfil -> PerfilScreen(
+                                usuario    = usuario,
+                                isDarkMode = isDarkMode,
+                                onBack     = { showPerfil = false },
+                                onLogout   = {
+                                    authViewModel.logout()
+                                    showPerfil                = false
+                                    selectedTab               = NavTab.HOME
+                                    selectedProduct           = null
+                                    selectedHistoryItem       = null
+                                    selectedList              = null
+                                    showEditarListaStandalone = false
+                                    showScanner               = false
+                                    pendingBarcode            = null
+                                    dismissedSuggestionIds    = emptySet()
+                                },
+                                onEditarPerfil      = { showEditarPerfil = true },
+                                onCambiarContrasena = { showCambiarContrasena = true },
+                                onModoOscuroChange  = {
+                                    isDarkMode = it
+                                    tokenManager.isDarkMode = it
                                 }
                             )
-                            AppScreen.EditarLista -> EditarListaScreen(
-                                onConfirmar = { currentScreen = AppScreen.DetalleLista },
-                                onBack = { currentScreen = AppScreen.DetalleLista }
-                            )
-                            AppScreen.CompararSupermercados -> CompararSupermercadosScreen(
-                                onBack = { currentScreen = AppScreen.DetalleLista }
-                            )
-                            AppScreen.FinalizarCompra -> FinalizarCompraScreen(
-                                summary = PurchaseSummary(
-                                    listName          = selectedList!!.name,
-                                    purchasedProducts = 5,
-                                    totalProducts     = 8,
-                                    totalSpent        = 6700,
-                                    pendingItems      = listOf("Leche entera", "Pan lactal", "Yogur natural")
-                                ),
-                                onBack = { currentScreen = AppScreen.DetalleLista },
-                                onConfirm = { createPendingList ->
-                                    selectedList = null
-                                    currentScreen = AppScreen.DetalleLista
-                                    if (createPendingList) {
-                                        showEditarListaStandalone = true
+
+                            showScanner -> BarcodeScannerScreen(
+                                onBarcodeDetected = { barcode ->
+                                    if (scannerFromList) {
+                                        pendingBarcode = barcode
+                                        scannerFromList = false
                                     } else {
-                                        selectedTab = NavTab.HOME
+                                        productoViewModel.cargarProductos(busqueda = barcode)
+                                        selectedTab = NavTab.PRODUCTS
+                                    }
+                                    showScanner = false
+                                },
+                                onDismiss = {
+                                    scannerFromList = false
+                                    showScanner = false
+                                }
+                            )
+
+                            selectedHistoryItem != null -> HistoryDetailScreen(
+                                item        = selectedHistoryItem!!,
+                                onBackClick = { selectedHistoryItem = null }
+                            )
+
+                            selectedProduct != null -> ProductDetailScreen(
+                                product     = selectedProduct!!,
+                                onBack      = { selectedProduct = null },
+                                selectedTab = selectedTab,
+                                onTabChange = onTabChange
+                            )
+
+                            // ── Nueva lista standalone ────────────────────────
+                            showEditarListaStandalone -> EditarListaScreen(
+                                listaActual          = null,
+                                productosDisponibles = productos,
+                                supermercados        = supermercados,
+                                onConfirmar = { nombre, supermercadoId, items ->
+                                    listaViewModel.crearListaConItems(
+                                        nombre         = nombre,
+                                        supermercadoId = supermercadoId,
+                                        items          = items.map { it.productoId to it.cantidad }
+                                    )
+                                    showEditarListaStandalone = false
+                                    pendingBarcode            = null
+                                    selectedTab               = NavTab.LISTS
+                                },
+                                onBack = {
+                                    showEditarListaStandalone = false
+                                    pendingBarcode            = null
+                                },
+                                onScanBarcode  = {
+                                    scannerFromList = true
+                                    showScanner     = true
+                                },
+                                scannedBarcode = pendingBarcode
+                            )
+
+                            // ── Flujo de lista seleccionada ───────────────────
+                            selectedList != null -> when (currentScreen) {
+
+                                AppScreen.DetalleLista -> DetalleListaScreen(
+                                    lista        = listaActual,
+                                    onToggleItem = { listaId, itemId, estaComprado ->
+                                        listaViewModel.toggleItem(listaId, itemId, estaComprado)
+                                    },
+                                    onEditar    = { currentScreen = AppScreen.EditarLista },
+                                    onComparar  = { currentScreen = AppScreen.CompararSupermercados },
+                                    onFinalizar = { currentScreen = AppScreen.FinalizarCompra },
+                                    onBack      = {
+                                        selectedList  = null
+                                        currentScreen = AppScreen.DetalleLista
+                                    }
+                                )
+
+                                AppScreen.EditarLista -> EditarListaScreen(
+                                    listaActual          = listaActual,
+                                    productosDisponibles = productos,
+                                    supermercados        = supermercados,
+                                    onConfirmar = { nombre, supermercadoId, items ->
+                                        val listaId = listaActual?.id
+                                        if (listaId != null) {
+                                            val existentesIds = listaActual?.items?.map { it.producto }?.toSet() ?: emptySet()
+                                            val estadoId = listaViewModel.idEstadoPendiente()
+                                                ?: listaViewModel.estadosProducto.value.firstOrNull()?.id
+                                            items
+                                                .filter { it.productoId !in existentesIds }
+                                                .forEach { item ->
+                                                    estadoId?.let {
+                                                        listaViewModel.agregarItem(listaId, item.productoId, item.cantidad, it, 0.0)
+                                                    }
+                                                }
+                                            listaViewModel.cargarLista(listaId)
+                                        }
+                                        currentScreen = AppScreen.DetalleLista
+                                    },
+                                    onBack        = { currentScreen = AppScreen.DetalleLista },
+                                    onScanBarcode = {
+                                        scannerFromList = true
+                                        showScanner     = true
+                                    },
+                                    scannedBarcode = pendingBarcode
+                                )
+
+                                AppScreen.CompararSupermercados -> CompararSupermercadosScreen(
+                                    onBack = { currentScreen = AppScreen.DetalleLista }
+                                )
+
+                                AppScreen.FinalizarCompra -> {
+                                    val lista     = selectedList!!
+                                    val realItems = listaActual?.items ?: emptyList()
+                                    val comprados = realItems.count {
+                                        it.estadoNombre.lowercase().let { n -> n.contains("comprad") || n.contains("completad") }
+                                    }
+                                    val pendientes = realItems.filter {
+                                        !it.estadoNombre.lowercase().let { n -> n.contains("comprad") || n.contains("completad") }
+                                    }
+                                    val totalGastado = realItems
+                                        .filter { it.estadoNombre.lowercase().let { n -> n.contains("comprad") || n.contains("completad") } }
+                                        .sumOf { it.precioUnitario * it.cantidad }
+
+                                    FinalizarCompraScreen(
+                                        summary = PurchaseSummary(
+                                            listName          = lista.name,
+                                            purchasedProducts = comprados,
+                                            totalProducts     = realItems.size,
+                                            totalSpent        = totalGastado.toInt(),
+                                            pendingItems      = pendientes.map { it.productoNombre }
+                                        ),
+                                        onBack = { currentScreen = AppScreen.DetalleLista },
+                                        onConfirm = { createPendingList ->
+                                            val supermercadoId = listaActual?.supermercado
+                                            if (supermercadoId != null && comprados > 0) {
+                                                compraViewModel.crearCompra(
+                                                    supermercadoId = supermercadoId,
+                                                    total          = totalGastado,
+                                                    productos      = realItems
+                                                        .filter { it.estadoNombre.lowercase().let { n -> n.contains("comprad") || n.contains("completad") } }
+                                                        .map { Triple(it.producto, it.cantidad, it.precioUnitario) }
+                                                )
+                                            }
+                                            selectedList  = null
+                                            currentScreen = AppScreen.DetalleLista
+                                            compraViewModel.cargarCompras()
+                                            if (createPendingList) {
+                                                showEditarListaStandalone = true
+                                            } else {
+                                                selectedTab = NavTab.HOME
+                                            }
+                                        }
+                                    )
+                                }
+                            }
+
+                            selectedTab == NavTab.LISTS -> MisListasScreen(
+                                selectedTab     = selectedTab,
+                                onTabChange     = onTabChange,
+                                listas          = listas,
+                                onListClick     = { list ->
+                                    selectedList  = list
+                                    currentScreen = AppScreen.DetalleLista
+                                },
+                                onCreateNewList = { showEditarListaStandalone = true },
+                                onDeleteList    = { list -> listaViewModel.eliminarLista(list.id) },
+                                onProfileClick  = { showPerfil = true }
+                            )
+
+                            selectedTab == NavTab.HISTORY -> HistoryScreen(
+                                onBackClick    = { selectedTab = NavTab.HOME },
+                                onItemClick    = { item -> selectedHistoryItem = item },
+                                items          = compras,
+                                selectedTab    = selectedTab,
+                                onTabChange    = onTabChange,
+                                onProfileClick = { showPerfil = true }
+                            )
+
+                            selectedTab == NavTab.PRODUCTS -> ProductsScreen(
+                                selectedTab    = selectedTab,
+                                onTabChange    = onTabChange,
+                                productosApi   = productos,
+                                favoritosApi   = favoritos,
+                                onProductTap   = { product -> selectedProduct = product },
+                                onProfileClick = { showPerfil = true },
+                                onSearchChange = { query ->
+                                    productoViewModel.cargarProductos(query.takeIf { it.isNotBlank() })
+                                }
+                            )
+
+                            else -> HomeScreen(
+                                selectedTab    = selectedTab,
+                                onTabChange    = onTabChange,
+                                listas         = listas,
+                                sugerencias    = sugerenciasVisibles,
+                                onListTap      = { list ->
+                                    selectedList  = list
+                                    currentScreen = AppScreen.DetalleLista
+                                },
+                                onProfileClick = { showPerfil = true },
+                                onAgregarSugerencia = { suggestion ->
+                                    val ultimaLista = listas.firstOrNull()
+                                    if (ultimaLista != null && suggestion.productoId != null) {
+                                        val estadoId = listaViewModel.idEstadoPendiente()
+                                            ?: listaViewModel.estadosProducto.value.firstOrNull()?.id
+                                        estadoId?.let {
+                                            listaViewModel.agregarItem(
+                                                listaId    = ultimaLista.id,
+                                                productoId = suggestion.productoId,
+                                                cantidad   = 1,
+                                                estadoId   = it,
+                                                precio     = 0.0
+                                            )
+                                        }
+                                    }
+                                    suggestion.productoId?.let {
+                                        dismissedSuggestionIds = dismissedSuggestionIds + it
+                                    }
+                                },
+                                onDismissSugerencia = { suggestion ->
+                                    suggestion.productoId?.let {
+                                        dismissedSuggestionIds = dismissedSuggestionIds + it
                                     }
                                 }
                             )
                         }
-                        selectedTab == NavTab.LISTS -> MisListasScreen(
-                            selectedTab = selectedTab,
-                            onTabChange = onTabChange,
-                            onListClick = { list ->
-                                selectedList  = list
-                                currentScreen = AppScreen.DetalleLista
-                            },
-                            onCreateNewList = { showEditarListaStandalone = true },
-                            onProfileClick  = { showPerfil = true }
-                        )
-                        selectedTab == NavTab.HISTORY -> HistoryScreen(
-                            onBackClick    = { selectedTab = NavTab.HOME },
-                            onItemClick    = { item -> selectedHistoryItem = item },
-                            selectedTab    = selectedTab,
-                            onTabChange    = onTabChange,
-                            onProfileClick = { showPerfil = true }
-                        )
-                        selectedTab == NavTab.PRODUCTS -> ProductsScreen(
-                            selectedTab    = selectedTab,
-                            onTabChange    = onTabChange,
-                            onProductTap   = { product -> selectedProduct = product },
-                            onProfileClick = { showPerfil = true }
-                        )
-                        else -> HomeScreen(
-                            selectedTab    = selectedTab,
-                            onTabChange    = onTabChange,
-                            onListTap      = { list ->
-                                selectedList  = list
-                                currentScreen = AppScreen.DetalleLista
-                            },
-                            onProfileClick = { showPerfil = true }
-                        )
                     }
                 }
             }

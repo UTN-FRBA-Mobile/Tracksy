@@ -19,7 +19,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.tracksy.ui.theme.*
+import com.example.tracksy.ui.theme.LocalTracksyColors
+import com.example.tracksy.ui.theme.TracksyColors
+import com.example.tracksy.ui.theme.TracksyWarningBadgeBackground
 
 data class PurchaseSummary(
     val listName: String,
@@ -38,9 +40,10 @@ fun FinalizarCompraScreen(
     onBack: () -> Unit,
     onConfirm: (createPendingList: Boolean) -> Unit
 ) {
+    val colors = LocalTracksyColors.current
     var createPendingList by remember { mutableStateOf(true) }
 
-    Scaffold(containerColor = TracksyBackground) { padding ->
+    Scaffold(containerColor = colors.background) { padding ->
         Box(
             modifier = Modifier
                 .padding(padding)
@@ -53,7 +56,7 @@ fun FinalizarCompraScreen(
                     .padding(bottom = 96.dp)
             ) {
                 Spacer(Modifier.height(16.dp))
-                FinalizarCompraTopBar(onBack = onBack)
+                FinalizarCompraTopBar(onBack = onBack, colors = colors)
 
                 Spacer(Modifier.height(20.dp))
 
@@ -64,7 +67,7 @@ fun FinalizarCompraScreen(
                     Icon(
                         imageVector = Icons.Outlined.ShoppingCart,
                         contentDescription = null,
-                        tint = TracksyTitleText,
+                        tint = colors.titleText,
                         modifier = Modifier.size(64.dp)
                     )
                     Spacer(Modifier.height(12.dp))
@@ -72,19 +75,20 @@ fun FinalizarCompraScreen(
                         text = "Resumen de compra",
                         fontSize = 22.sp,
                         fontWeight = FontWeight.Bold,
-                        color = TracksyTitleText
+                        color = colors.titleText
                     )
                 }
 
                 Spacer(Modifier.height(20.dp))
 
-                SummaryCard(summary = summary)
+                SummaryCard(summary = summary, colors = colors)
 
                 if (summary.hasPending) {
                     Spacer(Modifier.height(16.dp))
                     PendingListSuggestion(
                         pendingItems = summary.pendingItems,
                         createList = createPendingList,
+                        colors = colors,
                         onToggle = { createPendingList = it }
                     )
                 }
@@ -93,7 +97,7 @@ fun FinalizarCompraScreen(
             Button(
                 onClick = { onConfirm(createPendingList && summary.hasPending) },
                 shape = RoundedCornerShape(50),
-                colors = ButtonDefaults.buttonColors(containerColor = TracksyPrimary),
+                colors = ButtonDefaults.buttonColors(containerColor = colors.primary),
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
@@ -112,7 +116,7 @@ fun FinalizarCompraScreen(
 }
 
 @Composable
-private fun FinalizarCompraTopBar(onBack: () -> Unit) {
+private fun FinalizarCompraTopBar(onBack: () -> Unit, colors: TracksyColors) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -121,71 +125,44 @@ private fun FinalizarCompraTopBar(onBack: () -> Unit) {
         Icon(
             imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
             contentDescription = "Volver",
-            tint = TracksyTitleText,
-            modifier = Modifier
-                .size(24.dp)
-                .clickable(onClick = onBack)
+            tint = colors.titleText,
+            modifier = Modifier.size(24.dp).clickable(onClick = onBack)
         )
-        Text(
-            text = "Finalizar compra",
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Bold,
-            color = TracksyTitleText
-        )
+        Text(text = "Finalizar compra", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = colors.titleText)
         Box(
             contentAlignment = Alignment.Center,
-            modifier = Modifier
-                .size(42.dp)
-                .clip(CircleShape)
-                .background(TracksyDivider)
+            modifier = Modifier.size(42.dp).clip(CircleShape).background(colors.divider)
         ) {
-            Icon(
-                imageVector = Icons.Outlined.Person,
-                contentDescription = "Perfil",
-                tint = TracksySectionText,
-                modifier = Modifier.size(24.dp)
-            )
+            Icon(imageVector = Icons.Outlined.Person, contentDescription = "Perfil", tint = colors.sectionText, modifier = Modifier.size(24.dp))
         }
     }
 }
 
 @Composable
-private fun SummaryCard(summary: PurchaseSummary) {
+private fun SummaryCard(summary: PurchaseSummary, colors: TracksyColors) {
     Card(
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = TracksySurface),
+        colors = CardDefaults.cardColors(containerColor = colors.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(horizontal = 18.dp, vertical = 16.dp)) {
-            SummaryRow(
-                label = "Productos comprados",
-                value = "${summary.purchasedProducts} de ${summary.totalProducts}"
-            )
-            HorizontalDivider(
-                modifier = Modifier.padding(vertical = 12.dp),
-                color = TracksyDivider
-            )
+            SummaryRow(label = "Productos comprados", value = "${summary.purchasedProducts} de ${summary.totalProducts}", colors = colors)
+            HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = colors.divider)
             SummaryRow(
                 label = "Total gastado",
                 value = "$" + "%,d".format(summary.totalSpent).replace(',', '.'),
-                emphasized = true
+                emphasized = true,
+                colors = colors
             )
             if (summary.hasPending) {
-                HorizontalDivider(
-                    modifier = Modifier.padding(vertical = 12.dp),
-                    color = TracksyDivider
-                )
+                HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = colors.divider)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(
-                        text = "Sin comprar",
-                        fontSize = 15.sp,
-                        color = TracksyTitleText
-                    )
+                    Text(text = "Sin comprar", fontSize = 15.sp, color = colors.titleText)
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(50))
@@ -196,7 +173,7 @@ private fun SummaryCard(summary: PurchaseSummary) {
                             text = "${summary.pendingCount} pendientes",
                             fontSize = 13.sp,
                             fontWeight = FontWeight.SemiBold,
-                            color = TracksyTitleText
+                            color = colors.titleText
                         )
                     }
                 }
@@ -206,18 +183,18 @@ private fun SummaryCard(summary: PurchaseSummary) {
 }
 
 @Composable
-private fun SummaryRow(label: String, value: String, emphasized: Boolean = false) {
+private fun SummaryRow(label: String, value: String, emphasized: Boolean = false, colors: TracksyColors) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(text = label, fontSize = 15.sp, color = TracksyTitleText)
+        Text(text = label, fontSize = 15.sp, color = colors.titleText)
         Text(
             text = value,
             fontSize = if (emphasized) 20.sp else 15.sp,
             fontWeight = if (emphasized) FontWeight.Bold else FontWeight.Normal,
-            color = if (emphasized) TracksyPrimary else TracksyTitleText
+            color = if (emphasized) colors.primary else colors.titleText
         )
     }
 }
@@ -226,13 +203,14 @@ private fun SummaryRow(label: String, value: String, emphasized: Boolean = false
 private fun PendingListSuggestion(
     pendingItems: List<String>,
     createList: Boolean,
+    colors: TracksyColors,
     onToggle: (Boolean) -> Unit
 ) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .border(1.dp, TracksyDivider, RoundedCornerShape(16.dp))
+            .border(1.dp, colors.divider, RoundedCornerShape(16.dp))
             .padding(horizontal = 18.dp, vertical = 16.dp)
     ) {
         Column {
@@ -240,51 +218,32 @@ private fun PendingListSuggestion(
                 text = "¿Agregar pendientes a una nueva lista?",
                 fontSize = 15.sp,
                 fontWeight = FontWeight.SemiBold,
-                color = TracksyTitleText
+                color = colors.titleText
             )
             Spacer(Modifier.height(6.dp))
-            Text(
-                text = pendingItems.joinToString(", "),
-                fontSize = 13.sp,
-                color = TracksySubtitleText
-            )
+            Text(text = pendingItems.joinToString(", "), fontSize = 13.sp, color = colors.subtitleText)
             Spacer(Modifier.height(14.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Button(
                     onClick = { onToggle(true) },
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(44.dp),
+                    modifier = Modifier.weight(1f).height(44.dp),
                     shape = RoundedCornerShape(50),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = if (createList) TracksyPrimary else TracksyDivider,
-                        contentColor = if (createList) Color.White else TracksyTitleText
+                        containerColor = if (createList) colors.primary else colors.divider,
+                        contentColor = if (createList) Color.White else colors.titleText
                     )
                 ) {
-                    Text(
-                        "Sí, crear lista",
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
+                    Text("Sí, crear lista", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
                 }
                 OutlinedButton(
                     onClick = { onToggle(false) },
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(44.dp),
+                    modifier = Modifier.weight(1f).height(44.dp),
                     shape = RoundedCornerShape(50),
                     colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = if (!createList) TracksyPrimary else TracksySubtitleText
+                        contentColor = if (!createList) colors.primary else colors.subtitleText
                     )
                 ) {
-                    Text(
-                        "No, omitir",
-                        fontSize = 13.sp,
-                        fontWeight = if (!createList) FontWeight.SemiBold else FontWeight.Normal
-                    )
+                    Text("No, omitir", fontSize = 13.sp, fontWeight = if (!createList) FontWeight.SemiBold else FontWeight.Normal)
                 }
             }
         }

@@ -26,7 +26,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -75,9 +77,18 @@ private val PasswordRequirementTextStyle = TextStyle(
 )
 
 @Composable
-fun TracksyAuthApp(onAuthenticated: () -> Unit = {}) {
+fun TracksyAuthApp(
+    onAuthenticated: () -> Unit = {},
+    onLogin: suspend (email: String, password: String) -> Boolean = { _, _ -> true },
+    onCreateAccount: suspend (nombre: String, email: String, password: String) -> Boolean = { _, _, _ -> true }
+) {
+    val scope = rememberCoroutineScope()
     var route by remember { mutableStateOf(AuthRoute.Welcome) }
     var selectedHistoryItem by remember { mutableStateOf<HistoryItem?>(null) }
+    var loginLoading by remember { mutableStateOf(false) }
+    var loginServerError by remember { mutableStateOf(false) }
+    var registerLoading by remember { mutableStateOf(false) }
+    var registerEmailTaken by remember { mutableStateOf(false) }
 
     when (route) {
         AuthRoute.Welcome -> WelcomeScreen(
@@ -86,17 +97,33 @@ fun TracksyAuthApp(onAuthenticated: () -> Unit = {}) {
         )
 
         AuthRoute.Login -> LoginScreen(
-            onLogin = { _, _ ->
-                onAuthenticated()
-                true
+            isLoading = loginLoading,
+            serverError = loginServerError,
+            onLogin = { email, password ->
+                loginServerError = false
+                scope.launch {
+                    loginLoading = true
+                    val ok = onLogin(email, password)
+                    loginLoading = false
+                    if (ok) onAuthenticated() else loginServerError = true
+                }
+                true // return true to avoid internal error — server error shown via serverError flag
             },
             onForgotPassword = { route = AuthRoute.RecoverPassword },
             onCreateAccount = { route = AuthRoute.CreateAccount }
         )
 
         AuthRoute.CreateAccount -> CreateAccountScreen(
-            onCreateAccount = { _, _, _ ->
-                onAuthenticated()
+            isLoading = registerLoading,
+            emailTaken = registerEmailTaken,
+            onCreateAccount = { nombre, email, password ->
+                registerEmailTaken = false
+                scope.launch {
+                    registerLoading = true
+                    val ok = onCreateAccount(nombre, email, password)
+                    registerLoading = false
+                    if (ok) onAuthenticated() else registerEmailTaken = true
+                }
                 true
             },
             onLogin = { route = AuthRoute.Login }
@@ -185,6 +212,8 @@ fun LoginScreen(
     onLogin: (email: String, password: String) -> Boolean,
     onForgotPassword: () -> Unit,
     onCreateAccount: () -> Unit,
+    isLoading: Boolean = false,
+    serverError: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     var email by remember { mutableStateOf("") }
@@ -194,7 +223,8 @@ fun LoginScreen(
     LoginContent(
         email = email,
         password = password,
-        showError = showError,
+        showError = showError || serverError,
+        isLoading = isLoading,
         onEmailChange = {
             email = it
             if (showError) showError = false
@@ -219,6 +249,7 @@ internal fun LoginContent(
     email: String,
     password: String,
     showError: Boolean,
+    isLoading: Boolean = false,
     onEmailChange: (String) -> Unit,
     onPasswordChange: (String) -> Unit,
     onLogin: () -> Unit,
@@ -226,7 +257,7 @@ internal fun LoginContent(
     onCreateAccount: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val loginEnabled = email.isNotBlank() && password.isNotBlank()
+    val loginEnabled = email.isNotBlank() && password.isNotBlank() && !isLoading
 
     AuthScreenContainer(modifier = modifier) {
         Column(
@@ -290,6 +321,8 @@ internal fun LoginContent(
 fun CreateAccountScreen(
     onCreateAccount: (name: String, email: String, password: String) -> Boolean,
     onLogin: () -> Unit,
+    isLoading: Boolean = false,
+    emailTaken: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     var name by remember { mutableStateOf("") }
@@ -301,7 +334,7 @@ fun CreateAccountScreen(
     var passwordBlurred by remember { mutableStateOf(false) }
     var confirmInteracted by remember { mutableStateOf(false) }
     var submitAttempted by remember { mutableStateOf(false) }
-    var isEmailAlreadyRegistered by remember { mutableStateOf(false) }
+    var isEmailAlreadyRegistered by remember(emailTaken) { mutableStateOf(emailTaken) }
     val focusManager = LocalFocusManager.current
     val passwordRequirements = passwordRequirements(password)
     val isPasswordValid = passwordRequirements.all { it.isValid }
@@ -332,7 +365,7 @@ fun CreateAccountScreen(
         passwordRequirements = passwordRequirements,
         showPasswordRequirementErrors = passwordBlurred || submitAttempted,
         showConfirmMismatch = showConfirmMismatch,
-        isCreateEnabled = isFrontendValid && !isEmailAlreadyRegistered,
+        isCreateEnabled = isFrontendValid && !isEmailAlreadyRegistered && !isLoading,
         onNameChange = { name = it },
         onEmailChange = {
             email = it

@@ -11,8 +11,9 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.filled.CameraAlt
-import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -23,20 +24,72 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.tracksy.ui.theme.*
+import com.example.tracksy.data.models.ListaCompra
+import com.example.tracksy.data.models.Supermercado
+import com.example.tracksy.screens.Product
+import com.example.tracksy.ui.theme.LocalTracksyColors
+import com.example.tracksy.ui.theme.TracksyColors
 import com.example.tracksy.ui.utils.dashedBorder
 
+data class ItemDeLista(
+    val productoId: Int,
+    val nombre: String,
+    val cantidad: Int = 1
+)
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditarListaScreen(
-    onConfirmar: () -> Unit = {},
-    onBack: () -> Unit = {}
+    listaActual: ListaCompra? = null,
+    productosDisponibles: List<Product> = emptyList(),
+    supermercados: List<Supermercado> = emptyList(),
+    onConfirmar: (nombre: String, supermercadoId: Int?, items: List<ItemDeLista>) -> Unit = { _, _, _ -> },
+    onBack: () -> Unit = {},
+    onScanBarcode: () -> Unit = {},
+    scannedBarcode: String? = null
 ) {
-    Scaffold(containerColor = TracksyBackground) { padding ->
-        Box(
-            modifier = Modifier
-                .padding(padding)
-                .fillMaxSize()
-        ) {
+    val colors = LocalTracksyColors.current
+
+    var listaNombre by remember(listaActual) {
+        mutableStateOf(listaActual?.nombre ?: "")
+    }
+    var supermercadoSeleccionado by remember(listaActual, supermercados) {
+        mutableStateOf(supermercados.firstOrNull { it.id == listaActual?.supermercado })
+    }
+    var supermercadoMenuExpanded by remember { mutableStateOf(false) }
+
+    var usarBarcodeManual by remember { mutableStateOf(false) }
+    var barcodeManual by remember { mutableStateOf("") }
+    var busquedaCatalogo by remember { mutableStateOf("") }
+
+    var itemsEnLista by remember(listaActual) {
+        val initial: List<ItemDeLista> = listaActual?.items?.map {
+            ItemDeLista(it.producto, it.productoNombre, it.cantidad)
+        } ?: emptyList()
+        mutableStateOf(initial)
+    }
+
+    LaunchedEffect(scannedBarcode) {
+        if (scannedBarcode != null) {
+            usarBarcodeManual = false
+            busquedaCatalogo = scannedBarcode
+        }
+    }
+
+    val productosFiltrados = remember(busquedaCatalogo, barcodeManual, usarBarcodeManual, productosDisponibles) {
+        val query = if (usarBarcodeManual) barcodeManual else busquedaCatalogo
+        if (query.isBlank()) emptyList()
+        else productosDisponibles.filter {
+            it.name.contains(query, ignoreCase = true) ||
+                it.category.contains(query, ignoreCase = true) ||
+                it.barcode?.contains(query, ignoreCase = true) == true
+        }.take(5)
+    }
+
+    val tituloScreen = if (listaActual == null) "Nueva lista" else "Editar lista"
+
+    Scaffold(containerColor = colors.background) { padding ->
+        Box(modifier = Modifier.padding(padding).fillMaxSize()) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -55,94 +108,287 @@ fun EditarListaScreen(
                     Icon(
                         imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
                         contentDescription = "Volver",
-                        tint = TracksyTitleText,
+                        tint = colors.titleText,
                         modifier = Modifier.size(24.dp).clickable { onBack() }
                     )
-                    Text(
-                        text = "Editar lista",
-                        fontSize = 22.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = TracksyTitleText
-                    )
+                    Text(text = tituloScreen, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = colors.titleText)
                     Box(
                         contentAlignment = Alignment.Center,
-                        modifier = Modifier.size(42.dp).clip(CircleShape).background(TracksyDivider)
+                        modifier = Modifier.size(42.dp).clip(CircleShape).background(colors.divider)
                     ) {
-                        Icon(Icons.Outlined.Person, contentDescription = "Perfil", tint = TracksySectionText, modifier = Modifier.size(24.dp))
+                        Icon(Icons.Outlined.Person, contentDescription = "Perfil", tint = colors.sectionText, modifier = Modifier.size(24.dp))
                     }
                 }
 
                 Spacer(Modifier.height(12.dp))
 
-                FieldLabel("Nombre de la lista")
-                TracksyEditField(placeholder = "Nombre de la lista")
-
-                FieldLabel("Supermercado")
-                TracksyEditField(
-                    placeholder = "Elegir supermercado",
-                    trailingIcon = {
-                        Icon(Icons.Default.KeyboardArrowDown, contentDescription = null, tint = TracksySubtitleText)
-                    }
+                // ── Nombre ────────────────────────────────────────────────────
+                FieldLabel("Nombre de la lista", colors)
+                OutlinedTextField(
+                    value = listaNombre,
+                    onValueChange = { listaNombre = it },
+                    placeholder = { Text("Nombre de la lista", color = colors.subtitleText, fontSize = 15.sp) },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor = colors.surface,
+                        unfocusedContainerColor = colors.surface,
+                        focusedBorderColor = Color.Transparent,
+                        unfocusedBorderColor = Color.Transparent,
+                        focusedTextColor = colors.titleText,
+                        unfocusedTextColor = colors.titleText
+                    ),
+                    singleLine = true
                 )
 
-                FieldLabel("Agregar productos")
-
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .dashedBorder(1.dp, TracksyDivider, 12.dp)
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(TracksySurface)
-                        .padding(vertical = 20.dp),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
+                // ── Supermercado ──────────────────────────────────────────────
+                FieldLabel("Supermercado", colors)
+                ExposedDropdownMenuBox(
+                    expanded = supermercadoMenuExpanded,
+                    onExpandedChange = { supermercadoMenuExpanded = it }
                 ) {
-                    Icon(Icons.Default.CameraAlt, contentDescription = null, tint = TracksySectionText, modifier = Modifier.size(28.dp))
-                    Spacer(Modifier.width(12.dp))
-                    Text("Escanear código de barras", color = TracksyTitleText, fontSize = 15.sp)
+                    OutlinedTextField(
+                        value = supermercadoSeleccionado?.nombre ?: "Sin supermercado",
+                        onValueChange = {},
+                        readOnly = true,
+                        modifier = Modifier.fillMaxWidth().menuAnchor(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = colors.surface,
+                            unfocusedContainerColor = colors.surface,
+                            focusedBorderColor = Color.Transparent,
+                            unfocusedBorderColor = Color.Transparent,
+                            focusedTextColor = colors.titleText,
+                            unfocusedTextColor = if (supermercadoSeleccionado != null) colors.titleText else colors.subtitleText
+                        ),
+                        trailingIcon = {
+                            ExposedDropdownMenuDefaults.TrailingIcon(expanded = supermercadoMenuExpanded)
+                        },
+                        singleLine = true
+                    )
+                    ExposedDropdownMenu(
+                        expanded = supermercadoMenuExpanded,
+                        onDismissRequest = { supermercadoMenuExpanded = false },
+                        modifier = Modifier.background(colors.surface)
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Sin supermercado", color = colors.subtitleText, fontSize = 15.sp) },
+                            onClick = { supermercadoSeleccionado = null; supermercadoMenuExpanded = false }
+                        )
+                        supermercados.forEach { super_ ->
+                            DropdownMenuItem(
+                                text = { Text(super_.nombre, color = colors.titleText, fontSize = 15.sp) },
+                                onClick = { supermercadoSeleccionado = super_; supermercadoMenuExpanded = false }
+                            )
+                        }
+                    }
                 }
 
-                FieldLabel("Ingresar manualmente")
-                TracksyEditField(placeholder = "Código de barras")
+                // ── Agregar productos ─────────────────────────────────────────
+                FieldLabel("Agregar productos", colors)
 
-                FieldLabel("Buscar en catálogo")
-                TracksyEditField(
-                    placeholder = "Buscar en catálogo...",
-                    trailingIcon = {
-                        Icon(Icons.Default.Search, contentDescription = null, tint = TracksySubtitleText)
+                // Toggle: Escanear vs Manual
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    val scanSelected = !usarBarcodeManual
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(if (scanSelected) colors.primary.copy(alpha = 0.12f) else colors.surface)
+                            .border(
+                                width = if (scanSelected) 1.5.dp else 1.dp,
+                                color = if (scanSelected) colors.primary else colors.divider,
+                                shape = RoundedCornerShape(12.dp)
+                            )
+                            .clickable { usarBarcodeManual = false }
+                            .padding(vertical = 16.dp)
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Icon(Icons.Default.CameraAlt, contentDescription = null, tint = if (scanSelected) colors.primary else colors.sectionText, modifier = Modifier.size(22.dp))
+                            Text("Escanear", color = if (scanSelected) colors.primary else colors.sectionText, fontSize = 13.sp, fontWeight = if (scanSelected) FontWeight.SemiBold else FontWeight.Normal)
+                        }
                     }
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(if (usarBarcodeManual) colors.primary.copy(alpha = 0.12f) else colors.surface)
+                            .border(
+                                width = if (usarBarcodeManual) 1.5.dp else 1.dp,
+                                color = if (usarBarcodeManual) colors.primary else colors.divider,
+                                shape = RoundedCornerShape(12.dp)
+                            )
+                            .clickable { usarBarcodeManual = true }
+                            .padding(vertical = 16.dp)
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Icon(Icons.Default.Edit, contentDescription = null, tint = if (usarBarcodeManual) colors.primary else colors.sectionText, modifier = Modifier.size(22.dp))
+                            Text("Manual", color = if (usarBarcodeManual) colors.primary else colors.sectionText, fontSize = 13.sp, fontWeight = if (usarBarcodeManual) FontWeight.SemiBold else FontWeight.Normal)
+                        }
+                    }
+                }
+
+                if (!usarBarcodeManual) {
+                    // Botón scanner
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .dashedBorder(1.dp, colors.divider, 12.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(colors.surface)
+                            .clickable { onScanBarcode() }
+                            .padding(vertical = 20.dp),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Default.CameraAlt, contentDescription = null, tint = colors.sectionText, modifier = Modifier.size(28.dp))
+                        Spacer(Modifier.width(12.dp))
+                        Text("Tocar para escanear código de barras", color = colors.titleText, fontSize = 15.sp)
+                    }
+                } else {
+                    // Campo manual
+                    OutlinedTextField(
+                        value = barcodeManual,
+                        onValueChange = { barcodeManual = it },
+                        placeholder = { Text("Ingresar código de barras...", color = colors.subtitleText, fontSize = 15.sp) },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedContainerColor = colors.surface,
+                            unfocusedContainerColor = colors.surface,
+                            focusedBorderColor = colors.primary,
+                            unfocusedBorderColor = Color.Transparent,
+                            focusedTextColor = colors.titleText,
+                            unfocusedTextColor = colors.titleText
+                        ),
+                        trailingIcon = {
+                            Icon(Icons.Default.Edit, contentDescription = null, tint = colors.subtitleText)
+                        },
+                        singleLine = true
+                    )
+                }
+
+                // ── Buscar en catálogo ────────────────────────────────────────
+                FieldLabel("Buscar en catálogo", colors)
+                OutlinedTextField(
+                    value = busquedaCatalogo,
+                    onValueChange = { busquedaCatalogo = it },
+                    placeholder = { Text("Buscar producto...", color = colors.subtitleText, fontSize = 15.sp) },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor = colors.surface,
+                        unfocusedContainerColor = colors.surface,
+                        focusedBorderColor = Color.Transparent,
+                        unfocusedBorderColor = Color.Transparent,
+                        focusedTextColor = colors.titleText,
+                        unfocusedTextColor = colors.titleText
+                    ),
+                    trailingIcon = {
+                        Icon(Icons.Default.Search, contentDescription = null, tint = colors.subtitleText)
+                    },
+                    singleLine = true
                 )
 
-                FieldLabel("Productos en la lista")
+                // Resultados del catálogo
+                if (productosFiltrados.isNotEmpty()) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(colors.surface)
+                    ) {
+                        productosFiltrados.forEach { producto ->
+                            val yaAgregado = itemsEnLista.any { it.productoId == producto.id }
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable(enabled = !yaAgregado) {
+                                        if (!yaAgregado) {
+                                            itemsEnLista = itemsEnLista + ItemDeLista(
+                                                productoId = producto.id,
+                                                nombre = producto.name
+                                            )
+                                            busquedaCatalogo = ""
+                                            barcodeManual = ""
+                                        }
+                                    }
+                                    .padding(horizontal = 16.dp, vertical = 14.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Column {
+                                    Text(
+                                        text = producto.name,
+                                        color = if (yaAgregado) colors.subtitleText else colors.titleText,
+                                        fontSize = 15.sp
+                                    )
+                                    if (producto.category.isNotBlank()) {
+                                        Text(text = producto.category, color = colors.subtitleText, fontSize = 12.sp)
+                                    }
+                                }
+                                if (yaAgregado) {
+                                    Text("Agregado", color = colors.primary, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                                }
+                            }
+                            HorizontalDivider(color = colors.divider, thickness = 0.5.dp)
+                        }
+                    }
+                }
 
-                ProductoEditable(nombre = "Leche entera x1L", cantidadInicial = 1)
-                ProductoEditable(nombre = "Pan lactal", cantidadInicial = 1)
-                ProductoEditable(nombre = "Yogur natural", cantidadInicial = 4)
+                // ── Items en la lista ─────────────────────────────────────────
+                if (itemsEnLista.isNotEmpty()) {
+                    FieldLabel("Productos en la lista", colors)
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        itemsEnLista.forEach { item ->
+                            ItemEnListaEditable(
+                                item = item,
+                                colors = colors,
+                                onCantidadChange = { nuevaCantidad ->
+                                    itemsEnLista = itemsEnLista.map {
+                                        if (it.productoId == item.productoId) it.copy(cantidad = nuevaCantidad) else it
+                                    }
+                                },
+                                onEliminar = {
+                                    itemsEnLista = itemsEnLista.filter { it.productoId != item.productoId }
+                                }
+                            )
+                        }
+                    }
+                }
 
                 Spacer(Modifier.height(8.dp))
             }
 
+            // ── Botones de acción ─────────────────────────────────────────────
             Row(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
-                    .background(TracksyBackground)
+                    .background(colors.background)
                     .padding(horizontal = 20.dp, vertical = 14.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 OutlinedButton(
-                    onClick = {},
+                    onClick = onBack,
                     modifier = Modifier.weight(1f).height(52.dp),
                     shape = RoundedCornerShape(50),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = TracksyTitleText)
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = colors.titleText)
                 ) {
-                    Text("Eliminar", fontSize = 14.sp, fontWeight = FontWeight.Medium)
+                    Text("Cancelar", fontSize = 14.sp, fontWeight = FontWeight.Medium)
                 }
                 Button(
-                    onClick = onConfirmar,
+                    onClick = {
+                        if (listaNombre.isNotBlank()) {
+                            onConfirmar(listaNombre.trim(), supermercadoSeleccionado?.id, itemsEnLista)
+                        }
+                    },
+                    enabled = listaNombre.isNotBlank(),
                     modifier = Modifier.weight(1f).height(52.dp),
                     shape = RoundedCornerShape(50),
-                    colors = ButtonDefaults.buttonColors(containerColor = TracksyTitleText)
+                    colors = ButtonDefaults.buttonColors(containerColor = colors.titleText)
                 ) {
                     Text("Confirmar", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = Color.White)
                 }
@@ -152,91 +398,66 @@ fun EditarListaScreen(
 }
 
 @Composable
-private fun FieldLabel(text: String) {
-    Text(
-        text = text,
-        fontSize = 13.sp,
-        color = TracksySectionText,
-        fontWeight = FontWeight.Medium,
-        modifier = Modifier.padding(top = 8.dp, bottom = 2.dp)
-    )
-}
-
-@Composable
-private fun TracksyEditField(
-    placeholder: String,
-    trailingIcon: @Composable (() -> Unit)? = null
+private fun ItemEnListaEditable(
+    item: ItemDeLista,
+    colors: TracksyColors,
+    onCantidadChange: (Int) -> Unit,
+    onEliminar: () -> Unit
 ) {
-    var text by remember { mutableStateOf("") }
-    OutlinedTextField(
-        value = text,
-        onValueChange = { text = it },
-        placeholder = { Text(placeholder, color = TracksySubtitleText, fontSize = 15.sp) },
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedContainerColor = TracksySurface,
-            unfocusedContainerColor = TracksySurface,
-            focusedBorderColor = Color.Transparent,
-            unfocusedBorderColor = Color.Transparent
-        ),
-        trailingIcon = trailingIcon,
-        singleLine = true
-    )
-}
-
-@Composable
-private fun ProductoEditable(nombre: String, cantidadInicial: Int) {
-    var qty by remember { mutableIntStateOf(cantidadInicial) }
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .background(TracksySurface)
+            .background(colors.surface)
             .padding(horizontal = 14.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Box(
-            modifier = Modifier
-                .size(22.dp)
-                .border(1.5.dp, TracksySubtitleText, CircleShape)
-        )
+        Box(modifier = Modifier.size(22.dp).border(1.5.dp, colors.subtitleText, CircleShape))
         Spacer(Modifier.width(12.dp))
-        Text(nombre, modifier = Modifier.weight(1f), color = TracksyTitleText, fontSize = 15.sp)
+        Text(item.nombre, modifier = Modifier.weight(1f), color = colors.titleText, fontSize = 15.sp)
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .clip(RoundedCornerShape(50))
-                .background(TracksyBackground)
-                .padding(4.dp)
+            modifier = Modifier.clip(RoundedCornerShape(50)).background(colors.background).padding(4.dp)
         ) {
             Box(
                 contentAlignment = Alignment.Center,
-                modifier = Modifier
-                    .size(34.dp)
-                    .clip(CircleShape)
-                    .background(TracksyPrimary)
-                    .clickable { if (qty > 0) qty-- }
+                modifier = Modifier.size(32.dp).clip(CircleShape).background(colors.primary)
+                    .clickable { if (item.cantidad > 1) onCantidadChange(item.cantidad - 1) }
             ) {
-                Text("−", color = Color.White, fontSize = 20.sp, lineHeight = 20.sp)
+                Text("−", color = Color.White, fontSize = 18.sp, lineHeight = 18.sp)
             }
             Text(
-                text = "$qty",
-                fontSize = 17.sp,
+                text = "${item.cantidad}",
+                fontSize = 16.sp,
                 fontWeight = FontWeight.Bold,
-                color = TracksyTitleText,
-                modifier = Modifier.padding(horizontal = 14.dp)
+                color = colors.titleText,
+                modifier = Modifier.padding(horizontal = 12.dp)
             )
             Box(
                 contentAlignment = Alignment.Center,
-                modifier = Modifier
-                    .size(34.dp)
-                    .clip(CircleShape)
-                    .background(TracksyPrimary)
-                    .clickable { qty++ }
+                modifier = Modifier.size(32.dp).clip(CircleShape).background(colors.primary)
+                    .clickable { onCantidadChange(item.cantidad + 1) }
             ) {
-                Text("+", color = Color.White, fontSize = 20.sp, lineHeight = 20.sp)
+                Text("+", color = Color.White, fontSize = 18.sp, lineHeight = 18.sp)
             }
         }
+        Spacer(Modifier.width(8.dp))
+        Icon(
+            imageVector = Icons.Outlined.Close,
+            contentDescription = "Quitar",
+            tint = colors.subtitleText,
+            modifier = Modifier.size(20.dp).clickable { onEliminar() }
+        )
     }
+}
+
+@Composable
+private fun FieldLabel(text: String, colors: TracksyColors) {
+    Text(
+        text = text,
+        fontSize = 13.sp,
+        color = colors.sectionText,
+        fontWeight = FontWeight.Medium,
+        modifier = Modifier.padding(top = 8.dp, bottom = 2.dp)
+    )
 }

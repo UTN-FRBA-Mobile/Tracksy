@@ -25,9 +25,10 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.tracksy.ui.theme.*
+import com.example.tracksy.ui.theme.LocalTracksyColors
 
 data class Product(
+    val id: Int = 0,
     val name: String,
     val category: String,
     val barcode: String? = null
@@ -37,30 +38,19 @@ data class Product(
 fun ProductsScreen(
     selectedTab: NavTab,
     onTabChange: (NavTab) -> Unit,
+    productosApi: List<Product> = emptyList(),
+    favoritosApi: List<Product> = emptyList(),
     onProductTap: (Product) -> Unit = {},
-    onProfileClick: () -> Unit = {}
+    onProfileClick: () -> Unit = {},
+    onSearchChange: (String) -> Unit = {}
 ) {
+    val colors = LocalTracksyColors.current
     var searchQuery by remember { mutableStateOf("") }
-    var favorites by remember {
-        mutableStateOf(
-            listOf(
-                Product("Leche entera La Serenísima x1L", "Lácteos", "7790895000028"),
-                Product("Pan lactal Bimbo", "Panadería", "7790040152205")
-            )
-        )
-    }
-    var allProducts by remember {
-        mutableStateOf(
-            listOf(
-                Product("Arroz largo fino Molinos x1kg", "Secos", "7790040004003"),
-                Product("Aceite de girasol Cocinero x1.5L", "Secos"),
-                Product("Yogur natural Danone", "Lácteos")
-            )
-        )
-    }
+    var favorites by remember(favoritosApi) { mutableStateOf(favoritosApi) }
+    var allProducts by remember(productosApi) { mutableStateOf(productosApi) }
 
     var selectedFavorites by remember { mutableStateOf(emptySet<String>()) }
-    var selectedAll      by remember { mutableStateOf(emptySet<String>()) }
+    var selectedAll       by remember { mutableStateOf(emptySet<String>()) }
     var showConfirmDialog by remember { mutableStateOf(false) }
 
     val filteredFavorites = favorites.filter {
@@ -75,15 +65,15 @@ fun ProductsScreen(
     }
 
     val hasFavSelected = selectedFavorites.isNotEmpty()
-    val hasAllSelected  = selectedAll.isNotEmpty()
+    val hasAllSelected = selectedAll.isNotEmpty()
 
     if (showConfirmDialog) {
         val count = selectedFavorites.size
         AlertDialog(
-            onDismissRequest = { showConfirmDialog = false },
-            containerColor   = TracksySurface,
-            titleContentColor = TracksyTitleText,
-            textContentColor  = TracksySubtitleText,
+            onDismissRequest  = { showConfirmDialog = false },
+            containerColor    = colors.surface,
+            titleContentColor = colors.titleText,
+            textContentColor  = colors.subtitleText,
             title = { Text("¿Quitar de favoritos?") },
             text  = {
                 Text(
@@ -95,71 +85,54 @@ fun ProductsScreen(
             confirmButton = {
                 TextButton(onClick = {
                     val removed = favorites.filter { it.name in selectedFavorites }
-                    favorites    = favorites.filter { it.name !in selectedFavorites }
-                    allProducts  = allProducts + removed
+                    favorites         = favorites.filter { it.name !in selectedFavorites }
+                    allProducts       = allProducts + removed
                     selectedFavorites = emptySet()
                     showConfirmDialog  = false
                 }) {
-                    Text("Quitar", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.SemiBold)
+                    Text("Quitar", color = colors.errorRed, fontWeight = FontWeight.SemiBold)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showConfirmDialog = false }) {
-                    Text("Cancelar", color = TracksySubtitleText)
+                    Text("Cancelar", color = colors.subtitleText)
                 }
             }
         )
     }
 
     Scaffold(
-        containerColor = TracksyBackground,
+        containerColor = colors.background,
         bottomBar = {
             TracksyBottomBar(selected = selectedTab, onSelect = onTabChange)
         },
         floatingActionButton = {
+            val fabColor = colors.primary
             when {
-                // Any item from "todos" selected → add to favorites (no confirmation)
-                hasAllSelected -> ProductsFab(onClick = {
+                hasAllSelected -> ProductsFab(color = fabColor, onClick = {
                     val toMove  = allProducts.filter { it.name in selectedAll }
                     favorites   = favorites + toMove
                     allProducts = allProducts.filter { it.name !in selectedAll }
                     selectedAll = emptySet()
                 }) {
-                    Icon(
-                        imageVector = Icons.Outlined.Star,
-                        contentDescription = "Agregar a favoritos",
-                        tint = Color.White,
-                        modifier = Modifier.size(26.dp)
-                    )
+                    Icon(imageVector = Icons.Outlined.Star, contentDescription = "Agregar a favoritos", tint = Color.White, modifier = Modifier.size(26.dp))
                 }
-                // Only favorites selected → crossed star (remove, with confirmation)
-                hasFavSelected -> ProductsFab(onClick = { showConfirmDialog = true }) {
+                hasFavSelected -> ProductsFab(color = fabColor, onClick = { showConfirmDialog = true }) {
                     Box(modifier = Modifier.size(26.dp)) {
-                        Icon(
-                            imageVector = Icons.Outlined.Star,
-                            contentDescription = "Quitar de favoritos",
-                            tint = Color.White,
-                            modifier = Modifier.size(26.dp)
-                        )
+                        Icon(imageVector = Icons.Outlined.Star, contentDescription = "Quitar de favoritos", tint = Color.White, modifier = Modifier.size(26.dp))
                         Canvas(modifier = Modifier.size(26.dp)) {
                             drawLine(
-                                color  = Color.White,
-                                start  = Offset(2.dp.toPx(), size.height - 2.dp.toPx()),
-                                end    = Offset(size.width - 2.dp.toPx(), 2.dp.toPx()),
+                                color = Color.White,
+                                start = Offset(2.dp.toPx(), size.height - 2.dp.toPx()),
+                                end   = Offset(size.width - 2.dp.toPx(), 2.dp.toPx()),
                                 strokeWidth = 2.5.dp.toPx(),
-                                cap    = StrokeCap.Round
+                                cap   = StrokeCap.Round
                             )
                         }
                     }
                 }
-                // Nothing selected → regular add button
-                else -> ProductsFab(onClick = { }) {
-                    Icon(
-                        imageVector = Icons.Outlined.Add,
-                        contentDescription = "Agregar producto",
-                        tint = Color.White,
-                        modifier = Modifier.size(28.dp)
-                    )
+                else -> ProductsFab(color = fabColor, onClick = { }) {
+                    Icon(imageVector = Icons.Outlined.Add, contentDescription = "Agregar producto", tint = Color.White, modifier = Modifier.size(28.dp))
                 }
             }
         }
@@ -173,51 +146,33 @@ fun ProductsScreen(
         ) {
             Spacer(Modifier.height(16.dp))
 
-            // Top bar
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "Productos",
-                    fontSize = 22.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = TracksyTitleText
-                )
+                Text(text = "Productos", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = colors.titleText)
                 Box(
                     contentAlignment = Alignment.Center,
-                    modifier = Modifier
-                        .size(42.dp)
-                        .clip(CircleShape)
-                        .background(TracksyDivider)
-                        .clickable(onClick = onProfileClick)
+                    modifier = Modifier.size(42.dp).clip(CircleShape).background(colors.divider).clickable(onClick = onProfileClick)
                 ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Person,
-                        contentDescription = "Perfil",
-                        tint = TracksySectionText,
-                        modifier = Modifier.size(24.dp)
-                    )
+                    Icon(imageVector = Icons.Outlined.Person, contentDescription = "Perfil", tint = colors.sectionText, modifier = Modifier.size(24.dp))
                 }
             }
 
             Spacer(Modifier.height(20.dp))
 
-            // Functional search bar
             TextField(
                 value = searchQuery,
-                onValueChange = { searchQuery = it },
-                placeholder = {
-                    Text("Buscar productos...", color = TracksySubtitleText, fontSize = 15.sp)
-                },
+                onValueChange = { searchQuery = it; onSearchChange(it) },
+                placeholder = { Text("Buscar productos...", color = colors.subtitleText, fontSize = 15.sp) },
                 shape = RoundedCornerShape(16.dp),
                 colors = TextFieldDefaults.colors(
-                    focusedContainerColor   = TracksySurface,
-                    unfocusedContainerColor = TracksySurface,
+                    focusedContainerColor   = colors.surface,
+                    unfocusedContainerColor = colors.surface,
                     focusedIndicatorColor   = Color.Transparent,
                     unfocusedIndicatorColor = Color.Transparent,
-                    cursorColor             = TracksyPrimary
+                    cursorColor             = colors.primary
                 ),
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
@@ -225,42 +180,28 @@ fun ProductsScreen(
 
             Spacer(Modifier.height(20.dp))
 
-            // Mis favoritos
             if (filteredFavorites.isNotEmpty()) {
-                Text(
-                    text = "Mis favoritos ⭐",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = TracksySectionText
-                )
+                Text(text = "Mis favoritos ⭐", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = colors.sectionText)
                 Spacer(Modifier.height(10.dp))
                 ProductGroupCard(
                     products = filteredFavorites,
                     selected = selectedFavorites,
                     onToggle = { name ->
-                        selectedFavorites = if (name in selectedFavorites)
-                            selectedFavorites - name else selectedFavorites + name
+                        selectedFavorites = if (name in selectedFavorites) selectedFavorites - name else selectedFavorites + name
                     },
                     onProductTap = onProductTap
                 )
                 Spacer(Modifier.height(20.dp))
             }
 
-            // Todos los productos
             if (filteredAll.isNotEmpty()) {
-                Text(
-                    text = "Todos los productos",
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = TracksySectionText
-                )
+                Text(text = "Todos los productos", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = colors.sectionText)
                 Spacer(Modifier.height(10.dp))
                 ProductGroupCard(
                     products = filteredAll,
                     selected = selectedAll,
                     onToggle = { name ->
-                        selectedAll = if (name in selectedAll)
-                            selectedAll - name else selectedAll + name
+                        selectedAll = if (name in selectedAll) selectedAll - name else selectedAll + name
                     },
                     onProductTap = onProductTap
                 )
@@ -271,7 +212,7 @@ fun ProductsScreen(
                 Spacer(Modifier.height(48.dp))
                 Text(
                     text = "No se encontraron productos",
-                    color = TracksySubtitleText,
+                    color = colors.subtitleText,
                     fontSize = 14.sp,
                     modifier = Modifier.align(Alignment.CenterHorizontally)
                 )
@@ -281,14 +222,10 @@ fun ProductsScreen(
 }
 
 @Composable
-private fun ProductsFab(onClick: () -> Unit, content: @Composable () -> Unit) {
+private fun ProductsFab(color: Color, onClick: () -> Unit, content: @Composable () -> Unit) {
     Box(
         contentAlignment = Alignment.Center,
-        modifier = Modifier
-            .size(56.dp)
-            .clip(CircleShape)
-            .background(TracksyPrimary)
-            .clickable(onClick = onClick)
+        modifier = Modifier.size(56.dp).clip(CircleShape).background(color).clickable(onClick = onClick)
     ) {
         content()
     }
@@ -301,11 +238,12 @@ private fun ProductGroupCard(
     onToggle: (String) -> Unit,
     onProductTap: (Product) -> Unit
 ) {
+    val colors = LocalTracksyColors.current
     Card(
-        shape     = RoundedCornerShape(16.dp),
-        colors    = CardDefaults.cardColors(containerColor = TracksySurface),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = colors.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        modifier  = Modifier.fillMaxWidth()
+        modifier = Modifier.fillMaxWidth()
     ) {
         Column {
             products.forEachIndexed { index, product ->
@@ -316,11 +254,7 @@ private fun ProductGroupCard(
                     onOpenDetail = { onProductTap(product) }
                 )
                 if (index < products.lastIndex) {
-                    HorizontalDivider(
-                        color     = TracksyDivider,
-                        thickness = 0.5.dp,
-                        modifier  = Modifier.padding(horizontal = 16.dp)
-                    )
+                    HorizontalDivider(color = colors.divider, thickness = 0.5.dp, modifier = Modifier.padding(horizontal = 16.dp))
                 }
             }
         }
@@ -334,13 +268,11 @@ private fun ProductRow(
     onToggle: () -> Unit,
     onOpenDetail: () -> Unit
 ) {
+    val colors = LocalTracksyColors.current
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 14.dp)
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp)
     ) {
-        // Circle: only toggles selection
         Box(
             contentAlignment = Alignment.Center,
             modifier = Modifier
@@ -348,50 +280,28 @@ private fun ProductRow(
                 .clip(CircleShape)
                 .clickable(onClick = onToggle)
                 .then(
-                    if (isSelected) Modifier.background(TracksyPrimary)
-                    else Modifier.border(1.5.dp, TracksySubtitleText, CircleShape)
+                    if (isSelected) Modifier.background(colors.primary)
+                    else Modifier.border(1.5.dp, colors.subtitleText, CircleShape)
                 )
         ) {
             if (isSelected) {
-                Icon(
-                    imageVector = Icons.Outlined.Check,
-                    contentDescription = null,
-                    tint = Color.White,
-                    modifier = Modifier.size(16.dp)
-                )
+                Icon(imageVector = Icons.Outlined.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
             }
         }
 
         Spacer(Modifier.width(14.dp))
 
-        // Name + category: opens detail screen
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .weight(1f)
-                .clickable(onClick = onOpenDetail)
+            modifier = Modifier.weight(1f).clickable(onClick = onOpenDetail)
         ) {
-            Text(
-                text       = product.name,
-                fontSize   = 14.sp,
-                fontWeight = FontWeight.Medium,
-                color      = TracksyTitleText,
-                modifier   = Modifier.weight(1f)
-            )
+            Text(text = product.name, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = colors.titleText, modifier = Modifier.weight(1f))
             Spacer(Modifier.width(8.dp))
             Box(
                 contentAlignment = Alignment.Center,
-                modifier = Modifier
-                    .clip(RoundedCornerShape(50))
-                    .background(TracksyBackground)
-                    .padding(horizontal = 12.dp, vertical = 6.dp)
+                modifier = Modifier.clip(RoundedCornerShape(50)).background(colors.background).padding(horizontal = 12.dp, vertical = 6.dp)
             ) {
-                Text(
-                    text       = product.category,
-                    fontSize   = 12.sp,
-                    color      = TracksySectionText,
-                    fontWeight = FontWeight.Medium
-                )
+                Text(text = product.category, fontSize = 12.sp, color = colors.sectionText, fontWeight = FontWeight.Medium)
             }
         }
     }

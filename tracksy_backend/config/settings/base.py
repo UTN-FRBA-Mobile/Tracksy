@@ -159,10 +159,8 @@ SPECTACULAR_SETTINGS = {
         {"name": "products", "description": "Product catalogue"},
         {"name": "supermarkets", "description": "Chains and branches"},
         {"name": "prices", "description": "Prices and history"},
-        {"name": "promotions", "description": "Active promotions"},
         {"name": "shopping-lists", "description": "Shopping lists"},
         {"name": "favorites", "description": "User favourites"},
-        {"name": "comparisons", "description": "Comparison and recommendations"},
         {"name": "admin", "description": "Backoffice — requires administrator role"},
         {"name": "imports", "description": "Bulk data import"},
     ],
@@ -243,7 +241,7 @@ JAZZMIN_SETTINGS = {
     "show_sidebar": True,
     "navigation_expanded": True,
     "hide_apps": [],
-    "hide_models": ["products.measurementunit"],
+    "hide_models": [],
     "order_with_respect_to": [
         "imports",
         "supermarkets",
@@ -254,34 +252,6 @@ JAZZMIN_SETTINGS = {
         "users",
         "auth",
     ],
-    "custom_links": {
-        "imports": [
-            {
-                "name": "Importar Productos",
-                "url": "imports_productos_upload",
-                "icon": "fas fa-box",
-                "permissions": ["imports.add_importbatch"],
-            },
-            {
-                "name": "Importar Marcas",
-                "url": "imports_marcas_upload",
-                "icon": "fas fa-trademark",
-                "permissions": ["imports.add_importbatch"],
-            },
-            {
-                "name": "Importar Supermercados",
-                "url": "imports_supermercados_upload",
-                "icon": "fas fa-store",
-                "permissions": ["imports.add_importbatch"],
-            },
-            {
-                "name": "Importar Listados",
-                "url": "imports_listados_upload",
-                "icon": "fas fa-dollar-sign",
-                "permissions": ["imports.add_importbatch"],
-            },
-        ],
-    },
     "icons": {
         "auth": "fas fa-users-cog",
         "auth.user": "fas fa-user",
@@ -340,9 +310,9 @@ JAZZMIN_UI_TWEAKS = {
     "button_classes": {
         "primary": "btn-primary",
         "secondary": "btn-outline-secondary",
-        "info": "btn-primary",
+        "info": "btn-info",
         "warning": "btn-warning",
         "danger": "btn-danger",
-        "success": "btn-primary",
+        "success": "btn-success",
     },
 }

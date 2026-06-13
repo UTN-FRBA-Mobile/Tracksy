@@ -1,6 +1,7 @@
 package com.example.tracksy.viewmodel
 
 import android.content.Context
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -30,17 +31,32 @@ class ProductoViewModel(
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
 
+    private val _productoEscaneado = MutableStateFlow<Product?>(null)
+    val productoEscaneado: StateFlow<Product?> = _productoEscaneado
+
+    private val _productoNoEncontrado = MutableStateFlow(false)
+    val productoNoEncontrado: StateFlow<Boolean> = _productoNoEncontrado
+
+    fun limpiarProductoNoEncontrado() { _productoNoEncontrado.value = false }
+
     private val token get() = tokenManager.accessToken ?: ""
 
     fun cargarProductos(busqueda: String? = null) {
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                val response = repo.getProductos(token, search = busqueda)
+                val pageSize = if (busqueda.isNullOrBlank()) 100 else null
+                val response = repo.getProductos(token, search = busqueda, pageSize = pageSize)
                 if (response.isSuccessful) {
-                    _productos.value = response.body()?.results?.map { it.toUiProduct() } ?: emptyList()
+                    val lista = response.body()?.results?.map { it.toUiProduct() } ?: emptyList()
+                    Log.d("ProductoVM", "cargarProductos: ${lista.size} productos (count=${response.body()?.count})")
+                    _productos.value = lista
+                } else {
+                    Log.e("ProductoVM", "cargarProductos error HTTP ${response.code()}")
                 }
-            } catch (_: Exception) { }
+            } catch (e: Exception) {
+                Log.e("ProductoVM", "cargarProductos excepción: ${e.message}", e)
+            }
             _isLoading.value = false
         }
     }
@@ -141,7 +157,33 @@ class ProductoViewModel(
         _productosBusqueda.value = emptyList()
     }
 
+    fun buscarProductoPorBarcode(barcode: String) {
+        val codigoBarras = barcode.trim().toLongOrNull() ?: run {
+            _productoNoEncontrado.value = true
+            return
+        }
+        viewModelScope.launch {
+            try {
+                val resp = repo.getProducto(token, codigoBarras)
+                if (resp.isSuccessful && resp.body() != null) {
+                    _productoEscaneado.value = resp.body()!!.toUiProduct()
+                } else {
+                    _productoNoEncontrado.value = true
+                }
+            } catch (_: Exception) {
+                _productoNoEncontrado.value = true
+            }
+        }
+    }
+
+    fun limpiarProductoEscaneado() {
+        _productoEscaneado.value = null
+    }
+
     private fun com.example.tracksy.data.models.Producto.toUiProduct() =
+        Product(id = id, name = nombre, category = marcaNombre ?: "", barcode = id.toString())
+
+    private fun com.example.tracksy.data.models.ProductoDetalle.toUiProduct() =
         Product(id = id, name = nombre, category = marcaNombre ?: "", barcode = id.toString())
 
     class Factory(private val context: Context) : ViewModelProvider.Factory {

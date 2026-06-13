@@ -23,67 +23,104 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.tracksy.ui.theme.*
-
-private data class ListOption(val name: String, val productCount: Int)
+import com.example.tracksy.data.models.ItemProducto
+import com.example.tracksy.data.models.ListaCompra
+import com.example.tracksy.ui.theme.LocalTracksyColors
 
 @Composable
 fun ProductDetailScreen(
     product: Product,
+    listas: List<ListaCompra>,
+    draftSelections: Map<Int, Int>? = null,
     onBack: () -> Unit,
     selectedTab: NavTab,
-    onTabChange: (NavTab) -> Unit
+    onTabChange: (NavTab) -> Unit,
+    onConfirmarCambios: (
+        productoId: Long,
+        agregar: List<Pair<Int, Int>>,
+        eliminar: List<Pair<Int, Int>>,
+        actualizar: List<Triple<Int, Int, Int>>
+    ) -> Unit,
+    onNuevaLista: (currentSelections: Map<Int, Int>) -> Unit = {}
 ) {
-    var quantity by remember { mutableStateOf(1) }
+    val colors = LocalTracksyColors.current
 
-    val lists = remember {
-        listOf(
-            ListOption("Compra semanal", 8),
-            ListOption("Lista del mes", 14),
-            ListOption("Cumpleaños Juan", 6)
-        )
+    // Snapshot de los items originales: listaId -> ItemProducto (null si no estaba)
+    val originalItems: Map<Int, ItemProducto?> = remember(listas, product) {
+        listas.associate { lista ->
+            lista.id to lista.items.firstOrNull { it.producto == product.id }
+        }
     }
 
-    // Mock: Si una lista ya tiene ese prodcuto, se muestra pre-seleccionada
-    val initialLists = remember { setOf("Compra semanal") }
-    var selectedLists by remember { mutableStateOf(initialLists) }
+    // Estado confirmado en el backend: listaId -> cantidad
+    val initialSelections: Map<Int, Int> = remember(originalItems) {
+        originalItems
+            .mapNotNull { (listaId, item) -> item?.let { listaId to it.cantidad } }
+            .toMap()
+    }
 
-    // Estado confirmado: refleja lo último que se confirmó
-    var confirmedLists    by remember { mutableStateOf(initialLists) }
-    var confirmedQuantity by remember { mutableStateOf(1) }
+    // Borrador mutable: arranca del draft guardado (si existe) o del estado del backend.
+    // No usa initialSelections como key para no resetear cuando lleguen nuevas listas.
+    var selectedListQuantities by remember {
+        mutableStateOf(draftSelections ?: initialSelections)
+    }
+
+    // Cuando listasDetalladas se actualiza (ej.: lista nueva creada), mergea las entradas
+    // nuevas del backend sin tocar el borrador existente del usuario.
+    LaunchedEffect(initialSelections) {
+        val nuevasEntradas = initialSelections.filter { (id, _) -> id !in selectedListQuantities }
+        if (nuevasEntradas.isNotEmpty()) {
+            selectedListQuantities = selectedListQuantities + nuevasEntradas
+        }
+    }
+
+    val hasChanges = selectedListQuantities != initialSelections
 
     var showExitAlert    by remember { mutableStateOf(false) }
     var showConfirmAlert by remember { mutableStateOf(false) }
 
-    val hasChanges = selectedLists != confirmedLists || quantity != confirmedQuantity
-
-    val tryBack = {
-        if (hasChanges) showExitAlert = true else onBack()
-    }
+    val tryBack = { if (hasChanges) showExitAlert = true else onBack() }
 
     BackHandler { tryBack() }
+
+    fun buildChanges(): Triple<List<Pair<Int, Int>>, List<Pair<Int, Int>>, List<Triple<Int, Int, Int>>> {
+        val agregar = selectedListQuantities
+            .filter { (listaId, _) -> originalItems[listaId] == null }
+            .map { (listaId, cantidad) -> Pair(listaId, cantidad) }
+
+        val eliminar = originalItems.entries
+            .filter { (listaId, item) -> item != null && listaId !in selectedListQuantities }
+            .mapNotNull { (listaId, item) -> item?.let { Pair(listaId, it.id) } }
+
+        val actualizar = selectedListQuantities.entries
+            .mapNotNull { (listaId, cantidad) ->
+                val item = originalItems[listaId]
+                if (item != null && item.cantidad != cantidad) Triple(listaId, item.id, cantidad) else null
+            }
+
+        return Triple(agregar, eliminar, actualizar)
+    }
 
     if (showConfirmAlert) {
         AlertDialog(
             onDismissRequest  = { showConfirmAlert = false },
-            containerColor    = TracksySurface,
-            titleContentColor = TracksyTitleText,
-            textContentColor  = TracksySubtitleText,
+            containerColor    = colors.surface,
+            titleContentColor = colors.titleText,
+            textContentColor  = colors.subtitleText,
             title = { Text("¿Confirmar cambios?") },
-            text  = { Text("Se aplicarán los cambios realizados en las listas y la cantidad.") },
+            text  = { Text("Se aplicarán los cambios en las listas seleccionadas.") },
             confirmButton = {
                 TextButton(onClick = {
-                    showConfirmAlert  = false
-                    confirmedLists    = selectedLists
-                    confirmedQuantity = quantity
-                    onBack()
+                    showConfirmAlert = false
+                    val (agregar, eliminar, actualizar) = buildChanges()
+                    onConfirmarCambios(product.id, agregar, eliminar, actualizar)
                 }) {
-                    Text("Confirmar", color = TracksyPrimary, fontWeight = FontWeight.SemiBold)
+                    Text("Confirmar", color = colors.primary, fontWeight = FontWeight.SemiBold)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showConfirmAlert = false }) {
-                    Text("Cancelar", color = TracksySubtitleText)
+                    Text("Cancelar", color = colors.subtitleText)
                 }
             }
         )
@@ -92,9 +129,9 @@ fun ProductDetailScreen(
     if (showExitAlert) {
         AlertDialog(
             onDismissRequest  = { showExitAlert = false },
-            containerColor    = TracksySurface,
-            titleContentColor = TracksyTitleText,
-            textContentColor  = TracksySubtitleText,
+            containerColor    = colors.surface,
+            titleContentColor = colors.titleText,
+            textContentColor  = colors.subtitleText,
             title = { Text("¿Salir sin confirmar?") },
             text  = { Text("Tenés cambios sin confirmar. Si salís ahora, se perderán.") },
             confirmButton = {
@@ -104,14 +141,14 @@ fun ProductDetailScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showExitAlert = false }) {
-                    Text("Cancelar", color = TracksySubtitleText)
+                    Text("Cancelar", color = colors.subtitleText)
                 }
             }
         )
     }
 
     Scaffold(
-        containerColor = TracksyBackground,
+        containerColor = colors.background,
         bottomBar = {
             TracksyBottomBar(selected = selectedTab, onSelect = onTabChange)
         }
@@ -139,7 +176,7 @@ fun ProductDetailScreen(
                     Icon(
                         imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
                         contentDescription = "Volver",
-                        tint = TracksyTitleText,
+                        tint = colors.titleText,
                         modifier = Modifier
                             .size(24.dp)
                             .clickable { tryBack() }
@@ -148,19 +185,19 @@ fun ProductDetailScreen(
                         text = "Producto",
                         fontSize = 22.sp,
                         fontWeight = FontWeight.Bold,
-                        color = TracksyTitleText
+                        color = colors.titleText
                     )
                     Box(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier
                             .size(42.dp)
                             .clip(CircleShape)
-                            .background(TracksyDivider)
+                            .background(colors.divider)
                     ) {
                         Icon(
                             imageVector = Icons.Outlined.Person,
                             contentDescription = "Perfil",
-                            tint = TracksySectionText,
+                            tint = colors.sectionText,
                             modifier = Modifier.size(24.dp)
                         )
                     }
@@ -168,46 +205,35 @@ fun ProductDetailScreen(
 
                 Spacer(Modifier.height(20.dp))
 
-                // Producto
+                // Datos del producto
                 Card(
                     shape     = RoundedCornerShape(16.dp),
-                    colors    = CardDefaults.cardColors(containerColor = TracksySurface),
+                    colors    = CardDefaults.cardColors(containerColor = colors.surface),
                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
                     modifier  = Modifier.fillMaxWidth()
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 18.dp, vertical = 16.dp)
                     ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text       = product.name,
-                                fontSize   = 15.sp,
-                                fontWeight = FontWeight.SemiBold,
-                                color      = TracksyTitleText
-                            )
-                            if (product.category.isNotBlank() || product.barcode != null) {
-                                Spacer(Modifier.height(4.dp))
-                                Text(
-                                    text  = buildString {
-                                        append(product.category)
-                                        product.barcode?.let { append(" · Cód: $it") }
-                                    },
-                                    fontSize = 12.sp,
-                                    color    = TracksySubtitleText
-                                )
-                            }
-                        }
-
-                        Spacer(Modifier.width(16.dp))
-
-                        QuantityStepper(
-                            quantity    = quantity,
-                            onDecrement = { if (quantity > 1) quantity-- },
-                            onIncrement = { quantity++ }
+                        Text(
+                            text       = product.name,
+                            fontSize   = 16.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color      = colors.titleText
                         )
+                        if (product.category.isNotBlank() || product.barcode != null) {
+                            Spacer(Modifier.height(4.dp))
+                            Text(
+                                text = buildString {
+                                    append(product.category)
+                                    product.barcode?.let { append(" · Cód: $it") }
+                                },
+                                fontSize = 12.sp,
+                                color    = colors.subtitleText
+                            )
+                        }
                     }
                 }
 
@@ -217,7 +243,7 @@ fun ProductDetailScreen(
                     text       = "Listas",
                     fontSize   = 18.sp,
                     fontWeight = FontWeight.Bold,
-                    color      = TracksyTitleText
+                    color      = colors.titleText
                 )
 
                 Spacer(Modifier.height(12.dp))
@@ -225,22 +251,24 @@ fun ProductDetailScreen(
                 // Nueva Lista
                 Card(
                     shape     = RoundedCornerShape(16.dp),
-                    colors    = CardDefaults.cardColors(containerColor = TracksySurface),
+                    colors    = CardDefaults.cardColors(containerColor = colors.surface),
                     elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                    modifier  = Modifier.fillMaxWidth()
+                    modifier  = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 12.dp)
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { }
+                            .clickable { onNuevaLista(selectedListQuantities) }
                             .padding(horizontal = 18.dp, vertical = 18.dp)
                     ) {
                         Text(
                             text       = "Nueva Lista ...",
                             fontSize   = 15.sp,
                             fontWeight = FontWeight.Medium,
-                            color      = TracksyTitleText,
+                            color      = colors.titleText,
                             modifier   = Modifier.weight(1f)
                         )
                         Box(
@@ -248,66 +276,112 @@ fun ProductDetailScreen(
                             modifier = Modifier
                                 .size(32.dp)
                                 .clip(CircleShape)
-                                .border(1.5.dp, TracksySectionText, CircleShape)
+                                .border(1.5.dp, colors.sectionText, CircleShape)
                         ) {
                             Icon(
                                 imageVector = Icons.Outlined.Add,
                                 contentDescription = "Nueva lista",
-                                tint = TracksySectionText,
+                                tint = colors.sectionText,
                                 modifier = Modifier.size(18.dp)
                             )
                         }
                     }
                 }
 
-                Spacer(Modifier.height(12.dp))
+                if (listas.isEmpty()) {
+                    Text(
+                        text     = "No tenés listas creadas todavía.",
+                        fontSize = 14.sp,
+                        color    = colors.subtitleText,
+                        modifier = Modifier.padding(vertical = 8.dp)
+                    )
+                }
 
                 // Listas existentes
-                lists.forEach { list ->
-                    val isSelected = list.name in selectedLists
+                listas.forEach { lista ->
+                    val isSelected = lista.id in selectedListQuantities
+                    val cantidad   = selectedListQuantities[lista.id] ?: 1
+
                     Card(
                         shape     = RoundedCornerShape(16.dp),
-                        colors    = CardDefaults.cardColors(containerColor = TracksySurface),
+                        colors    = CardDefaults.cardColors(containerColor = colors.surface),
                         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
                         modifier  = Modifier
                             .fillMaxWidth()
                             .padding(bottom = 12.dp)
                     ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
+                        Column(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable {
-                                    selectedLists = if (list.name in selectedLists)
-                                        selectedLists - list.name
-                                    else
-                                        selectedLists + list.name
+                                    selectedListQuantities = if (isSelected) {
+                                        selectedListQuantities - lista.id
+                                    } else {
+                                        // Al seleccionar, arranca con la cantidad que ya tenía
+                                        // o 1 si es nueva inclusión
+                                        val cantidadInicial = originalItems[lista.id]?.cantidad ?: 1
+                                        selectedListQuantities + (lista.id to cantidadInicial)
+                                    }
                                 }
-                                .padding(horizontal = 18.dp, vertical = 18.dp)
+                                .padding(horizontal = 18.dp, vertical = 14.dp)
                         ) {
-                            Text(
-                                text       = list.name,
-                                fontSize   = 15.sp,
-                                fontWeight = FontWeight.Medium,
-                                color      = TracksyTitleText,
-                                modifier   = Modifier.weight(1f)
-                            )
-                            Box(
-                                contentAlignment = Alignment.Center,
-                                modifier = Modifier
-                                    .size(32.dp)
-                                    .clip(CircleShape)
-                                    .then(
-                                        if (isSelected) Modifier.background(TracksyPrimary)
-                                        else Modifier.border(1.5.dp, TracksySubtitleText, CircleShape)
-                                    )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.fillMaxWidth()
                             ) {
-                                if (isSelected) {
-                                    Icon(
-                                        imageVector = Icons.Outlined.Check,
-                                        contentDescription = null,
-                                        tint = Color.White,
-                                        modifier = Modifier.size(18.dp)
+                                Text(
+                                    text       = lista.nombre,
+                                    fontSize   = 15.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color      = colors.titleText,
+                                    modifier   = Modifier.weight(1f)
+                                )
+                                Box(
+                                    contentAlignment = Alignment.Center,
+                                    modifier = Modifier
+                                        .size(32.dp)
+                                        .clip(CircleShape)
+                                        .then(
+                                            if (isSelected) Modifier.background(colors.primary)
+                                            else Modifier.border(1.5.dp, colors.subtitleText, CircleShape)
+                                        )
+                                ) {
+                                    if (isSelected) {
+                                        Icon(
+                                            imageVector = Icons.Outlined.Check,
+                                            contentDescription = null,
+                                            tint = Color.White,
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
+                                }
+                            }
+
+                            // Botonera de cantidad: solo aparece si la lista está seleccionada
+                            if (isSelected) {
+                                Spacer(Modifier.height(12.dp))
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.End,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text     = "Cantidad:",
+                                        fontSize = 13.sp,
+                                        color    = colors.subtitleText,
+                                        modifier = Modifier.padding(end = 12.dp)
+                                    )
+                                    ListQuantityStepper(
+                                        quantity    = cantidad,
+                                        colors      = colors,
+                                        onDecrement = {
+                                            if (cantidad > 1) {
+                                                selectedListQuantities = selectedListQuantities + (lista.id to (cantidad - 1))
+                                            }
+                                        },
+                                        onIncrement = {
+                                            selectedListQuantities = selectedListQuantities + (lista.id to (cantidad + 1))
+                                        }
                                     )
                                 }
                             }
@@ -316,18 +390,22 @@ fun ProductDetailScreen(
                 }
             }
 
-            // Boton confirmar cambios
+            // Botón confirmar cambios
             Box(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
-                    .background(TracksyBackground)
+                    .background(colors.background)
                     .padding(horizontal = 20.dp, vertical = 14.dp)
             ) {
                 Button(
-                    onClick = { showConfirmAlert = true },
-                    shape  = RoundedCornerShape(50),
-                    colors = ButtonDefaults.buttonColors(containerColor = TracksyTitleText),
+                    onClick  = { showConfirmAlert = true },
+                    enabled  = hasChanges,
+                    shape    = RoundedCornerShape(50),
+                    colors   = ButtonDefaults.buttonColors(
+                        containerColor = colors.titleText,
+                        disabledContainerColor = colors.divider
+                    ),
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(52.dp)
@@ -336,7 +414,7 @@ fun ProductDetailScreen(
                         text       = "Confirmar cambios",
                         fontSize   = 16.sp,
                         fontWeight = FontWeight.Medium,
-                        color      = Color.White
+                        color      = if (hasChanges) Color.White else colors.subtitleText
                     )
                 }
             }
@@ -345,8 +423,9 @@ fun ProductDetailScreen(
 }
 
 @Composable
-private fun QuantityStepper(
+private fun ListQuantityStepper(
     quantity: Int,
+    colors: com.example.tracksy.ui.theme.TracksyColors,
     onDecrement: () -> Unit,
     onIncrement: () -> Unit
 ) {
@@ -354,7 +433,7 @@ private fun QuantityStepper(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .clip(RoundedCornerShape(50))
-            .background(TracksyBackground)
+            .background(colors.background)
             .padding(4.dp)
     ) {
         Box(
@@ -362,7 +441,7 @@ private fun QuantityStepper(
             modifier = Modifier
                 .size(34.dp)
                 .clip(CircleShape)
-                .background(TracksyPrimary)
+                .background(colors.primary)
                 .clickable(onClick = onDecrement)
         ) {
             Text("−", color = Color.White, fontSize = 20.sp, lineHeight = 20.sp)
@@ -372,7 +451,7 @@ private fun QuantityStepper(
             text       = "$quantity",
             fontSize   = 17.sp,
             fontWeight = FontWeight.Bold,
-            color      = TracksyTitleText,
+            color      = colors.titleText,
             modifier   = Modifier.padding(horizontal = 14.dp)
         )
 
@@ -381,7 +460,7 @@ private fun QuantityStepper(
             modifier = Modifier
                 .size(34.dp)
                 .clip(CircleShape)
-                .background(TracksyPrimary)
+                .background(colors.primary)
                 .clickable(onClick = onIncrement)
         ) {
             Text("+", color = Color.White, fontSize = 20.sp, lineHeight = 20.sp)

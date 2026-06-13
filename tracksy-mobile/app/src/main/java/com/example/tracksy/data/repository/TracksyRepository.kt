@@ -40,8 +40,8 @@ class TracksyRepository(
 
     // ── Productos ─────────────────────────────────────────────────────────────
 
-    suspend fun getProductos(token: String, search: String? = null, page: Int? = null) =
-        api.getProductos(bearer(token), search, page)
+    suspend fun getProductos(token: String, search: String? = null, page: Int? = null, pageSize: Int? = null) =
+        api.getProductos(bearer(token), search, page, pageSize)
 
     suspend fun getProducto(token: String, id: Long) = api.getProducto(bearer(token), id)
 

@@ -55,14 +55,15 @@ interface ApiService {
     suspend fun getProductos(
         @Header("Authorization") token: String,
         @Query("search") search: String? = null,
-        @Query("page") page: Int? = null
+        @Query("page") page: Int? = null,
+        @Query("page_size") pageSize: Int? = null
     ): Response<PaginatedResponse<Producto>>
 
     @GET("api/v1/productos/{id}/")
     suspend fun getProducto(
         @Header("Authorization") token: String,
         @Path("id") id: Long
-    ): Response<Producto>
+    ): Response<ProductoDetalle>
 
     @GET("api/v1/productos/marcas/")
     suspend fun getMarcas(@Header("Authorization") token: String): Response<PaginatedResponse<Marca>>

@@ -59,12 +59,27 @@ data class Marca(
     val nombre: String
 )
 
+data class MarcaDetalle(
+    val id: Int,
+    val nombre: String
+)
+
+// Formato del endpoint LIST /api/v1/productos/ → marca como Int + marca_nombre como String
 data class Producto(
-    val id: Long,           // EAN-13 barcode IS the primary key
+    val id: Long,
     val nombre: String,
     val marca: Int?,
     @SerializedName("marca_nombre") val marcaNombre: String?
 )
+
+// Formato del endpoint DETAIL /api/v1/productos/{id}/ → marca como objeto anidado
+data class ProductoDetalle(
+    val id: Long,
+    val nombre: String,
+    val marca: MarcaDetalle?
+) {
+    val marcaNombre: String? get() = marca?.nombre
+}
 
 // ── Supermercados ─────────────────────────────────────────────────────────────
 

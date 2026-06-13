@@ -1,5 +1,6 @@
 package com.example.tracksy.ui.lists
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -48,7 +49,9 @@ fun EditarListaScreen(
     onBack: () -> Unit = {},
     onScanBarcode: () -> Unit = {},
     onBuscarCatalogo: (String) -> Unit = {},   // dispara búsqueda en la API
-    scannedBarcode: String? = null
+    scannedProductToAdd: Product? = null,
+    onScannedProductConsumed: () -> Unit = {},
+    preloadedItems: List<ItemDeLista> = emptyList()  // items precargados al crear lista desde un producto
 ) {
     val colors = LocalTracksyColors.current
 
@@ -67,15 +70,16 @@ fun EditarListaScreen(
     var itemsEnLista by remember(listaActual) {
         val initial: List<ItemDeLista> = listaActual?.items?.map {
             ItemDeLista(it.producto, it.productoNombre, it.cantidad)
-        } ?: emptyList()
+        } ?: preloadedItems
         mutableStateOf(initial)
     }
 
-    LaunchedEffect(scannedBarcode) {
-        if (scannedBarcode != null) {
-            usarBarcodeManual = false
-            busquedaCatalogo = scannedBarcode
+    LaunchedEffect(scannedProductToAdd) {
+        val p = scannedProductToAdd ?: return@LaunchedEffect
+        if (itemsEnLista.none { it.productoId == p.id }) {
+            itemsEnLista = itemsEnLista + ItemDeLista(productoId = p.id, nombre = p.name, cantidad = 1)
         }
+        onScannedProductConsumed()
     }
 
     // Dispara la búsqueda en la API con debounce de 300 ms cada vez que cambia la query.
@@ -94,6 +98,37 @@ fun EditarListaScreen(
     }
 
     val tituloScreen = if (listaActual == null) "Nueva lista" else "Editar lista"
+
+    val hasContent = listaNombre.isNotBlank() || itemsEnLista.isNotEmpty()
+    var showExitDialog by remember { mutableStateOf(false) }
+    val tryBack = { if (hasContent) showExitDialog = true else onBack() }
+
+    BackHandler { tryBack() }
+
+    if (showExitDialog) {
+        AlertDialog(
+            onDismissRequest  = { showExitDialog = false },
+            containerColor    = colors.surface,
+            titleContentColor = colors.titleText,
+            textContentColor  = colors.subtitleText,
+            title = { Text("¿Descartar cambios?") },
+            text  = { Text("Si salís ahora perderás lo que ingresaste.") },
+            confirmButton = {
+                TextButton(onClick = { showExitDialog = false; onBack() }) {
+                    Text(
+                        "Descartar",
+                        color = MaterialTheme.colorScheme.error,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showExitDialog = false }) {
+                    Text("Cancelar", color = colors.subtitleText)
+                }
+            }
+        )
+    }
 
     Scaffold(containerColor = colors.background) { padding ->
         Box(modifier = Modifier.padding(padding).fillMaxSize()) {
@@ -116,7 +151,7 @@ fun EditarListaScreen(
                         imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
                         contentDescription = "Volver",
                         tint = colors.titleText,
-                        modifier = Modifier.size(24.dp).clickable { onBack() }
+                        modifier = Modifier.size(24.dp).clickable { tryBack() }
                     )
                     Text(text = tituloScreen, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = colors.titleText)
                     Box(
@@ -379,7 +414,7 @@ fun EditarListaScreen(
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 OutlinedButton(
-                    onClick = onBack,
+                    onClick = { tryBack() },
                     modifier = Modifier.weight(1f).height(52.dp),
                     shape = RoundedCornerShape(50),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = colors.titleText)

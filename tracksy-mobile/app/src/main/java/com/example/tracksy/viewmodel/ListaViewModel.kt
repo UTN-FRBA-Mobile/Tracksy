@@ -23,6 +23,9 @@ class ListaViewModel(
     private val _listas = MutableStateFlow<List<ShoppingList>>(emptyList())
     val listas: StateFlow<List<ShoppingList>> = _listas
 
+    private val _listasDetalladas = MutableStateFlow<List<ListaCompra>>(emptyList())
+    val listasDetalladas: StateFlow<List<ListaCompra>> = _listasDetalladas
+
     private val _listaActual = MutableStateFlow<ListaCompra?>(null)
     val listaActual: StateFlow<ListaCompra?> = _listaActual
 
@@ -38,6 +41,12 @@ class ListaViewModel(
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading
+
+    // ID de la última lista creada; se emite cuando crearListaConItems finaliza
+    private val _listaRecienCreada = MutableStateFlow<Int?>(null)
+    val listaRecienCreada: StateFlow<Int?> = _listaRecienCreada
+
+    fun limpiarListaRecienCreada() { _listaRecienCreada.value = null }
 
     private val token get() = tokenManager.accessToken ?: ""
 
@@ -62,7 +71,9 @@ class ListaViewModel(
             try {
                 val response = repo.getListas(token)
                 if (response.isSuccessful) {
-                    _listas.value = response.body()?.results?.map { it.toUiModel() } ?: emptyList()
+                    val results = response.body()?.results ?: emptyList()
+                    _listas.value = results.map { it.toUiModel() }
+                    _listasDetalladas.value = results
                 }
             } catch (_: Exception) { }
             _isLoading.value = false
@@ -146,8 +157,13 @@ class ListaViewModel(
                     // Recarga inline (evita child coroutine que compita con _isLoading)
                     val listasResp = repo.getListas(token)
                     if (listasResp.isSuccessful) {
-                        _listas.value = listasResp.body()?.results?.map { it.toUiModel() } ?: emptyList()
+                        val results = listasResp.body()?.results ?: emptyList()
+                        _listas.value = results.map { it.toUiModel() }
+                        _listasDetalladas.value = results
                     }
+
+                    // Señaliza que la lista está creada y los datos recargados
+                    _listaRecienCreada.value = listaId
                 }
             } catch (_: Exception) {
             } finally {
@@ -290,6 +306,54 @@ class ListaViewModel(
     fun toggleItem(listaId: Int, itemId: Int, estaComprado: Boolean) {
         val nuevoEstadoId = if (estaComprado) idEstadoPendiente() else idEstadoComprado()
         nuevoEstadoId?.let { marcarItem(listaId, itemId, it) }
+    }
+
+    /**
+     * Aplica en lote los cambios del ProductDetailScreen:
+     *  - agregar: pares (listaId, cantidad) donde el producto no estaba
+     *  - eliminar: pares (listaId, itemId) donde el producto fue quitado
+     *  - actualizar: triples (listaId, itemId, nuevaCantidad) donde cambió la cantidad
+     */
+    fun aplicarCambiosProducto(
+        productoId: Long,
+        agregar: List<Pair<Int, Int>>,
+        eliminar: List<Pair<Int, Int>>,
+        actualizar: List<Triple<Int, Int, Int>>
+    ) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            try {
+                if (_estadosProducto.value.isEmpty()) {
+                    val estadosResp = repo.getEstadosProducto(token)
+                    if (estadosResp.isSuccessful) {
+                        _estadosProducto.value = estadosResp.body()?.results ?: emptyList()
+                    }
+                }
+                val estadoId = idEstadoPendiente() ?: _estadosProducto.value.firstOrNull()?.id
+
+                if (estadoId != null) {
+                    for ((listaId, cantidad) in agregar) {
+                        repo.agregarItem(token, listaId, productoId, cantidad, estadoId, 0.0)
+                    }
+                }
+                for ((listaId, itemId) in eliminar) {
+                    repo.eliminarItem(token, listaId, itemId)
+                }
+                for ((listaId, itemId, nuevaCantidad) in actualizar) {
+                    repo.updateItem(token, listaId, itemId, mapOf("cantidad" to nuevaCantidad))
+                }
+
+                val resp = repo.getListas(token)
+                if (resp.isSuccessful) {
+                    val results = resp.body()?.results ?: emptyList()
+                    _listas.value = results.map { it.toUiModel() }
+                    _listasDetalladas.value = results
+                }
+            } catch (_: Exception) {
+            } finally {
+                _isLoading.value = false
+            }
+        }
     }
 
     // ── Mapper ────────────────────────────────────────────────────────────────

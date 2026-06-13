@@ -7,6 +7,9 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
 import com.example.tracksy.data.local.TokenManager
 import com.example.tracksy.screens.BarcodeScannerScreen
@@ -25,6 +28,7 @@ import com.example.tracksy.ui.history.HistoryItem
 import com.example.tracksy.ui.history.HistoryScreen
 import com.example.tracksy.ui.lists.DetalleListaScreen
 import com.example.tracksy.ui.lists.EditarListaScreen
+import com.example.tracksy.ui.lists.ItemDeLista
 import com.example.tracksy.ui.lists.MisListasScreen
 import com.example.tracksy.ui.profile.CambiarContrasenaScreen
 import com.example.tracksy.ui.profile.EditarPerfilScreen
@@ -66,7 +70,11 @@ class MainActivity : ComponentActivity() {
                 val productos            by productoViewModel.productos.collectAsState()
                 val favoritos            by productoViewModel.favoritos.collectAsState()
                 val productosBusqueda    by productoViewModel.productosBusqueda.collectAsState()
+                val productoEscaneado      by productoViewModel.productoEscaneado.collectAsState()
+                val productoNoEncontrado   by productoViewModel.productoNoEncontrado.collectAsState()
                 val listas               by listaViewModel.listas.collectAsState()
+                val listasDetalladas     by listaViewModel.listasDetalladas.collectAsState()
+                val listaRecienCreada    by listaViewModel.listaRecienCreada.collectAsState()
                 val listaActual          by listaViewModel.listaActual.collectAsState()
                 val supermercados        by listaViewModel.supermercados.collectAsState()
                 val listados             by listaViewModel.listados.collectAsState()
@@ -112,6 +120,11 @@ class MainActivity : ComponentActivity() {
                 var showCambiarContrasena     by remember { mutableStateOf(false) }
                 var scannerFromList           by remember { mutableStateOf(false) }
                 var pendingBarcode            by remember { mutableStateOf<String?>(null) }
+                var addingProductToList       by remember { mutableStateOf(false) }
+                var productoParaLista         by remember { mutableStateOf<Product?>(null) }
+                var preloadedListItem         by remember { mutableStateOf<ItemDeLista?>(null) }
+                var productPendingReturn      by remember { mutableStateOf<Product?>(null) }
+                var draftProductSelections    by remember { mutableStateOf<Map<Int, Int>?>(null) }
 
                 // Cargar datos al autenticarse
                 LaunchedEffect(isAuthenticated) {
@@ -142,6 +155,30 @@ class MainActivity : ComponentActivity() {
                             NavTab.HISTORY -> compraViewModel.cargarCompras()
                             NavTab.SCANNER -> Unit
                         }
+                    }
+                }
+
+                // Resuelve el producto escaneado según el contexto:
+                // - desde lista → agrega directamente a la lista (productoParaLista)
+                // - fuera de lista → abre ProductDetailScreen
+                LaunchedEffect(productoEscaneado) {
+                    val p = productoEscaneado ?: return@LaunchedEffect
+                    if (addingProductToList) {
+                        productoParaLista     = p
+                        addingProductToList   = false
+                    } else {
+                        selectedProduct = p
+                        listaViewModel.cargarListas()
+                    }
+                    productoViewModel.limpiarProductoEscaneado()
+                }
+
+                // Limpia el flag cuando crearListaConItems termina y listasDetalladas se actualizó.
+                // La navegación ya ocurrió; LaunchedEffect(initialSelections) en
+                // ProductDetailScreen se encarga de agregar la nueva lista al borrador.
+                LaunchedEffect(listaRecienCreada) {
+                    if (listaRecienCreada != null) {
+                        listaViewModel.limpiarListaRecienCreada()
                     }
                 }
 
@@ -177,6 +214,12 @@ class MainActivity : ComponentActivity() {
                             selectedList              = null
                             currentScreen             = AppScreen.EditarLista
                             showEditarListaStandalone = false
+                            preloadedListItem         = null
+                            productPendingReturn      = null
+                            draftProductSelections    = null
+                            addingProductToList       = false
+                            productoParaLista         = null
+                            listaViewModel.limpiarListaRecienCreada()
                             if (tab == NavTab.SCANNER) showScanner = true
                             else selectedTab = tab
                         }
@@ -216,7 +259,13 @@ class MainActivity : ComponentActivity() {
                                     showEditarListaStandalone = false
                                     showScanner               = false
                                     pendingBarcode            = null
+                                    addingProductToList       = false
+                                    productoParaLista         = null
+                                    preloadedListItem         = null
+                                    productPendingReturn      = null
+                                    draftProductSelections    = null
                                     dismissedSuggestionIds    = emptySet()
+                                    listaViewModel.limpiarListaRecienCreada()
                                 },
                                 onEditarPerfil      = { showEditarPerfil = true },
                                 onCambiarContrasena = { showCambiarContrasena = true },
@@ -229,12 +278,10 @@ class MainActivity : ComponentActivity() {
                             showScanner -> BarcodeScannerScreen(
                                 onBarcodeDetected = { barcode ->
                                     if (scannerFromList) {
-                                        pendingBarcode = barcode
+                                        addingProductToList = true
                                         scannerFromList = false
-                                    } else {
-                                        productoViewModel.cargarProductos(busqueda = barcode)
-                                        selectedTab = NavTab.PRODUCTS
                                     }
+                                    productoViewModel.buscarProductoPorBarcode(barcode)
                                     showScanner = false
                                 },
                                 onDismiss = {
@@ -249,10 +296,29 @@ class MainActivity : ComponentActivity() {
                             )
 
                             selectedProduct != null -> ProductDetailScreen(
-                                product     = selectedProduct!!,
-                                onBack      = { selectedProduct = null },
+                                product          = selectedProduct!!,
+                                listas           = listasDetalladas,
+                                draftSelections  = draftProductSelections,
+                                onBack      = {
+                                    draftProductSelections = null
+                                    selectedProduct = null
+                                },
                                 selectedTab = selectedTab,
-                                onTabChange = onTabChange
+                                onTabChange = onTabChange,
+                                onConfirmarCambios = { productoId, agregar, eliminar, actualizar ->
+                                    listaViewModel.aplicarCambiosProducto(productoId, agregar, eliminar, actualizar)
+                                    draftProductSelections = null
+                                    selectedProduct = null
+                                },
+                                onNuevaLista = { currentSelections ->
+                                    draftProductSelections = currentSelections
+                                    productPendingReturn = selectedProduct
+                                    preloadedListItem = selectedProduct?.let {
+                                        ItemDeLista(productoId = it.id, nombre = it.name, cantidad = 1)
+                                    }
+                                    selectedProduct           = null
+                                    showEditarListaStandalone = true
+                                }
                             )
 
                             // ── Nueva lista standalone ────────────────────────
@@ -260,6 +326,7 @@ class MainActivity : ComponentActivity() {
                                 listaActual          = null,
                                 productosDisponibles = productosBusqueda,
                                 supermercados        = supermercados,
+                                preloadedItems       = listOfNotNull(preloadedListItem),
                                 onConfirmar = { nombre, supermercadoId, items ->
                                     listaViewModel.crearListaConItems(
                                         nombre         = nombre,
@@ -269,19 +336,37 @@ class MainActivity : ComponentActivity() {
                                     productoViewModel.limpiarBusquedaLista()
                                     showEditarListaStandalone = false
                                     pendingBarcode            = null
-                                    selectedTab               = NavTab.LISTS
+                                    preloadedListItem         = null
+                                    val retorno      = productPendingReturn
+                                    productPendingReturn = null
+                                    if (retorno != null) {
+                                        // Volvemos de inmediato a ProductDetailScreen.
+                                        // LaunchedEffect(initialSelections) en esa screen
+                                        // agrega la nueva lista en cuanto listasDetalladas
+                                        // se actualiza (async via crearListaConItems).
+                                        selectedProduct = retorno
+                                    } else {
+                                        draftProductSelections = null
+                                        selectedTab = NavTab.LISTS
+                                    }
                                 },
                                 onBack = {
                                     productoViewModel.limpiarBusquedaLista()
                                     showEditarListaStandalone = false
                                     pendingBarcode            = null
+                                    preloadedListItem         = null
+                                    // Si vinimos desde ProductDetailScreen, volvemos a ese producto
+                                    // El borrador se mantiene (no se limpia) para preservar el estado
+                                    selectedProduct      = productPendingReturn
+                                    productPendingReturn = null
                                 },
                                 onScanBarcode    = {
                                     scannerFromList = true
                                     showScanner     = true
                                 },
                                 onBuscarCatalogo = { productoViewModel.buscarProductosParaLista(it) },
-                                scannedBarcode   = pendingBarcode
+                                scannedProductToAdd      = productoParaLista,
+                                onScannedProductConsumed = { productoParaLista = null }
                             )
 
                             // ── Flujo de lista seleccionada ───────────────────
@@ -331,7 +416,8 @@ class MainActivity : ComponentActivity() {
                                         showScanner     = true
                                     },
                                     onBuscarCatalogo = { productoViewModel.buscarProductosParaLista(it) },
-                                    scannedBarcode   = pendingBarcode
+                                    scannedProductToAdd      = productoParaLista,
+                                onScannedProductConsumed = { productoParaLista = null }
                                 )
 
                                 AppScreen.CompararSupermercados -> CompararSupermercadosScreen(
@@ -470,6 +556,28 @@ class MainActivity : ComponentActivity() {
                                 onDismissSugerencia = { suggestion ->
                                     suggestion.productoId?.let {
                                         dismissedSuggestionIds = dismissedSuggestionIds + it
+                                    }
+                                }
+                            )
+                        }
+
+                        if (productoNoEncontrado) {
+                            AlertDialog(
+                                onDismissRequest = { productoViewModel.limpiarProductoNoEncontrado() },
+                                title = { Text("Producto no encontrado") },
+                                text  = { Text("El producto escaneado no existe o no fue encontrado.") },
+                                confirmButton = {
+                                    TextButton(onClick = {
+                                        productoViewModel.limpiarProductoNoEncontrado()
+                                        if (addingProductToList) scannerFromList = true
+                                        showScanner = true
+                                    }) {
+                                        Text("Reintentar")
+                                    }
+                                },
+                                dismissButton = {
+                                    TextButton(onClick = { productoViewModel.limpiarProductoNoEncontrado() }) {
+                                        Text("Cancelar")
                                     }
                                 }
                             )

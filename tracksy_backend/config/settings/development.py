@@ -8,8 +8,6 @@ MIDDLEWARE.insert(1, "debug_toolbar.middleware.DebugToolbarMiddleware")  # noqa:
 
 INTERNAL_IPS = ["127.0.0.1"]
 
-ALLOWED_HOSTS = ["localhost", "127.0.0.1", "10.0.2.2"]  # noqa: F405
-
 REST_FRAMEWORK["DEFAULT_RENDERER_CLASSES"] += [  # noqa: F405
     "rest_framework.renderers.BrowsableAPIRenderer",
 ]

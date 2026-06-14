@@ -380,17 +380,30 @@ thead th a:hover {
 }
 
 /* ── PRIMARY — Violeta oscuro: acción principal / navegación ── */
-.btn-primary,
-input[type="submit"].default {
+/* Centrado del botón "Log in" en su contenedor */
+.login-card-body .row .col-12, .login-box .row .col-12 {
+    display: flex !important;
+    justify-content: center !important; /* Centrado horizontal */
+}
+
+/* Estilos principales y centrado de texto del botón */
+.btn-primary, input[type="submit"].default {
     background-color: #4a2e7a !important;
     border-color: #3a1f60 !important;
     color: #ffffff !important;
+    
+    /* Centrado Flexbox: Alinea perfectamente texto e iconos */
+    display: inline-flex !important;
+    align-items: center !important;      /* Centrado vertical */
+    justify-content: center !important;  /* Centrado horizontal */
+    
+    width: auto !important; 
+    min-width: 350px !important; 
+    flex-shrink: 0;
 }
 
-.btn-primary:hover,
-.btn-primary:active,
-.btn-primary:focus,
-input[type="submit"].default:hover {
+/* Efectos hover y focus */
+.btn-primary:hover, .btn-primary:active, .btn-primary:focus, input[type="submit"].default:hover {
     background-color: #3a1f60 !important;
     border-color: #2c1548 !important;
     color: #ffffff !important;
@@ -401,6 +414,7 @@ input[type="submit"].default:hover {
     outline: none !important;
     box-shadow: 0 0 0 3px rgba(74, 46, 122, 0.4) !important;
 }
+
 
 /* ── SUCCESS — Violeta medio vibrante: Guardar / Agregar / Confirmar ── */
 .btn-success {

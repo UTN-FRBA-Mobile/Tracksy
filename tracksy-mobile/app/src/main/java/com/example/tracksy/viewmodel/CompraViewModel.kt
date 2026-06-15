@@ -11,7 +11,6 @@ import com.example.tracksy.data.models.ProductoCompradoRequest
 import com.example.tracksy.data.repository.TracksyRepository
 import com.example.tracksy.ui.history.HistoryItem
 import com.example.tracksy.ui.history.Product
-import com.example.tracksy.ui.history.PurchaseStatus
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -48,7 +47,8 @@ class CompraViewModel(
     }
 
     fun crearCompra(
-        supermercadoId: Int,
+        supermercadoId: Int?,
+        nombreLista: String,
         total: Double,
         productos: List<Triple<Long, Int, Double>>   // (productoId EAN-13, cantidad, precioUnitario)
     ) {
@@ -56,8 +56,9 @@ class CompraViewModel(
             try {
                 val request = CompraRequest(
                     supermercado = supermercadoId,
-                    total = total,
-                    productos = productos.map { (id, cant, precio) ->
+                    nombreLista  = nombreLista,
+                    total        = total,
+                    productos    = productos.map { (id, cant, precio) ->
                         ProductoCompradoRequest(id, cant, precio)
                     }
                 )
@@ -67,22 +68,21 @@ class CompraViewModel(
         }
     }
 
-    private val dateParser = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSSSS'Z'", Locale.getDefault())
-    private val dateFormatter = SimpleDateFormat("d 'de' MMMM", Locale("es", "AR"))
-
     private fun Compra.toHistoryItem(): HistoryItem {
         val fechaLabel = try {
-            dateFormatter.format(dateParser.parse(fecha)!!)
+            val datePart = fecha.substring(0, 10)
+            SimpleDateFormat("d 'de' MMMM", Locale("es", "AR"))
+                .format(SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).parse(datePart)!!)
         } catch (_: Exception) { fecha }
 
         return HistoryItem(
-            id            = id.toString(),
-            supermarketName = supermercadoNombre,
-            dateLabel     = fechaLabel,
-            productCount  = productos.size,
-            totalAmount   = "$%.0f".format(total),
-            status        = PurchaseStatus.COMPLETED,
-            products      = productos.map { pc ->
+            id              = id.toString(),
+            listName        = nombreLista.ifBlank { "Compra" },
+            supermarketName = supermercadoNombre ?: "",
+            dateLabel       = fechaLabel,
+            productCount    = productos.size,
+            totalAmount     = "$%.0f".format(total),
+            products        = productos.map { pc ->
                 Product(
                     name        = pc.productoNombre,
                     price       = "$%.0f".format(pc.precioUnitario * pc.cantidad),

@@ -58,8 +58,10 @@ class TracksyRepository(
         token: String,
         supermercadoId: Int? = null,
         productoId: Long? = null,
-        disponible: Boolean? = null
-    ) = api.getListados(bearer(token), supermercadoId, productoId, disponible)
+        disponible: Boolean? = null,
+        page: Int? = null,
+        pageSize: Int? = null
+    ) = api.getListados(bearer(token), supermercadoId, productoId, disponible, page, pageSize)
 
     // ── Listas de compra ──────────────────────────────────────────────────────
 

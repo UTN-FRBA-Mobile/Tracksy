@@ -87,7 +87,9 @@ interface ApiService {
         @Header("Authorization") token: String,
         @Query("supermercado") supermercadoId: Int? = null,
         @Query("producto") productoId: Long? = null,
-        @Query("disponible") disponible: Boolean? = null
+        @Query("disponible") disponible: Boolean? = null,
+        @Query("page") page: Int? = null,
+        @Query("page_size") pageSize: Int? = null
     ): Response<PaginatedResponse<ProductoListado>>
 
     // ── Listas de compra ──────────────────────────────────────────────────────

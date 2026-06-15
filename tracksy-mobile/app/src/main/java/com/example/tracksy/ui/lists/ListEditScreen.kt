@@ -17,8 +17,12 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Person
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -154,12 +158,7 @@ fun EditarListaScreen(
                         modifier = Modifier.size(24.dp).clickable { tryBack() }
                     )
                     Text(text = tituloScreen, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = colors.titleText)
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier.size(42.dp).clip(CircleShape).background(colors.divider)
-                    ) {
-                        Icon(Icons.Outlined.Person, contentDescription = "Perfil", tint = colors.sectionText, modifier = Modifier.size(24.dp))
-                    }
+                    Spacer(Modifier.size(42.dp))
                 }
 
                 Spacer(Modifier.height(12.dp))
@@ -308,6 +307,8 @@ fun EditarListaScreen(
                         trailingIcon = {
                             Icon(Icons.Default.Edit, contentDescription = null, tint = colors.subtitleText)
                         },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Search),
+                        keyboardActions = KeyboardActions(onSearch = { onBuscarCatalogo(barcodeManual) }),
                         singleLine = true
                     )
                 }

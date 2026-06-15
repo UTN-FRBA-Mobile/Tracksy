@@ -158,15 +158,17 @@ data class ProductoComprado(
 data class Compra(
     val id: Int,
     val usuario: Int,
-    val supermercado: Int,
-    @SerializedName("supermercado_nombre") val supermercadoNombre: String,
+    val supermercado: Int?,
+    @SerializedName("supermercado_nombre") val supermercadoNombre: String?,
+    @SerializedName("nombre_lista") val nombreLista: String,
     val fecha: String,
     val total: Double,
     val productos: List<ProductoComprado>
 )
 
 data class CompraRequest(
-    val supermercado: Int,
+    val supermercado: Int?,
+    @SerializedName("nombre_lista") val nombreLista: String,
     val total: Double,
     val productos: List<ProductoCompradoRequest>
 )

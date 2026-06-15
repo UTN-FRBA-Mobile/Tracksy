@@ -184,7 +184,10 @@ class MainActivity : ComponentActivity() {
 
                 // Cargar detalle de lista cuando se selecciona una
                 LaunchedEffect(selectedList) {
-                    selectedList?.let { listaViewModel.cargarLista(it.id) }
+                    selectedList?.let {
+                        listaViewModel.cargarLista(it.id)
+                        listaViewModel.cargarListados()
+                    }
                 }
 
                 // Cargar listados de precios al entrar a la pantalla de comparación
@@ -375,6 +378,7 @@ class MainActivity : ComponentActivity() {
                                 AppScreen.DetalleLista -> DetalleListaScreen(
                                     lista         = listaActual,
                                     supermercados = supermercados,
+                                    listados      = listados,
                                     onToggleItem  = { listaId, itemId, estaComprado ->
                                         listaViewModel.toggleItem(listaId, itemId, estaComprado)
                                     },
@@ -430,15 +434,18 @@ class MainActivity : ComponentActivity() {
                                 AppScreen.FinalizarCompra -> {
                                     val lista     = selectedList!!
                                     val realItems = listaActual?.items ?: emptyList()
-                                    val comprados = realItems.count {
-                                        it.estadoNombre.lowercase().let { n -> n.contains("comprad") || n.contains("completad") }
+                                    val esComprado: (String) -> Boolean = { estadoNombre ->
+                                        estadoNombre.lowercase().let { n -> n.contains("comprad") || n.contains("completad") }
                                     }
-                                    val pendientes = realItems.filter {
-                                        !it.estadoNombre.lowercase().let { n -> n.contains("comprad") || n.contains("completad") }
-                                    }
+                                    val comprados  = realItems.count { esComprado(it.estadoNombre) }
+                                    val pendientes = realItems.filter { !esComprado(it.estadoNombre) }
+                                    val superId    = listaActual?.supermercado
+                                    val preciosDelSuper = if (superId != null) {
+                                        listados.filter { it.supermercado == superId }.associate { it.producto to it.precio }
+                                    } else emptyMap<Long, Double>()
                                     val totalGastado = realItems
-                                        .filter { it.estadoNombre.lowercase().let { n -> n.contains("comprad") || n.contains("completad") } }
-                                        .sumOf { it.precioUnitario * it.cantidad }
+                                        .filter { esComprado(it.estadoNombre) }
+                                        .sumOf { item -> (preciosDelSuper[item.producto] ?: item.precioUnitario) * item.cantidad }
 
                                     FinalizarCompraScreen(
                                         summary = PurchaseSummary(
@@ -449,25 +456,26 @@ class MainActivity : ComponentActivity() {
                                             pendingItems      = pendientes.map { it.productoNombre }
                                         ),
                                         onBack = { currentScreen = AppScreen.DetalleLista },
-                                        onConfirm = { createPendingList ->
-                                            val supermercadoId = listaActual?.supermercado
-                                            if (supermercadoId != null && comprados > 0) {
-                                                compraViewModel.crearCompra(
-                                                    supermercadoId = supermercadoId,
-                                                    total          = totalGastado,
-                                                    productos      = realItems
-                                                        .filter { it.estadoNombre.lowercase().let { n -> n.contains("comprad") || n.contains("completad") } }
-                                                        .map { Triple(it.producto, it.cantidad, it.precioUnitario) }
-                                                )
-                                            }
+                                        onCrearListaPendientes = { nombre ->
+                                            listaViewModel.crearListaConItems(
+                                                nombre         = nombre,
+                                                supermercadoId = null,
+                                                items          = pendientes.map { it.producto to it.cantidad }
+                                            )
+                                        },
+                                        onConfirm = {
+                                            compraViewModel.crearCompra(
+                                                supermercadoId = superId,
+                                                nombreLista    = lista.name,
+                                                total          = totalGastado,
+                                                productos      = realItems
+                                                    .filter { esComprado(it.estadoNombre) }
+                                                    .map { item -> Triple(item.producto, item.cantidad, preciosDelSuper[item.producto] ?: item.precioUnitario) }
+                                            )
+                                            listaViewModel.eliminarLista(lista.id)
                                             selectedList  = null
                                             currentScreen = AppScreen.DetalleLista
-                                            compraViewModel.cargarCompras()
-                                            if (createPendingList) {
-                                                showEditarListaStandalone = true
-                                            } else {
-                                                selectedTab = NavTab.HOME
-                                            }
+                                            selectedTab   = NavTab.HISTORY
                                         }
                                     )
                                 }

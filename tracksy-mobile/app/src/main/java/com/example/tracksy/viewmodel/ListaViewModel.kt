@@ -117,10 +117,17 @@ class ListaViewModel(
     fun cargarListados() {
         viewModelScope.launch {
             try {
-                val response = repo.getListados(token)
-                if (response.isSuccessful) {
-                    _listados.value = response.body()?.results ?: emptyList()
+                val all = mutableListOf<ProductoListado>()
+                var page = 1
+                while (true) {
+                    val response = repo.getListados(token, page = page, pageSize = 100)
+                    if (!response.isSuccessful) break
+                    val body = response.body() ?: break
+                    all.addAll(body.results)
+                    if (body.next == null) break
+                    page++
                 }
+                _listados.value = all
             } catch (_: Exception) { }
         }
     }
@@ -186,7 +193,11 @@ class ListaViewModel(
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                // 1. Ensure estados loaded synchronously
+                // 1. Actualizar nombre y supermercado
+                val campos = mutableMapOf<String, Any?>("nombre" to nombre, "supermercado" to supermercadoId)
+                repo.updateLista(token, listaId, campos)
+
+                // 2. Ensure estados loaded synchronously
                 if (_estadosProducto.value.isEmpty()) {
                     val estadosResp = repo.getEstadosProducto(token)
                     if (estadosResp.isSuccessful) {
@@ -195,7 +206,7 @@ class ListaViewModel(
                 }
                 val estadoId = idEstadoPendiente() ?: _estadosProducto.value.firstOrNull()?.id
 
-                // 2. Items actuales de la lista (carga fresca si hace falta)
+                // 3. Items actuales de la lista (carga fresca si hace falta)
                 val itemsActuales: List<com.example.tracksy.data.models.ItemProducto> =
                     _listaActual.value?.takeIf { it.id == listaId }?.items
                         ?: run {

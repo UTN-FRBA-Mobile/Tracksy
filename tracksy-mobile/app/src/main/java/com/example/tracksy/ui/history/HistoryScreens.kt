@@ -136,7 +136,7 @@ fun HistoryDetailScreen(
                         modifier = Modifier.size(24.dp).clickable { onBackClick() }
                     )
                     Text(
-                        text = item.supermarketName,
+                        text = item.listName,
                         fontSize = 22.sp,
                         fontWeight = FontWeight.Bold,
                         color = colors.titleText
@@ -158,9 +158,8 @@ fun HistoryDetailScreen(
                     .background(colors.titleText)
                     .padding(horizontal = 24.dp, vertical = 24.dp)
             ) {
-                val statusText = if (item.status == PurchaseStatus.COMPLETED) "Completada" else "Incompleta"
                 Text(
-                    text = "${item.dateLabel} · ${item.productCount} productos · $statusText",
+                    text = "${item.dateLabel} · ${item.productCount} productos",
                     color = Color.White.copy(alpha = 0.8f),
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium

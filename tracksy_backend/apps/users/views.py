@@ -2,9 +2,15 @@ from django.contrib.auth import get_user_model
 from rest_framework import generics, status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
+<<<<<<< HEAD
 from .models import ProductoUsuario
+=======
+from .firebase_auth import FirebaseAuthentication
+from .models import FavoriteProduct, FavoriteSupermarket
+>>>>>>> 13673e03 (Add Firebase authentication backend)
 from .serializers import (
     RegistroSerializer,
     UsuarioSerializer,
@@ -37,8 +43,36 @@ class RefreshTokenView(TokenRefreshView):
     pass
 
 
+<<<<<<< HEAD
 class PerfilView(generics.RetrieveUpdateAPIView):
     serializer_class = UsuarioSerializer
+=======
+@extend_schema(tags=["auth"])
+class FirebaseSyncView(APIView):
+    """Sincronizar el usuario Firebase con el usuario local Django."""
+
+    authentication_classes = [FirebaseAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        user = request.user
+        return Response(
+            {
+                "id": str(user.id),
+                "firebase_uid": user.firebase_uid,
+                "email": user.email,
+                "is_email_verified": user.is_email_verified,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+@extend_schema(tags=["users"])
+class MeView(generics.RetrieveUpdateAPIView):
+    """Obtener y actualizar el perfil del usuario autenticado."""
+
+    serializer_class = MeSerializer
+>>>>>>> 13673e03 (Add Firebase authentication backend)
     permission_classes = [IsAuthenticated]
 
     def get_object(self):

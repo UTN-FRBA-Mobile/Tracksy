@@ -3,6 +3,7 @@ import java.util.Properties
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.google.services)
 }
 
 val localProperties = Properties().apply {
@@ -83,6 +84,9 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
     // ViewModel Compose
     implementation(libs.androidx.lifecycle.viewmodel.compose)
+    // Firebase
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.auth)
 
     testImplementation(libs.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))

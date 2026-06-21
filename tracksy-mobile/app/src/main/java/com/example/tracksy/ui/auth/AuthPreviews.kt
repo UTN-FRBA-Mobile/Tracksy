@@ -172,7 +172,7 @@ private fun CreateAccountEmailAlreadyRegisteredPreview() {
             email = "juan.perez@gmail.com",
             password = "Mobile*123",
             confirmPassword = "Mobile*123",
-            emailErrorText = "Este correo ya está registrado",
+            emailErrorText = "Firebase rechazó el registro: ERROR_EMAIL_ALREADY_IN_USE",
             showPasswordRequirements = true
         )
     }

@@ -82,6 +82,7 @@ dependencies {
     implementation(libs.gson)
     // Coroutines
     implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.kotlinx.coroutines.play.services)
     // ViewModel Compose
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     // Firebase

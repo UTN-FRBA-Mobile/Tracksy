@@ -29,6 +29,13 @@ data class RefreshRequest(
     val refresh: String
 )
 
+data class FirebaseSyncResponse(
+    val id: String,
+    @SerializedName("firebase_uid") val firebaseUid: String?,
+    val email: String,
+    @SerializedName("is_email_verified") val isEmailVerified: Boolean
+)
+
 // ── Usuario ───────────────────────────────────────────────────────────────────
 
 data class Usuario(

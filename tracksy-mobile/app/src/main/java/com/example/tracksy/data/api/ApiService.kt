@@ -17,6 +17,9 @@ interface ApiService {
     @POST("api/v1/auth/refresh/")
     suspend fun refreshToken(@Body body: RefreshRequest): Response<TokenResponse>
 
+    @POST("api/v1/auth/firebase/sync/")
+    suspend fun firebaseSync(@Header("Authorization") token: String): Response<FirebaseSyncResponse>
+
     // ── Usuarios ──────────────────────────────────────────────────────────────
 
     @GET("api/v1/usuarios/perfil/")

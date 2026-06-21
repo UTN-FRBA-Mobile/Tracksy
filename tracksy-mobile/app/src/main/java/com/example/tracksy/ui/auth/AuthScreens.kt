@@ -80,7 +80,7 @@ private val PasswordRequirementTextStyle = TextStyle(
 fun TracksyAuthApp(
     onAuthenticated: () -> Unit = {},
     onLogin: suspend (email: String, password: String) -> Boolean = { _, _ -> true },
-    onCreateAccount: suspend (nombre: String, email: String, password: String) -> Boolean = { _, _, _ -> true }
+    onCreateAccount: suspend (nombre: String, email: String, password: String) -> String? = { _, _, _ -> null }
 ) {
     val scope = rememberCoroutineScope()
     var route by remember { mutableStateOf(AuthRoute.Welcome) }
@@ -88,7 +88,7 @@ fun TracksyAuthApp(
     var loginLoading by remember { mutableStateOf(false) }
     var loginServerError by remember { mutableStateOf(false) }
     var registerLoading by remember { mutableStateOf(false) }
-    var registerEmailTaken by remember { mutableStateOf(false) }
+    var registerErrorMessage by remember { mutableStateOf<String?>(null) }
 
     when (route) {
         AuthRoute.Welcome -> WelcomeScreen(
@@ -115,14 +115,14 @@ fun TracksyAuthApp(
 
         AuthRoute.CreateAccount -> CreateAccountScreen(
             isLoading = registerLoading,
-            emailTaken = registerEmailTaken,
+            serverErrorText = registerErrorMessage,
             onCreateAccount = { nombre, email, password ->
-                registerEmailTaken = false
+                registerErrorMessage = null
                 scope.launch {
                     registerLoading = true
-                    val ok = onCreateAccount(nombre, email, password)
+                    val error = onCreateAccount(nombre, email, password)
                     registerLoading = false
-                    if (ok) onAuthenticated() else registerEmailTaken = true
+                    if (error == null) onAuthenticated() else registerErrorMessage = error
                 }
                 true
             },
@@ -322,7 +322,7 @@ fun CreateAccountScreen(
     onCreateAccount: (name: String, email: String, password: String) -> Boolean,
     onLogin: () -> Unit,
     isLoading: Boolean = false,
-    emailTaken: Boolean = false,
+    serverErrorText: String? = null,
     modifier: Modifier = Modifier
 ) {
     var name by remember { mutableStateOf("") }
@@ -334,7 +334,7 @@ fun CreateAccountScreen(
     var passwordBlurred by remember { mutableStateOf(false) }
     var confirmInteracted by remember { mutableStateOf(false) }
     var submitAttempted by remember { mutableStateOf(false) }
-    var isEmailAlreadyRegistered by remember(emailTaken) { mutableStateOf(emailTaken) }
+    var localServerErrorText by remember(serverErrorText) { mutableStateOf(serverErrorText) }
     val focusManager = LocalFocusManager.current
     val passwordRequirements = passwordRequirements(password)
     val isPasswordValid = passwordRequirements.all { it.isValid }
@@ -346,7 +346,7 @@ fun CreateAccountScreen(
         isPasswordValid &&
         isConfirmValid
     val emailErrorText = when {
-        isEmailAlreadyRegistered -> "Este correo ya está registrado"
+        localServerErrorText != null -> localServerErrorText
         email.isNotBlank() && !isEmailFormatValid && (emailBlurred || submitAttempted) ->
             "Ingresá un correo electrónico válido"
         else -> null
@@ -365,12 +365,12 @@ fun CreateAccountScreen(
         passwordRequirements = passwordRequirements,
         showPasswordRequirementErrors = passwordBlurred || submitAttempted,
         showConfirmMismatch = showConfirmMismatch,
-        isCreateEnabled = isFrontendValid && !isEmailAlreadyRegistered && !isLoading,
+        isCreateEnabled = isFrontendValid && localServerErrorText == null && !isLoading,
         onNameChange = { name = it },
         onEmailChange = {
             email = it
             emailBlurred = false
-            isEmailAlreadyRegistered = false
+            localServerErrorText = null
         },
         onEmailFocusChanged = { isFocused ->
             if (!isFocused && email.isNotBlank()) {
@@ -379,6 +379,7 @@ fun CreateAccountScreen(
         },
         onPasswordChange = {
             password = it
+            localServerErrorText = null
             if (confirmPassword.isNotEmpty()) {
                 confirmInteracted = true
             }
@@ -391,13 +392,16 @@ fun CreateAccountScreen(
         },
         onConfirmPasswordChange = {
             confirmPassword = it
+            localServerErrorText = null
             confirmInteracted = true
         },
         onSubmit = {
             submitAttempted = true
             focusManager.clearFocus()
             if (isFrontendValid) {
-                isEmailAlreadyRegistered = !onCreateAccount(name, email, password)
+                if (onCreateAccount(name, email, password)) {
+                    localServerErrorText = null
+                }
             }
         },
         onLogin = onLogin,

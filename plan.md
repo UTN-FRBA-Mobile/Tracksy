@@ -29,6 +29,15 @@ Django -> valida Firebase ID token
 
 Objetivo: validar que Firebase esta bien configurado antes de migrar todo el auth.
 
+Estado: validada.
+
+Resultado:
+
+- `google-services.json` fue procesado correctamente por Gradle.
+- La app creo un usuario en Firebase Authentication.
+- El email de verificacion llego correctamente.
+- Durante la prueba se mejoro el mensaje de error del registro para mostrar el codigo real de Firebase.
+
 Cambios:
 
 1. Agregar dependencia:
@@ -70,6 +79,15 @@ Nota:
 
 Objetivo: separar autenticacion de datos de negocio.
 
+Estado: implementada en backend.
+
+Resultado:
+
+- Se agrego `firebase_uid` al modelo local `User` de Django.
+- Se creo una migracion para persistir `firebase_uid` en PostgreSQL.
+- `email` se mantiene como dato local sincronizable.
+- Los usuarios Django tradicionales siguen compatibles para admin/backoffice.
+
 Decisiones:
 
 - Firebase Auth es fuente de verdad para:
@@ -107,6 +125,17 @@ Criterio de salida:
 ## Fase 2 - Adaptar backend Django para Firebase ID tokens
 
 Objetivo: que Django acepte requests autenticadas desde mobile con Firebase ID Token.
+
+Estado: implementada en backend, pendiente prueba end-to-end con token real desde mobile.
+
+Resultado:
+
+- Se agrego `firebase-admin` al backend.
+- Se agregaron variables `FIREBASE_PROJECT_ID` y `FIREBASE_CREDENTIALS_PATH`.
+- Se creo autenticacion Firebase para validar `Authorization: Bearer <firebase_id_token>`.
+- Se dejo una autenticacion compatible que acepta JWT Django existente o Firebase ID Token durante la migracion.
+- Se creo `POST /api/v1/auth/firebase/sync/` para asociar/crear usuario local por `firebase_uid`.
+- La app mobile obtiene el Firebase ID token luego del registro temporal y llama al sync de Django.
 
 Cambios:
 

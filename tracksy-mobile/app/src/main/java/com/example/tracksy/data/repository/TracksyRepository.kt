@@ -20,6 +20,9 @@ class TracksyRepository(
     suspend fun refreshToken(refresh: String) =
         api.refreshToken(RefreshRequest(refresh))
 
+    suspend fun firebaseSync(idToken: String) =
+        api.firebaseSync(bearer(idToken))
+
     // ── Usuarios ──────────────────────────────────────────────────────────────
 
     suspend fun getPerfil(token: String) = api.getPerfil(bearer(token))

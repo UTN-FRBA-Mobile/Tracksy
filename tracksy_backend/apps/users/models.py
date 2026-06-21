@@ -5,6 +5,7 @@ from django.db import models
 class Usuario(AbstractUser):
     nombre = models.CharField(max_length=150)
     email = models.EmailField(unique=True)
+    firebase_uid = models.CharField(max_length=128, unique=True, null=True, blank=True)
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = ["username", "nombre"]

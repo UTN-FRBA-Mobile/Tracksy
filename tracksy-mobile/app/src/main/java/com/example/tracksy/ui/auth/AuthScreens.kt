@@ -81,7 +81,7 @@ private val PasswordRequirementTextStyle = TextStyle(
 @Composable
 fun TracksyAuthApp(
     onAuthenticated: () -> Unit = {},
-    onLogin: suspend (email: String, password: String) -> Boolean = { _, _ -> true },
+    onLogin: suspend (email: String, password: String) -> String? = { _, _ -> null },
     onCreateAccount: suspend (nombre: String, email: String, password: String) -> String? = { _, _, _ -> null },
     onRecoverPassword: suspend (email: String) -> String? = { null },
     onResendEmailVerification: suspend () -> String? = { null },
@@ -92,7 +92,7 @@ fun TracksyAuthApp(
     var route by remember { mutableStateOf(AuthRoute.Welcome) }
     var selectedHistoryItem by remember { mutableStateOf<HistoryItem?>(null) }
     var loginLoading by remember { mutableStateOf(false) }
-    var loginServerError by remember { mutableStateOf(false) }
+    var loginErrorMessage by remember { mutableStateOf<String?>(null) }
     var registerLoading by remember { mutableStateOf(false) }
     var registerErrorMessage by remember { mutableStateOf<String?>(null) }
     var recoverLoading by remember { mutableStateOf(false) }
@@ -116,16 +116,16 @@ fun TracksyAuthApp(
 
         AuthRoute.Login -> LoginScreen(
             isLoading = loginLoading,
-            serverError = loginServerError,
+            serverErrorText = loginErrorMessage,
             onLogin = { email, password ->
-                loginServerError = false
+                loginErrorMessage = null
                 scope.launch {
                     loginLoading = true
-                    val ok = onLogin(email, password)
+                    val error = onLogin(email, password)
                     loginLoading = false
-                    if (ok) onAuthenticated() else loginServerError = true
+                    if (error == null) onAuthenticated() else loginErrorMessage = error
                 }
-                true // return true to avoid internal error — server error shown via serverError flag
+                true
             },
             onForgotPassword = { route = AuthRoute.RecoverPassword },
             onCreateAccount = { route = AuthRoute.CreateAccount }
@@ -287,25 +287,33 @@ fun LoginScreen(
     onForgotPassword: () -> Unit,
     onCreateAccount: () -> Unit,
     isLoading: Boolean = false,
-    serverError: Boolean = false,
+    serverErrorText: String? = null,
     modifier: Modifier = Modifier
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var showError by remember { mutableStateOf(false) }
+    var localServerErrorText by remember(serverErrorText) { mutableStateOf(serverErrorText) }
+    val errorText = when {
+        localServerErrorText != null -> localServerErrorText
+        showError -> "Correo electrónico o contraseña incorrectos"
+        else -> null
+    }
 
     LoginContent(
         email = email,
         password = password,
-        showError = showError || serverError,
+        errorText = errorText,
         isLoading = isLoading,
         onEmailChange = {
             email = it
             if (showError) showError = false
+            localServerErrorText = null
         },
         onPasswordChange = {
             password = it
             if (showError) showError = false
+            localServerErrorText = null
         },
         onLogin = {
             if (email.isNotBlank() && password.isNotBlank()) {
@@ -322,7 +330,7 @@ fun LoginScreen(
 internal fun LoginContent(
     email: String,
     password: String,
-    showError: Boolean,
+    errorText: String?,
     isLoading: Boolean = false,
     onEmailChange: (String) -> Unit,
     onPasswordChange: (String) -> Unit,
@@ -353,6 +361,7 @@ internal fun LoginContent(
                     value = email,
                     onValueChange = onEmailChange,
                     label = "Correo electrónico",
+                    isError = errorText != null,
                     keyboardType = KeyboardType.Email
                 )
                 Spacer(modifier = Modifier.height(20.dp))
@@ -361,9 +370,9 @@ internal fun LoginContent(
                     onValueChange = onPasswordChange,
                     label = "Contraseña"
                 )
-                if (showError) {
+                if (errorText != null) {
                     Spacer(modifier = Modifier.height(13.dp))
-                    ErrorMessage(text = "Correo electrónico o contraseña incorrectos")
+                    ErrorMessage(text = errorText)
                     Spacer(modifier = Modifier.height(35.dp))
                 } else {
                     Spacer(modifier = Modifier.height(38.dp))

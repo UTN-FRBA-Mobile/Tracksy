@@ -27,10 +27,10 @@ class AuthViewModel(
     )
     val isAuthenticated: StateFlow<Boolean> = _isAuthenticated
 
-    suspend fun login(email: String, password: String): Boolean {
+    suspend fun login(email: String, password: String): String? {
         return authenticateWithFirebase {
             firebaseAuthService.login(email, password)
-        } == null
+        }
     }
 
     suspend fun registro(nombre: String, email: String, password: String): String? {

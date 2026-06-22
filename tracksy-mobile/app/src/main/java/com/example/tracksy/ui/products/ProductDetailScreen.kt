@@ -24,6 +24,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.tracksy.data.models.ItemProducto
 import com.example.tracksy.data.models.ListaCompra
+import com.example.tracksy.ui.components.TracksyPrimaryButton
+import com.example.tracksy.ui.components.TracksyTextAction
 import com.example.tracksy.ui.profile.ProfileAvatarImage
 import com.example.tracksy.ui.theme.LocalTracksyColors
 
@@ -111,18 +113,21 @@ fun ProductDetailScreen(
             title = { Text("¿Confirmar cambios?") },
             text  = { Text("Se aplicarán los cambios en las listas seleccionadas.") },
             confirmButton = {
-                TextButton(onClick = {
-                    showConfirmAlert = false
-                    val (agregar, eliminar, actualizar) = buildChanges()
-                    onConfirmarCambios(product.id, agregar, eliminar, actualizar)
-                }) {
-                    Text("Confirmar", color = colors.primary, fontWeight = FontWeight.SemiBold)
-                }
+                TracksyTextAction(
+                    text = "Confirmar",
+                    onClick = {
+                        showConfirmAlert = false
+                        val (agregar, eliminar, actualizar) = buildChanges()
+                        onConfirmarCambios(product.id, agregar, eliminar, actualizar)
+                    }
+                )
             },
             dismissButton = {
-                TextButton(onClick = { showConfirmAlert = false }) {
-                    Text("Cancelar", color = colors.subtitleText)
-                }
+                TracksyTextAction(
+                    text = "Cancelar",
+                    onClick = { showConfirmAlert = false },
+                    contentColor = colors.subtitleText
+                )
             }
         )
     }
@@ -136,14 +141,18 @@ fun ProductDetailScreen(
             title = { Text("¿Salir sin confirmar?") },
             text  = { Text("Tenés cambios sin confirmar. Si salís ahora, se perderán.") },
             confirmButton = {
-                TextButton(onClick = { showExitAlert = false; onBack() }) {
-                    Text("Salir", color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.SemiBold)
-                }
+                TracksyTextAction(
+                    text = "Salir",
+                    onClick = { showExitAlert = false; onBack() },
+                    contentColor = colors.errorRed
+                )
             },
             dismissButton = {
-                TextButton(onClick = { showExitAlert = false }) {
-                    Text("Cancelar", color = colors.subtitleText)
-                }
+                TracksyTextAction(
+                    text = "Cancelar",
+                    onClick = { showExitAlert = false },
+                    contentColor = colors.subtitleText
+                )
             }
         )
     }
@@ -399,25 +408,13 @@ fun ProductDetailScreen(
                     .background(colors.background)
                     .padding(horizontal = 20.dp, vertical = 14.dp)
             ) {
-                Button(
+                TracksyPrimaryButton(
+                    text = "Confirmar cambios",
                     onClick  = { showConfirmAlert = true },
                     enabled  = hasChanges,
-                    shape    = RoundedCornerShape(50),
-                    colors   = ButtonDefaults.buttonColors(
-                        containerColor = colors.titleText,
-                        disabledContainerColor = colors.divider
-                    ),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(52.dp)
-                ) {
-                    Text(
-                        text       = "Confirmar cambios",
-                        fontSize   = 16.sp,
-                        fontWeight = FontWeight.Medium,
-                        color      = if (hasChanges) Color.White else colors.subtitleText
-                    )
-                }
+                )
             }
         }
     }

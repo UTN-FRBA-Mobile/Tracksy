@@ -25,6 +25,8 @@ import com.example.tracksy.data.models.ItemProducto
 import com.example.tracksy.data.models.ListaCompra
 import com.example.tracksy.data.models.ProductoListado
 import com.example.tracksy.data.models.Supermercado
+import com.example.tracksy.ui.components.TracksyPrimaryButton
+import com.example.tracksy.ui.components.TracksySecondaryButton
 import com.example.tracksy.ui.theme.LocalTracksyColors
 import com.example.tracksy.ui.theme.TracksyColors
 
@@ -184,31 +186,22 @@ fun DetalleListaScreen(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Button(
+                    TracksySecondaryButton(
+                        text = "Editar Lista",
                         onClick = onEditar,
-                        modifier = Modifier.weight(1f).height(52.dp),
-                        shape = RoundedCornerShape(50),
-                        colors = ButtonDefaults.buttonColors(containerColor = colors.primary)
-                    ) {
-                        Text("Editar Lista", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = Color.White)
-                    }
-                    Button(
+                        modifier = Modifier.weight(1f)
+                    )
+                    TracksySecondaryButton(
+                        text = "Comparar",
                         onClick = onComparar,
-                        modifier = Modifier.weight(1f).height(52.dp),
-                        shape = RoundedCornerShape(50),
-                        colors = ButtonDefaults.buttonColors(containerColor = colors.primary)
-                    ) {
-                        Text("Comparar", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = Color.White)
-                    }
+                        modifier = Modifier.weight(1f)
+                    )
                 }
-                Button(
+                TracksyPrimaryButton(
+                    text = "Finalizar Compra",
                     onClick = onFinalizar,
-                    modifier = Modifier.fillMaxWidth().height(52.dp),
-                    shape = RoundedCornerShape(50),
-                    colors = ButtonDefaults.buttonColors(containerColor = colors.titleText)
-                ) {
-                    Text("Finalizar Compra", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = Color.White)
-                }
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
         }
     }

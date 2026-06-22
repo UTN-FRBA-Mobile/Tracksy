@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.tracksy.screens.NavTab
 import com.example.tracksy.screens.TracksyBottomBar
+import com.example.tracksy.ui.components.TracksyPrimaryButton
 import com.example.tracksy.ui.profile.ProfileAvatarImage
 import com.example.tracksy.ui.theme.LocalTracksyColors
 
@@ -214,14 +215,12 @@ fun HistoryDetailScreen(
                     .padding(24.dp)
                     .navigationBarsPadding()
             ) {
-                Button(
+                TracksyPrimaryButton(
+                    text = "Reutilizar Lista",
                     onClick = {},
-                    shape = RoundedCornerShape(50),
-                    colors = ButtonDefaults.buttonColors(containerColor = colors.titleText),
-                    modifier = Modifier.fillMaxWidth().height(52.dp)
-                ) {
-                    Text(text = "Reutilizar Lista", fontSize = 16.sp, fontWeight = FontWeight.Medium, color = Color.White)
-                }
+                    enabled = false,
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
         }
     }

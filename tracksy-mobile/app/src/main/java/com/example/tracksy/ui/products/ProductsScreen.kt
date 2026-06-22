@@ -21,6 +21,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.tracksy.ui.components.TracksyTextField
 import com.example.tracksy.ui.profile.ProfileAvatarImage
 import com.example.tracksy.ui.theme.LocalTracksyColors
 
@@ -124,22 +125,10 @@ fun ProductsScreen(
                 Spacer(Modifier.height(20.dp))
 
                 // ── Buscador ───────────────────────────────────────────────────
-                TextField(
+                TracksyTextField(
                     value = searchQuery,
                     onValueChange = { searchQuery = it; onSearchChange(it) },
-                    placeholder = {
-                        Text("Buscar productos...", color = colors.subtitleText, fontSize = 15.sp)
-                    },
-                    shape = RoundedCornerShape(16.dp),
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor   = colors.surface,
-                        unfocusedContainerColor = colors.surface,
-                        focusedIndicatorColor   = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent,
-                        cursorColor             = colors.primary
-                    ),
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
+                    label = "Buscar productos..."
                 )
 
                 Spacer(Modifier.height(20.dp))

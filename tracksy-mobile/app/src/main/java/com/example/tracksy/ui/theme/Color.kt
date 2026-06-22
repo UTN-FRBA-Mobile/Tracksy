@@ -28,17 +28,6 @@ val DashedBorderGray = Color(0xFFADADB3)
 val PurchasedText = Color(0xFF9E9EC8)
 val LocationPinRed = Color(0xFFE53935)
 
-// Tracksy design tokens
-val TracksyBackground   = Color(0xFFEBE7F5)
-val TracksyPrimary      = Color(0xFF6553D8)
-val TracksySurface      = Color(0xFFFFFFFF)
-val TracksyTitleText    = Color(0xFF1A0B5C)
-val TracksySectionText  = Color(0xFF7B6FD0)
-val TracksySubtitleText = Color(0xFF9B8FD4)
-val TracksyDivider      = Color(0xFFDDD8F0)
-val TracksyNavActive    = Color(0xFF1A0B5C)
-val TracksyNavInactive  = Color(0xFF9B8FD4)
-val TracksyQrBorder     = Color(0xFFEBE7F5)
 val TracksyPrimaryPurple = Color(0xFF6F3F97)
 val TracksyPrimaryDark  = Color(0xFF5A317E)
 val TracksyTextPrimary  = Color(0xFF3F245F)
@@ -65,6 +54,18 @@ val TracksySecondaryText     = TracksyTextSecondary
 val TracksyPanelBackground   = TracksySurfaceCard
 val TracksyFieldPlaceholder  = TracksyPlaceholder
 
+// Tracksy design tokens aligned to the auth screens.
+val TracksyBackground   = TracksyBackgroundLight
+val TracksyPrimary      = TracksyPrimaryPurple
+val TracksySurface      = Color.White
+val TracksyTitleText    = TracksyTextPrimary
+val TracksySectionText  = TracksyPrimaryPurple
+val TracksySubtitleText = TracksyTextSecondary
+val TracksyDivider      = TracksyBorderSoft
+val TracksyNavActive    = TracksyPrimaryPurple
+val TracksyNavInactive  = TracksyTextMuted
+val TracksyQrBorder     = TracksyDisabledButtonBackground
+
 // ─── Dynamic color tokens (used by LocalTracksyColors) ──────────────────────
 
 data class TracksyColors(
@@ -86,38 +87,38 @@ data class TracksyColors(
 )
 
 fun lightTracksyColors() = TracksyColors(
-    background            = Color(0xFFEBE7F5),
-    surface               = Color(0xFFFFFFFF),
-    titleText             = Color(0xFF1A0B5C),
-    sectionText           = Color(0xFF7B6FD0),
-    subtitleText          = Color(0xFF9B8FD4),
-    primary               = Color(0xFF6553D8),
-    divider               = Color(0xFFDDD8F0),
-    errorRed              = Color(0xFFC62828),
-    successGreen          = Color(0xFF388E3C),
+    background            = TracksyBackgroundLight,
+    surface               = TracksySurface,
+    titleText             = TracksyTextPrimary,
+    sectionText           = TracksyPrimaryPurple,
+    subtitleText          = TracksyTextSecondary,
+    primary               = TracksyPrimaryPurple,
+    divider               = TracksyBorderSoft,
+    errorRed              = TracksyErrorRed,
+    successGreen          = TracksySuccessGreen,
     successBadgeBackground = Color(0xFFE8F5E9),
     warningBadgeBackground = Color(0xFFFFF9C4),
     warningText           = Color(0xFFFBC02D),
-    navActive             = Color(0xFF1A0B5C),   // dark purple — visible on light surface
-    navInactive           = Color(0xFF9B8FD4),
+    navActive             = TracksyPrimaryPurple,
+    navInactive           = TracksyTextMuted,
     isDark                = false
 )
 
 fun darkTracksyColors() = TracksyColors(
-    background            = Color(0xFF0F0A2E),
-    surface               = Color(0xFF1C1544),
-    titleText             = Color(0xFFEDE8FF),
-    sectionText           = Color(0xFFB0A8E0),
-    subtitleText          = Color(0xFF8880C0),
-    primary               = Color(0xFFB8AFEE),
-    divider               = Color(0xFF2E2660),
+    background            = Color(0xFF231730),
+    surface               = Color(0xFF342244),
+    titleText             = Color(0xFFF6ECFF),
+    sectionText           = Color(0xFFD8C0EA),
+    subtitleText          = Color(0xFFC1A4D7),
+    primary               = Color(0xFFE2B7F3),
+    divider               = Color(0xFF51335F),
     errorRed              = Color(0xFFEF5350),
     successGreen          = Color(0xFF66BB6A),
     successBadgeBackground = Color(0xFF1B3A1C),
     warningBadgeBackground = Color(0xFF3A3000),
     warningText           = Color(0xFFFFD54F),
-    navActive             = Color(0xFFEDE8FF),   // near-white lavender — high contrast on dark surface
-    navInactive           = Color(0xFF5C5490),
+    navActive             = Color(0xFFF6ECFF),
+    navInactive           = Color(0xFFA895C0),
     isDark                = true
 )
 

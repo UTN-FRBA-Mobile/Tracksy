@@ -22,10 +22,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.Visibility
-import androidx.compose.material.icons.outlined.VisibilityOff
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -38,8 +34,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -192,26 +190,62 @@ fun TracksyPasswordField(
             PasswordVisualTransformation()
         },
         trailingContent = {
-            Box(
-                modifier = Modifier
-                    .size(32.dp)
-                    .clickable(
-                        enabled = enabled,
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                        onClick = { passwordVisible = !passwordVisible }
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = if (passwordVisible) Icons.Outlined.Visibility else Icons.Outlined.VisibilityOff,
-                    contentDescription = if (passwordVisible) "Ocultar" else "Mostrar",
-                    tint = if (passwordVisible) TracksyTextSecondary else TracksyPrimaryPurple,
-                    modifier = Modifier.size(20.dp)
+            TracksyPasswordVisibilityButton(
+                visible = passwordVisible,
+                enabled = enabled,
+                onClick = { passwordVisible = !passwordVisible }
+            )
+        }
+    )
+}
+
+@Composable
+private fun TracksyPasswordVisibilityButton(
+    visible: Boolean,
+    enabled: Boolean,
+    onClick: () -> Unit
+) {
+    Box(
+        modifier = Modifier
+            .size(32.dp)
+            .clickable(
+                enabled = enabled,
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = onClick
+            ),
+        contentAlignment = Alignment.Center
+    ) {
+        Canvas(modifier = Modifier.size(22.dp)) {
+            val stroke = Stroke(width = 2.2.dp.toPx(), cap = StrokeCap.Round)
+            val iconColor = when {
+                !enabled -> TracksyTextMuted
+                visible -> TracksyTextSecondary
+                else -> TracksyPrimaryPurple
+            }
+            drawOval(
+                color = iconColor,
+                topLeft = Offset(size.width * 0.12f, size.height * 0.28f),
+                size = Size(size.width * 0.76f, size.height * 0.44f),
+                style = stroke
+            )
+            drawCircle(
+                color = iconColor,
+                radius = size.minDimension * 0.12f,
+                center = center,
+                style = stroke
+            )
+            if (!visible) {
+                drawLine(
+                    color = iconColor,
+                    start = Offset(size.width * 0.10f, size.height * 0.14f),
+                    end = Offset(size.width * 0.90f, size.height * 0.86f),
+                    strokeWidth = 2.4.dp.toPx(),
+                    cap = StrokeCap.Round
                 )
             }
         }
-    )
+    }
 }
 
 @Composable

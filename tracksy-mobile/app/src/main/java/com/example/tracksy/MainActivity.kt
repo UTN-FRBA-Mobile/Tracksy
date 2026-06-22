@@ -9,7 +9,6 @@ import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
 import com.example.tracksy.data.local.TokenManager
 import com.example.tracksy.screens.BarcodeScannerScreen
@@ -35,6 +34,8 @@ import com.example.tracksy.ui.profile.EditarPerfilScreen
 import com.example.tracksy.ui.profile.PerfilScreen
 import com.example.tracksy.ui.profile.PerfilUsuario
 import com.example.tracksy.ui.supermarket.CompararSupermercadosScreen
+import com.example.tracksy.ui.components.TracksyTextAction
+import com.example.tracksy.ui.theme.LocalTracksyColors
 import com.example.tracksy.ui.theme.TracksyTheme
 import com.example.tracksy.viewmodel.AuthViewModel
 import com.example.tracksy.viewmodel.CompraViewModel
@@ -197,6 +198,7 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
+                val colors = LocalTracksyColors.current
                 val usuario = perfilState ?: PerfilUsuario("", "")
 
                 Crossfade(
@@ -588,18 +590,21 @@ class MainActivity : ComponentActivity() {
                                 title = { Text("Producto no encontrado") },
                                 text  = { Text("El producto escaneado no existe o no fue encontrado.") },
                                 confirmButton = {
-                                    TextButton(onClick = {
-                                        productoViewModel.limpiarProductoNoEncontrado()
-                                        if (addingProductToList) scannerFromList = true
-                                        showScanner = true
-                                    }) {
-                                        Text("Reintentar")
-                                    }
+                                    TracksyTextAction(
+                                        text = "Reintentar",
+                                        onClick = {
+                                            productoViewModel.limpiarProductoNoEncontrado()
+                                            if (addingProductToList) scannerFromList = true
+                                            showScanner = true
+                                        }
+                                    )
                                 },
                                 dismissButton = {
-                                    TextButton(onClick = { productoViewModel.limpiarProductoNoEncontrado() }) {
-                                        Text("Cancelar")
-                                    }
+                                    TracksyTextAction(
+                                        text = "Cancelar",
+                                        onClick = { productoViewModel.limpiarProductoNoEncontrado() },
+                                        contentColor = colors.subtitleText
+                                    )
                                 }
                             )
                         }

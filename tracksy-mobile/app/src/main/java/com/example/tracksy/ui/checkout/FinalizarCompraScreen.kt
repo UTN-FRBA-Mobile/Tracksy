@@ -14,10 +14,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.tracksy.ui.components.TracksyPrimaryButton
+import com.example.tracksy.ui.components.TracksySecondaryButton
+import com.example.tracksy.ui.components.TracksyTextAction
+import com.example.tracksy.ui.components.TracksyTextField
 import com.example.tracksy.ui.theme.LocalTracksyColors
 import com.example.tracksy.ui.theme.TracksyColors
 import com.example.tracksy.ui.theme.TracksySuccessGreen
@@ -55,20 +58,15 @@ fun FinalizarCompraScreen(
             textContentColor  = colors.subtitleText,
             title = { Text("Nombre de la nueva lista") },
             text = {
-                OutlinedTextField(
+                TracksyTextField(
                     value = nombreLista,
                     onValueChange = { nombreLista = it },
-                    placeholder = { Text("Ingresá un nombre...", color = colors.subtitleText) },
-                    singleLine = true,
-                    shape = RoundedCornerShape(12.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = colors.titleText,
-                        unfocusedTextColor = colors.titleText
-                    )
+                    label = "Ingresá un nombre..."
                 )
             },
             confirmButton = {
-                TextButton(
+                TracksyTextAction(
+                    text = "Crear",
                     onClick = {
                         if (nombreLista.isNotBlank()) {
                             onCrearListaPendientes(nombreLista.trim())
@@ -78,14 +76,14 @@ fun FinalizarCompraScreen(
                         }
                     },
                     enabled = nombreLista.isNotBlank()
-                ) {
-                    Text("Crear", fontWeight = FontWeight.SemiBold)
-                }
+                )
             },
             dismissButton = {
-                TextButton(onClick = { showNombreDialog = false; nombreLista = "" }) {
-                    Text("Cancelar", color = colors.subtitleText)
-                }
+                TracksyTextAction(
+                    text = "Cancelar",
+                    onClick = { showNombreDialog = false; nombreLista = "" },
+                    contentColor = colors.subtitleText
+                )
             }
         )
     }
@@ -142,23 +140,14 @@ fun FinalizarCompraScreen(
                 }
             }
 
-            Button(
+            TracksyPrimaryButton(
+                text = "Confirmar y guardar en historial",
                 onClick = onConfirm,
-                shape = RoundedCornerShape(50),
-                colors = ButtonDefaults.buttonColors(containerColor = colors.primary),
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
                     .padding(horizontal = 20.dp, vertical = 16.dp)
-                    .height(56.dp)
-            ) {
-                Text(
-                    text = "Confirmar y guardar en historial",
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = Color.White
-                )
-            }
+            )
         }
     }
 }
@@ -274,25 +263,16 @@ private fun PendingListSuggestion(
                 )
             } else {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Button(
+                    TracksyPrimaryButton(
+                        text = "Sí, crear lista",
                         onClick = onCrearLista,
-                        modifier = Modifier.weight(1f).height(44.dp),
-                        shape = RoundedCornerShape(50),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = colors.primary,
-                            contentColor   = Color.White
-                        )
-                    ) {
-                        Text("Sí, crear lista", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                    }
-                    OutlinedButton(
+                        modifier = Modifier.weight(1f)
+                    )
+                    TracksySecondaryButton(
+                        text = "No, omitir",
                         onClick = onOmitir,
-                        modifier = Modifier.weight(1f).height(44.dp),
-                        shape = RoundedCornerShape(50),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = colors.subtitleText)
-                    ) {
-                        Text("No, omitir", fontSize = 13.sp)
-                    }
+                        modifier = Modifier.weight(1f)
+                    )
                 }
             }
         }

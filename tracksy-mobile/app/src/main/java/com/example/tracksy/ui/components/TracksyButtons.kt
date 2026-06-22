@@ -106,6 +106,55 @@ fun TracksySecondaryButton(
 }
 
 @Composable
+fun TracksyPrimaryButtonSmall(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true
+) {
+    Button(
+        onClick = onClick,
+        modifier = modifier.height(36.dp),
+        enabled = enabled,
+        shape = TracksyButtonShape,
+        colors = ButtonDefaults.buttonColors(
+            containerColor = TracksyPrimaryPurple,
+            contentColor = Color.White,
+            disabledContainerColor = TracksyDisabledButtonBackground,
+            disabledContentColor = TracksyDisabledButtonText
+        ),
+        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
+    ) {
+        Text(text = text, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+    }
+}
+
+@Composable
+fun TracksySecondaryButtonSmall(
+    text: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true
+) {
+    Button(
+        onClick = onClick,
+        modifier = modifier.height(36.dp),
+        enabled = enabled,
+        shape = TracksyButtonShape,
+        border = BorderStroke(1.dp, TracksyBorderSoft),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = Color.White.copy(alpha = 0.94f),
+            contentColor = TracksyPrimaryPurple,
+            disabledContainerColor = Color.White.copy(alpha = 0.72f),
+            disabledContentColor = TracksyDisabledButtonText
+        ),
+        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
+    ) {
+        Text(text = text, fontSize = 12.sp, fontWeight = FontWeight.Medium, maxLines = 1)
+    }
+}
+
+@Composable
 fun TracksyDestructiveButton(
     text: String,
     onClick: () -> Unit,
@@ -143,9 +192,10 @@ fun TracksyTextAction(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     icon: ImageVector? = null,
-    enabled: Boolean = true
+    enabled: Boolean = true,
+    contentColor: Color = TracksyPrimaryPurple
 ) {
-    val contentColor = if (enabled) TracksyPrimaryPurple else TracksyDisabledButtonText
+    val resolvedContentColor = if (enabled) contentColor else TracksyDisabledButtonText
     Row(
         modifier = modifier.clickable(
             enabled = enabled,
@@ -159,14 +209,14 @@ fun TracksyTextAction(
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = contentColor,
+                tint = resolvedContentColor,
                 modifier = Modifier.size(18.dp)
             )
             Spacer(Modifier.width(6.dp))
         }
         Text(
             text = text,
-            color = contentColor,
+            color = resolvedContentColor,
             style = TracksyActionTextStyle,
             textAlign = TextAlign.Center
         )

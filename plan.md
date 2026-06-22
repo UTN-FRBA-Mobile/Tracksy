@@ -289,6 +289,14 @@ Criterio de salida:
 
 Objetivo: completar los flujos de email desde mobile usando Firebase Auth.
 
+Estado: parcialmente implementada.
+
+Resultado:
+
+- Recuperacion de contrasena usa `sendPasswordResetEmail(email)`.
+- Cambio de contrasena desde perfil reautentica con Firebase y llama `updatePassword(newPassword)`.
+- Mensajes de error de auth se muestran en pantalla.
+
 ### Verificacion de email
 
 Flujo:

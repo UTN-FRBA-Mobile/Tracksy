@@ -30,24 +30,41 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.tracksy.ui.theme.LocalTracksyColors
 import com.example.tracksy.ui.theme.TracksyColors
+import kotlinx.coroutines.launch
 
-private enum class CambiarContrasenaStep { NuevaContrasena, ConfirmarEmail }
+private enum class CambiarContrasenaStep { NuevaContrasena, Exito }
 
 @Composable
 fun CambiarContrasenaScreen(
-    emailUsuario: String,
+    onChangePassword: suspend (passwordActual: String, passwordNuevo: String) -> String?,
     onBack: () -> Unit,
     onSuccess: () -> Unit
 ) {
     var step by remember { mutableStateOf(CambiarContrasenaStep.NuevaContrasena) }
+    var isLoading by remember { mutableStateOf(false) }
+    var errorText by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
 
     when (step) {
         CambiarContrasenaStep.NuevaContrasena -> NuevaContrasenaStep(
+            isLoading = isLoading,
+            errorText = errorText,
             onBack = onBack,
-            onSubmit = { step = CambiarContrasenaStep.ConfirmarEmail }
+            onSubmit = { passwordActual, passwordNuevo ->
+                errorText = null
+                scope.launch {
+                    isLoading = true
+                    val error = onChangePassword(passwordActual, passwordNuevo)
+                    isLoading = false
+                    if (error == null) {
+                        step = CambiarContrasenaStep.Exito
+                    } else {
+                        errorText = error
+                    }
+                }
+            }
         )
-        CambiarContrasenaStep.ConfirmarEmail -> ConfirmarEmailCambioStep(
-            email = emailUsuario,
+        CambiarContrasenaStep.Exito -> CambioContrasenaExitoStep(
             onBack = { step = CambiarContrasenaStep.NuevaContrasena },
             onDone = onSuccess
         )
@@ -56,10 +73,13 @@ fun CambiarContrasenaScreen(
 
 @Composable
 private fun NuevaContrasenaStep(
+    isLoading: Boolean,
+    errorText: String?,
     onBack: () -> Unit,
-    onSubmit: () -> Unit
+    onSubmit: (passwordActual: String, passwordNuevo: String) -> Unit
 ) {
     val colors = LocalTracksyColors.current
+    var contrasenaActual by remember { mutableStateOf("") }
     var nuevaContrasena by remember { mutableStateOf("") }
     var confirmarContrasena by remember { mutableStateOf("") }
     var pwFocused by remember { mutableStateOf(false) }
@@ -73,7 +93,7 @@ private fun NuevaContrasenaStep(
     val isConfirmValid = confirmarContrasena.isNotEmpty() && confirmarContrasena == nuevaContrasena
     val showMismatch = confirmarContrasena.isNotEmpty() &&
         confirmarContrasena != nuevaContrasena && (confirmInteracted || submitted)
-    val canSubmit = isPwValid && isConfirmValid
+    val canSubmit = contrasenaActual.isNotBlank() && isPwValid && isConfirmValid && !isLoading
 
     Scaffold(containerColor = colors.background) { padding ->
         Box(
@@ -93,7 +113,7 @@ private fun NuevaContrasenaStep(
                 Spacer(Modifier.height(20.dp))
 
                 Text(
-                    "Ingresá tu nueva contraseña. Luego te enviaremos un correo para confirmar el cambio.",
+                    "Ingresá tu contraseña actual y elegí una nueva contraseña.",
                     fontSize = 13.sp,
                     color = colors.subtitleText,
                     lineHeight = 19.sp
@@ -103,6 +123,17 @@ private fun NuevaContrasenaStep(
 
                 PerfilCard(colors) {
                     Column(modifier = Modifier.padding(16.dp)) {
+                        PerfilFieldLabel("Contraseña actual", colors)
+                        Spacer(Modifier.height(6.dp))
+                        ContrasenaField(
+                            value = contrasenaActual,
+                            onValueChange = { contrasenaActual = it },
+                            colors = colors,
+                            imeAction = ImeAction.Next
+                        )
+
+                        Spacer(Modifier.height(16.dp))
+
                         PerfilFieldLabel("Nueva contraseña", colors)
                         Spacer(Modifier.height(6.dp))
                         ContrasenaField(
@@ -139,6 +170,16 @@ private fun NuevaContrasenaStep(
                             Spacer(Modifier.height(4.dp))
                             Text("Las contraseñas no coinciden", fontSize = 11.sp, color = colors.errorRed)
                         }
+
+                        if (errorText != null) {
+                            Spacer(Modifier.height(10.dp))
+                            Text(
+                                text = errorText,
+                                fontSize = 12.sp,
+                                color = colors.errorRed,
+                                lineHeight = 16.sp
+                            )
+                        }
                     }
                 }
 
@@ -149,7 +190,7 @@ private fun NuevaContrasenaStep(
                         submitted = true
                         if (canSubmit) {
                             focusManager.clearFocus()
-                            onSubmit()
+                            onSubmit(contrasenaActual, nuevaContrasena)
                         }
                     },
                     modifier = Modifier.fillMaxWidth().height(52.dp),
@@ -157,7 +198,11 @@ private fun NuevaContrasenaStep(
                     shape = RoundedCornerShape(50),
                     colors = ButtonDefaults.buttonColors(containerColor = colors.primary)
                 ) {
-                    Text("Enviar confirmación por correo", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
+                    Text(
+                        if (isLoading) "Guardando..." else "Cambiar contraseña",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
                 }
 
                 Spacer(Modifier.height(28.dp))
@@ -167,8 +212,7 @@ private fun NuevaContrasenaStep(
 }
 
 @Composable
-private fun ConfirmarEmailCambioStep(
-    email: String,
+private fun CambioContrasenaExitoStep(
     onBack: () -> Unit,
     onDone: () -> Unit
 ) {
@@ -196,7 +240,7 @@ private fun ConfirmarEmailCambioStep(
             Spacer(Modifier.height(24.dp))
 
             Text(
-                "Revisá tu correo",
+                "Contraseña actualizada",
                 fontSize = 22.sp,
                 fontWeight = FontWeight.Bold,
                 color = colors.titleText
@@ -205,24 +249,16 @@ private fun ConfirmarEmailCambioStep(
             Spacer(Modifier.height(16.dp))
 
             Text(
-                "Enviamos un enlace de confirmación a",
+                "La contraseña de tu cuenta fue actualizada correctamente.",
                 fontSize = 14.sp,
                 color = colors.subtitleText,
-                textAlign = TextAlign.Center
-            )
-            Spacer(Modifier.height(4.dp))
-            Text(
-                email,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = colors.primary,
                 textAlign = TextAlign.Center
             )
 
             Spacer(Modifier.height(16.dp))
 
             Text(
-                "Una vez que confirmes el cambio desde el enlace, tu nueva contraseña quedará activa.",
+                "La próxima vez que inicies sesión, usá la nueva contraseña.",
                 fontSize = 13.sp,
                 color = colors.subtitleText,
                 textAlign = TextAlign.Center,
@@ -231,14 +267,6 @@ private fun ConfirmarEmailCambioStep(
             )
 
             Spacer(Modifier.height(8.dp))
-
-            Text(
-                "¿No lo recibiste? Revisá tu carpeta de spam.",
-                fontSize = 12.sp,
-                color = colors.subtitleText.copy(alpha = 0.7f),
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(horizontal = 12.dp)
-            )
 
             Spacer(Modifier.height(40.dp))
 
@@ -252,10 +280,6 @@ private fun ConfirmarEmailCambioStep(
             }
 
             Spacer(Modifier.height(16.dp))
-
-            TextButton(onClick = { /* TODO: reenviar correo cuando haya backend */ }) {
-                Text("Reenviar correo", fontSize = 13.sp, color = colors.sectionText)
-            }
         }
     }
 }

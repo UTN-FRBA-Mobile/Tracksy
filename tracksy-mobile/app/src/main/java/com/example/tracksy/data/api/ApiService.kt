@@ -21,11 +21,6 @@ interface ApiService {
         @Body body: Map<String, String>
     ): Response<Usuario>
 
-    @POST("api/v1/usuarios/cambiar-password/")
-    suspend fun cambiarPassword(
-        @Body body: Map<String, String>
-    ): Response<Unit>
-
     @GET("api/v1/usuarios/favoritos/")
     suspend fun getFavoritos(): Response<PaginatedResponse<ProductoUsuario>>
 

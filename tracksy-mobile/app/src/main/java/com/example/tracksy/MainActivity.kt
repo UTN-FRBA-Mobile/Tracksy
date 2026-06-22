@@ -235,7 +235,9 @@ class MainActivity : ComponentActivity() {
 
                         when {
                             showCambiarContrasena -> CambiarContrasenaScreen(
-                                emailUsuario = usuario.email,
+                                onChangePassword = { passwordActual, passwordNuevo ->
+                                    perfilViewModel.cambiarPassword(passwordActual, passwordNuevo)
+                                },
                                 onBack    = { showCambiarContrasena = false },
                                 onSuccess = { showCambiarContrasena = false }
                             )

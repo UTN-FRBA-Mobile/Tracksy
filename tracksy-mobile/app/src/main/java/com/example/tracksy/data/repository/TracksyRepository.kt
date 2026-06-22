@@ -19,9 +19,6 @@ class TracksyRepository(
     suspend fun updatePerfil(nombre: String) =
         api.updatePerfil(mapOf("nombre" to nombre))
 
-    suspend fun cambiarPassword(passwordActual: String, passwordNuevo: String) =
-        api.cambiarPassword(mapOf("password_actual" to passwordActual, "password_nuevo" to passwordNuevo))
-
     suspend fun getFavoritos() = api.getFavoritos()
 
     suspend fun addFavorito(productoId: Long) =

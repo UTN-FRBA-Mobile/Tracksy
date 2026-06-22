@@ -43,6 +43,14 @@ class FirebaseAuthService(
         user.updatePassword(newPassword).await()
     }
 
+    suspend fun updateDisplayName(name: String) {
+        val user = auth.currentUser ?: error("No authenticated Firebase user.")
+        val profileUpdates = UserProfileChangeRequest.Builder()
+            .setDisplayName(name.trim())
+            .build()
+        user.updateProfile(profileUpdates).await()
+    }
+
     suspend fun getIdToken(forceRefresh: Boolean = false): String {
         val user = auth.currentUser ?: error("No authenticated Firebase user.")
         return user.getIdToken(forceRefresh).await().token
@@ -56,4 +64,8 @@ class FirebaseAuthService(
     fun isAuthenticated(): Boolean = auth.currentUser != null
 
     fun isEmailVerified(): Boolean = auth.currentUser?.isEmailVerified == true
+
+    fun currentEmail(): String = auth.currentUser?.email.orEmpty()
+
+    fun currentDisplayName(): String = auth.currentUser?.displayName.orEmpty()
 }

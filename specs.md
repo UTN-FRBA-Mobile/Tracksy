@@ -270,7 +270,8 @@ plugins {
 
 dependencies {
     implementation(platform("com.google.firebase:firebase-bom:<version>"))
-    implementation("com.google.firebase:firebase-auth-ktx")
+    implementation("com.google.firebase:firebase-auth")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services")
 }
 ```
 
@@ -290,12 +291,10 @@ Archivo actual:
 
 Cambios:
 
-- Reemplazar login Django por Firebase Auth.
-- Reemplazar registro Django por Firebase Auth.
-- Agregar `sendEmailVerification`.
-- Agregar `sendPasswordResetEmail`.
-- Guardar/emitir estado de autenticacion basado en `FirebaseAuth.currentUser`.
-- Obtener ID Token para llamadas al backend.
+- Login y registro usan `FirebaseAuthService`.
+- Recuperacion, verificacion y cambio de contrasena usan Firebase Auth.
+- El estado de autenticacion se basa en `FirebaseAuth.currentUser`.
+- Luego de login/registro se llama a `/api/v1/auth/firebase/sync/`.
 
 ### TokenManager
 
@@ -305,9 +304,9 @@ Archivo actual:
 
 Cambios:
 
-- Ya no guardar access/refresh JWT de Django para mobile.
-- Opcional: guardar solo metadata local no sensible.
-- El Firebase ID Token se pide a Firebase cuando sea necesario porque expira.
+- Ya no guarda access/refresh JWT de Django para mobile.
+- Guarda solo metadata local no sensible, como modo oscuro o verificacion pendiente.
+- El Firebase ID Token se pide a Firebase desde el interceptor porque expira.
 
 ### Retrofit/Repository
 
@@ -320,21 +319,25 @@ Authorization: Bearer <firebase_id_token>
 ```
 
 - Si el token expira, pedir token fresco con Firebase.
+- Los ViewModels no deben pasar tokens manualmente.
+- `TracksyRepository` no debe recibir token por parametro.
 
 ### ApiService
 
-Eliminar o dejar obsoletos para mobile:
+Eliminados del mobile:
 
 - `POST /api/v1/auth/login/`
 - `POST /api/v1/auth/registro/`
 - `POST /api/v1/auth/refresh/`
 
-Agregar:
+Sync Firebase:
 
 ```kotlin
 @POST("api/v1/auth/firebase/sync/")
-suspend fun syncFirebaseUser(@Header("Authorization") token: String): Response<Usuario>
+suspend fun firebaseSync(): Response<FirebaseSyncResponse>
 ```
+
+El header `Authorization` lo agrega OkHttp, no cada metodo Retrofit.
 
 Mantener endpoints de negocio:
 
@@ -469,7 +472,7 @@ Afecta:
 
 - `CambiarContrasenaScreen`.
 - `NuevaContrasenaStep`.
-- `ConfirmarEmailCambioStep`.
+- `CambioContrasenaExitoStep`.
 
 Cambios:
 

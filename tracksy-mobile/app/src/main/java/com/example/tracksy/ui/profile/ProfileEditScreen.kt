@@ -19,7 +19,6 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.tracksy.ui.theme.LocalTracksyColors
@@ -32,14 +31,11 @@ fun EditarPerfilScreen(
     onBack: () -> Unit
 ) {
     val colors = LocalTracksyColors.current
-    var nombre by remember { mutableStateOf(usuario.nombre) }
-    var email by remember { mutableStateOf(usuario.email) }
-    var emailBlurred by remember { mutableStateOf(false) }
+    var nombre by remember(usuario.nombre) { mutableStateOf(usuario.nombre) }
     val focusManager = LocalFocusManager.current
 
-    val isEmailValid = validarEmail(email)
-    val hasChanges = nombre.trim() != usuario.nombre || email.trim() != usuario.email
-    val canSave = nombre.isNotBlank() && isEmailValid && hasChanges
+    val hasChanges = nombre.trim() != usuario.nombre.trim()
+    val canSave = nombre.isNotBlank() && hasChanges
 
     Scaffold(containerColor = colors.background) { padding ->
         Box(
@@ -98,31 +94,14 @@ fun EditarPerfilScreen(
                         PerfilFieldLabel("Correo electrónico", colors)
                         Spacer(Modifier.height(6.dp))
                         PerfilTextField(
-                            value = email,
-                            onValueChange = {
-                                email = it
-                                emailBlurred = false
-                            },
+                            value = usuario.email,
+                            onValueChange = {},
                             placeholder = "tu@email.com",
-                            isError = email.isNotBlank() && !isEmailValid && emailBlurred,
+                            enabled = false,
                             colors = colors,
-                            keyboardOptions = KeyboardOptions(
-                                keyboardType = KeyboardType.Email,
-                                imeAction = ImeAction.Done
-                            ),
-                            keyboardActions = KeyboardActions(onDone = {
-                                emailBlurred = true
-                                focusManager.clearFocus()
-                            })
+                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                            keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() })
                         )
-                        if (email.isNotBlank() && !isEmailValid && emailBlurred) {
-                            Spacer(Modifier.height(4.dp))
-                            Text(
-                                "Ingresá un correo electrónico válido",
-                                fontSize = 11.sp,
-                                color = colors.errorRed
-                            )
-                        }
                     }
                 }
 
@@ -130,10 +109,9 @@ fun EditarPerfilScreen(
 
                 Button(
                     onClick = {
-                        emailBlurred = true
                         if (canSave) {
                             focusManager.clearFocus()
-                            onSave(PerfilUsuario(nombre.trim(), email.trim()))
+                            onSave(PerfilUsuario(nombre.trim(), usuario.email))
                         }
                     },
                     modifier = Modifier.fillMaxWidth().height(52.dp),
@@ -162,6 +140,7 @@ internal fun PerfilTextField(
     placeholder: String,
     modifier: Modifier = Modifier,
     isError: Boolean = false,
+    enabled: Boolean = true,
     colors: TracksyColors,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     keyboardActions: KeyboardActions = KeyboardActions.Default
@@ -169,6 +148,7 @@ internal fun PerfilTextField(
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
+        enabled = enabled,
         modifier = modifier.fillMaxWidth(),
         placeholder = { Text(placeholder, color = colors.subtitleText, fontSize = 15.sp) },
         isError = isError,
@@ -189,6 +169,3 @@ internal fun PerfilTextField(
         singleLine = true
     )
 }
-
-internal fun validarEmail(email: String): Boolean =
-    Regex("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$").matches(email)

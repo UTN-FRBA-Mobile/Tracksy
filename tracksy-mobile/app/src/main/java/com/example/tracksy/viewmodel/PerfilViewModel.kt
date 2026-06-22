@@ -20,7 +20,7 @@ class PerfilViewModel(
     private val firebaseAuthService: FirebaseAuthService
 ) : ViewModel() {
 
-    private val _perfil = MutableStateFlow<PerfilUsuario?>(null)
+    private val _perfil = MutableStateFlow(firebaseProfile())
     val perfil: StateFlow<PerfilUsuario?> = _perfil
 
     private val _isLoading = MutableStateFlow(false)
@@ -29,11 +29,12 @@ class PerfilViewModel(
     fun cargarPerfil() {
         viewModelScope.launch {
             _isLoading.value = true
+            _perfil.value = firebaseProfile()
             try {
                 val response = repo.getPerfil()
                 if (response.isSuccessful) {
-                    val u = response.body()!!
-                    _perfil.value = PerfilUsuario(u.nombre, u.email)
+                    val backendName = response.body()?.nombre.orEmpty()
+                    _perfil.value = firebaseProfile(backendName)
                 }
             } catch (_: Exception) { }
             _isLoading.value = false
@@ -42,14 +43,23 @@ class PerfilViewModel(
 
     fun actualizarPerfil(nombre: String) {
         viewModelScope.launch {
+            val trimmedName = nombre.trim()
             try {
-                val response = repo.updatePerfil(nombre)
-                if (response.isSuccessful) {
-                    val u = response.body()!!
-                    _perfil.value = PerfilUsuario(u.nombre, u.email)
-                }
+                firebaseAuthService.updateDisplayName(trimmedName)
+                _perfil.value = firebaseProfile(trimmedName)
+
+                val response = repo.updatePerfil(trimmedName)
+                if (response.isSuccessful) _perfil.value = firebaseProfile(response.body()?.nombre.orEmpty())
             } catch (_: Exception) { }
         }
+    }
+
+    private fun firebaseProfile(preferredName: String = ""): PerfilUsuario {
+        val email = firebaseAuthService.currentEmail()
+        val name = preferredName
+            .ifBlank { firebaseAuthService.currentDisplayName() }
+            .ifBlank { email.substringBefore("@", missingDelimiterValue = "") }
+        return PerfilUsuario(nombre = name, email = email)
     }
 
     suspend fun cambiarPassword(passwordActual: String, passwordNuevo: String): String? {

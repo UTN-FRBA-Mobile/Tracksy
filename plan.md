@@ -16,14 +16,13 @@ Django -> valida Firebase ID token
 
 ## Estado actual
 
-- Firebase ya esta configurado en Gradle.
+- Firebase Auth esta configurado y validado en mobile.
 - `google-services.json` esta ubicado en `tracksy-mobile/app/google-services.json`.
 - `./gradlew :app:compileDebugKotlin` compila correctamente.
-- El flujo actual de login/registro todavia usa Django:
-  - `AuthViewModel.login()` llama `repo.login()`.
-  - `AuthViewModel.registro()` llama `repo.registro()`.
-- Listas, favoritos, compras, productos y perfil llaman al backend con Retrofit.
-- La app no escribe directo en PostgreSQL.
+- Login, registro, recuperacion, verificacion de email y cambio de contrasena usan Firebase Auth.
+- Django valida Firebase ID tokens y sincroniza usuarios por `firebase_uid`.
+- Retrofit agrega automaticamente `Authorization: Bearer <firebase_id_token>`.
+- Listas, favoritos, compras, productos y perfil siguen usando Django/PostgreSQL para datos de negocio.
 
 ## Fase 0 - Prueba temporal de Firebase Auth
 
@@ -126,7 +125,7 @@ Criterio de salida:
 
 Objetivo: que Django acepte requests autenticadas desde mobile con Firebase ID Token.
 
-Estado: implementada en backend, pendiente prueba end-to-end con token real desde mobile.
+Estado: implementada y validada end-to-end.
 
 Resultado:
 
@@ -135,7 +134,7 @@ Resultado:
 - Se creo autenticacion Firebase para validar `Authorization: Bearer <firebase_id_token>`.
 - Se dejo una autenticacion compatible que acepta JWT Django existente o Firebase ID Token durante la migracion.
 - Se creo `POST /api/v1/auth/firebase/sync/` para asociar/crear usuario local por `firebase_uid`.
-- La app mobile obtiene el Firebase ID token luego del registro temporal y llama al sync de Django.
+- La app mobile obtiene el Firebase ID token y llama al sync de Django.
 
 Cambios:
 
@@ -197,7 +196,7 @@ Resultado:
 - Recuperacion de contrasena usa Firebase Auth.
 - Logout cierra sesion en Firebase y limpia tokens locales.
 - Luego de login/registro, mobile obtiene Firebase ID token y llama sync con Django.
-- Como compatibilidad temporal hasta Fase 4, el Firebase ID token se guarda en `TokenManager.accessToken` para que los ViewModels actuales sigan pasando `Authorization: Bearer`.
+- La app sincroniza el usuario local Django despues de login/registro.
 
 Cambios mobile:
 
@@ -266,14 +265,14 @@ Authorization: Bearer <firebase_id_token>
 3. Eliminar dependencia de `TokenManager.accessToken` en viewmodels.
 4. Centralizar token en repository/interceptor, no pasarlo manualmente desde cada ViewModel.
 
-Estado actual a modificar:
+Estado anterior modificado:
 
-- `ListaViewModel` usa `tokenManager.accessToken`.
-- `ProductoViewModel` usa `tokenManager.accessToken`.
-- `CompraViewModel` usa `tokenManager.accessToken`.
-- `PerfilViewModel` usa `tokenManager.accessToken`.
-- `SugerenciaViewModel` usa `tokenManager.accessToken`.
-- `TracksyRepository` recibe `token` en casi todos los metodos.
+- `ListaViewModel` ya no usa `tokenManager.accessToken`.
+- `ProductoViewModel` ya no usa `tokenManager.accessToken`.
+- `CompraViewModel` ya no usa `tokenManager.accessToken`.
+- `PerfilViewModel` ya no usa `tokenManager.accessToken`.
+- `SugerenciaViewModel` ya no usa `tokenManager.accessToken`.
+- `TracksyRepository` ya no recibe `token` en endpoints protegidos.
 
 Refactor recomendado:
 
@@ -355,6 +354,15 @@ Criterio de salida:
 
 Objetivo: evitar inconsistencias entre Firebase y Django.
 
+Estado: implementada en mobile.
+
+Resultado:
+
+- Perfil muestra el email desde Firebase.
+- Perfil extendido/nombre siguen usando Django.
+- `ProfileEditScreen` muestra email como solo lectura.
+- Editar perfil no intenta cambiar email en Django.
+
 Reglas:
 
 - Email se lee desde Firebase.
@@ -378,6 +386,15 @@ Criterio de salida:
 ## Fase 7 - Limpieza
 
 Objetivo: remover caminos viejos y reducir confusion.
+
+Estado: implementada en mobile/docs.
+
+Resultado:
+
+- Se eliminaron endpoints/modelos de auth Django tradicional del mobile.
+- No quedan access/refresh tokens Django en mobile.
+- `specs.md` fue actualizado con el flujo implementado.
+- `README.md` documenta setup Firebase mobile/backend.
 
 Tareas:
 
@@ -420,10 +437,11 @@ Checklist:
 
 ## Orden recomendado de implementacion
 
-1. Prueba temporal Firebase Auth en registro.
-2. Backend valida Firebase ID Token.
-3. Mobile obtiene y envia Firebase ID Token.
-4. Migrar login/registro definitivo.
-5. Recuperacion/verificacion/cambio de contrasena.
-6. Refactor de tokens en repositories/viewmodels.
-7. Limpieza de auth vieja.
+1. Fase 0: prueba temporal Firebase Auth en registro.
+2. Fase 1: modelo local Django con `firebase_uid`.
+3. Fase 2: backend valida Firebase ID Token.
+4. Fase 3: mobile migra login/registro a Firebase.
+5. Fase 4: Retrofit centraliza Firebase ID Token.
+6. Fase 5: recuperacion/verificacion/cambio de contrasena.
+7. Fase 6: perfil/email consistente entre Firebase y Django.
+8. Fase 7: limpieza y documentacion.

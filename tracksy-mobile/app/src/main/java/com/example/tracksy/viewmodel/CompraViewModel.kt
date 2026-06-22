@@ -4,7 +4,6 @@ import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.example.tracksy.data.local.TokenManager
 import com.example.tracksy.data.models.Compra
 import com.example.tracksy.data.models.CompraRequest
 import com.example.tracksy.data.models.ProductoCompradoRequest
@@ -18,8 +17,7 @@ import java.text.SimpleDateFormat
 import java.util.Locale
 
 class CompraViewModel(
-    private val repo: TracksyRepository,
-    private val tokenManager: TokenManager
+    private val repo: TracksyRepository
 ) : ViewModel() {
 
     private val _compras = MutableStateFlow<List<HistoryItem>>(emptyList())
@@ -30,14 +28,11 @@ class CompraViewModel(
 
     // Exposed as StateFlow for pull-to-refresh indicator compatibility
     val isRefreshing: StateFlow<Boolean> = _isLoading
-
-    private val token get() = tokenManager.accessToken ?: ""
-
     fun cargarCompras() {
         viewModelScope.launch {
             _isLoading.value = true
             try {
-                val response = repo.getCompras(token)
+                val response = repo.getCompras()
                 if (response.isSuccessful) {
                     _compras.value = response.body()?.results?.map { it.toHistoryItem() } ?: emptyList()
                 }
@@ -62,7 +57,7 @@ class CompraViewModel(
                         ProductoCompradoRequest(id, cant, precio)
                     }
                 )
-                val response = repo.crearCompra(token, request)
+                val response = repo.crearCompra(request)
                 if (response.isSuccessful) cargarCompras()
             } catch (_: Exception) { }
         }
@@ -95,6 +90,6 @@ class CompraViewModel(
     class Factory(private val context: Context) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T =
-            CompraViewModel(TracksyRepository(), TokenManager(context)) as T
+            CompraViewModel(TracksyRepository()) as T
     }
 }

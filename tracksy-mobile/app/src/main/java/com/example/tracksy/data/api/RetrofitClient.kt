@@ -16,6 +16,7 @@ object RetrofitClient {
     }
 
     private val okHttpClient = OkHttpClient.Builder()
+        .addInterceptor(FirebaseAuthInterceptor())
         .addInterceptor(loggingInterceptor)
         .connectTimeout(30, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
@@ -30,6 +31,4 @@ object RetrofitClient {
             .build()
             .create(ApiService::class.java)
     }
-
-    fun bearerToken(token: String) = "Bearer $token"
 }

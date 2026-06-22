@@ -244,6 +244,16 @@ Criterio de salida:
 
 Objetivo: que todas las llamadas al backend usen Firebase ID Token.
 
+Estado: implementada en mobile.
+
+Resultado:
+
+- Se creo un interceptor OkHttp que agrega `Authorization: Bearer <firebase_id_token>`.
+- Retrofit centraliza el envio del token Firebase.
+- Los ViewModels dejaron de leer/pasar tokens manualmente.
+- `TracksyRepository` dejo de recibir token por parametro en endpoints protegidos.
+- Se eliminaron del mobile los endpoints/modelos obsoletos de auth Django tradicional.
+
 Cambios:
 
 1. Crear interceptor OkHttp que agregue:

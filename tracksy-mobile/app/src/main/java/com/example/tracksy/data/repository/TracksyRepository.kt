@@ -7,117 +7,104 @@ import com.example.tracksy.data.models.*
 class TracksyRepository(
     private val api: ApiService = RetrofitClient.apiService
 ) {
-    private fun bearer(token: String) = RetrofitClient.bearerToken(token)
-
     // ── Auth ──────────────────────────────────────────────────────────────────
 
-    suspend fun registro(nombre: String, email: String, password: String) =
-        api.registro(RegistroRequest(nombre, email, password))
-
-    suspend fun login(email: String, password: String) =
-        api.login(LoginRequest(email, password))
-
-    suspend fun refreshToken(refresh: String) =
-        api.refreshToken(RefreshRequest(refresh))
-
-    suspend fun firebaseSync(idToken: String) =
-        api.firebaseSync(bearer(idToken))
+    suspend fun firebaseSync() =
+        api.firebaseSync()
 
     // ── Usuarios ──────────────────────────────────────────────────────────────
 
-    suspend fun getPerfil(token: String) = api.getPerfil(bearer(token))
+    suspend fun getPerfil() = api.getPerfil()
 
-    suspend fun updatePerfil(token: String, nombre: String) =
-        api.updatePerfil(bearer(token), mapOf("nombre" to nombre))
+    suspend fun updatePerfil(nombre: String) =
+        api.updatePerfil(mapOf("nombre" to nombre))
 
-    suspend fun cambiarPassword(token: String, passwordActual: String, passwordNuevo: String) =
-        api.cambiarPassword(bearer(token), mapOf("password_actual" to passwordActual, "password_nuevo" to passwordNuevo))
+    suspend fun cambiarPassword(passwordActual: String, passwordNuevo: String) =
+        api.cambiarPassword(mapOf("password_actual" to passwordActual, "password_nuevo" to passwordNuevo))
 
-    suspend fun getFavoritos(token: String) = api.getFavoritos(bearer(token))
+    suspend fun getFavoritos() = api.getFavoritos()
 
-    suspend fun addFavorito(token: String, productoId: Long) =
-        api.addFavorito(bearer(token), AddFavoritoRequest(producto = productoId, favorito = true))
+    suspend fun addFavorito(productoId: Long) =
+        api.addFavorito(AddFavoritoRequest(producto = productoId, favorito = true))
 
-    suspend fun removeFavorito(token: String, id: Int) =
-        api.removeFavorito(bearer(token), id)
+    suspend fun removeFavorito(id: Int) =
+        api.removeFavorito(id)
 
     // ── Productos ─────────────────────────────────────────────────────────────
 
-    suspend fun getProductos(token: String, search: String? = null, page: Int? = null, pageSize: Int? = null) =
-        api.getProductos(bearer(token), search, page, pageSize)
+    suspend fun getProductos(search: String? = null, page: Int? = null, pageSize: Int? = null) =
+        api.getProductos(search, page, pageSize)
 
-    suspend fun getProducto(token: String, id: Long) = api.getProducto(bearer(token), id)
+    suspend fun getProducto(id: Long) = api.getProducto(id)
 
-    suspend fun getMarcas(token: String) = api.getMarcas(bearer(token))
+    suspend fun getMarcas() = api.getMarcas()
 
     // ── Supermercados ─────────────────────────────────────────────────────────
 
-    suspend fun getSupermercados(token: String, search: String? = null) =
-        api.getSupermercados(bearer(token), search)
+    suspend fun getSupermercados(search: String? = null) =
+        api.getSupermercados(search)
 
-    suspend fun getSupermercado(token: String, id: Int) = api.getSupermercado(bearer(token), id)
+    suspend fun getSupermercado(id: Int) = api.getSupermercado(id)
 
     suspend fun getListados(
-        token: String,
         supermercadoId: Int? = null,
         productoId: Long? = null,
         disponible: Boolean? = null,
         page: Int? = null,
         pageSize: Int? = null
-    ) = api.getListados(bearer(token), supermercadoId, productoId, disponible, page, pageSize)
+    ) = api.getListados(supermercadoId, productoId, disponible, page, pageSize)
 
     // ── Listas de compra ──────────────────────────────────────────────────────
 
-    suspend fun getListas(token: String) = api.getListas(bearer(token))
+    suspend fun getListas() = api.getListas()
 
-    suspend fun getLista(token: String, id: Int) = api.getLista(bearer(token), id)
+    suspend fun getLista(id: Int) = api.getLista(id)
 
-    suspend fun crearLista(token: String, nombre: String, supermercadoId: Int? = null) =
-        api.crearLista(bearer(token), ListaCompraRequest(nombre, supermercadoId))
+    suspend fun crearLista(nombre: String, supermercadoId: Int? = null) =
+        api.crearLista(ListaCompraRequest(nombre, supermercadoId))
 
-    suspend fun updateLista(token: String, id: Int, campos: Map<String, Any?>) =
-        api.updateLista(bearer(token), id, campos)
+    suspend fun updateLista(id: Int, campos: Map<String, Any?>) =
+        api.updateLista(id, campos)
 
-    suspend fun deleteLista(token: String, id: Int) = api.deleteLista(bearer(token), id)
+    suspend fun deleteLista(id: Int) = api.deleteLista(id)
 
     suspend fun agregarItem(
-        token: String,
         listaId: Int,
         productoId: Long,
         cantidad: Int,
         estadoId: Int,
         precioUnitario: Double
     ) = api.agregarItem(
-        bearer(token), listaId,
+        listaId,
         ItemProductoRequest(productoId, cantidad, estadoId, precioUnitario)
     )
 
-    suspend fun updateItem(token: String, listaId: Int, itemId: Int, campos: Map<String, Any>) =
-        api.updateItem(bearer(token), listaId, itemId, campos)
+    suspend fun updateItem(listaId: Int, itemId: Int, campos: Map<String, Any>) =
+        api.updateItem(listaId, itemId, campos)
 
-    suspend fun eliminarItem(token: String, listaId: Int, itemId: Int) =
-        api.eliminarItem(bearer(token), listaId, itemId)
+    suspend fun eliminarItem(listaId: Int, itemId: Int) =
+        api.eliminarItem(listaId, itemId)
 
-    suspend fun getEstadosProducto(token: String) = api.getEstadosProducto(bearer(token))
+    suspend fun getEstadosProducto() = api.getEstadosProducto()
 
     // ── Compras ───────────────────────────────────────────────────────────────
 
-    suspend fun getCompras(token: String) = api.getCompras(bearer(token))
+    suspend fun getCompras() = api.getCompras()
 
-    suspend fun getCompra(token: String, id: Int) = api.getCompra(bearer(token), id)
+    suspend fun getCompra(id: Int) = api.getCompra(id)
 
-    suspend fun crearCompra(token: String, request: CompraRequest) =
-        api.crearCompra(bearer(token), request)
+    suspend fun crearCompra(request: CompraRequest) =
+        api.crearCompra(request)
 
     // ── Sugerencias ───────────────────────────────────────────────────────────
 
-    suspend fun getSugerencias(token: String) = api.getSugerencias(bearer(token))
+    suspend fun getSugerencias() = api.getSugerencias()
 
-    suspend fun crearSugerencia(token: String, productoId: Long, estadoId: Int, motivo: String) =
-        api.crearSugerencia(bearer(token), SugerenciaRequest(productoId, estadoId, motivo))
+    suspend fun crearSugerencia(productoId: Long, estadoId: Int, motivo: String) =
+        api.crearSugerencia(SugerenciaRequest(productoId, estadoId, motivo))
 
-    suspend fun agregarFeedback(token: String, sugerenciaId: Int, fueUtil: Boolean) =
-        api.agregarFeedback(bearer(token), sugerenciaId, FeedbackRequest(fueUtil))
+    suspend fun agregarFeedback(sugerenciaId: Int, fueUtil: Boolean) =
+        api.agregarFeedback(sugerenciaId, FeedbackRequest(fueUtil))
 
-    suspend fun getEstados(token: String) = api.getEstados(bearer(token))
+    suspend fun getEstados() = api.getEstados()
 }

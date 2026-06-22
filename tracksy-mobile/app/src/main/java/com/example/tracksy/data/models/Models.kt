@@ -4,31 +4,6 @@ import com.google.gson.annotations.SerializedName
 
 // ── Auth ─────────────────────────────────────────────────────────────────────
 
-data class RegistroRequest(
-    val nombre: String,
-    val email: String,
-    val password: String
-)
-
-data class RegistroResponse(
-    val message: String,
-    val id: Int
-)
-
-data class LoginRequest(
-    val email: String,
-    val password: String
-)
-
-data class TokenResponse(
-    val access: String,
-    val refresh: String
-)
-
-data class RefreshRequest(
-    val refresh: String
-)
-
 data class FirebaseSyncResponse(
     val id: String,
     @SerializedName("firebase_uid") val firebaseUid: String?,

@@ -5,7 +5,6 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.example.tracksy.data.auth.FirebaseAuthService
-import com.example.tracksy.data.local.TokenManager
 import com.example.tracksy.data.repository.TracksyRepository
 import com.google.firebase.FirebaseNetworkException
 import com.google.firebase.auth.FirebaseAuthException
@@ -18,8 +17,7 @@ import kotlinx.coroutines.flow.StateFlow
 
 class AuthViewModel(
     private val repo: TracksyRepository,
-    private val firebaseAuthService: FirebaseAuthService,
-    val tokenManager: TokenManager
+    private val firebaseAuthService: FirebaseAuthService
 ) : ViewModel() {
 
     private val _isAuthenticated = MutableStateFlow(firebaseAuthService.isAuthenticated())
@@ -79,21 +77,17 @@ class AuthViewModel(
     }
 
     private suspend fun syncFirebaseUser(): String? {
-        val idToken = firebaseAuthService.getIdToken()
-        val syncResponse = repo.firebaseSync(idToken)
+        val syncResponse = repo.firebaseSync()
         if (!syncResponse.isSuccessful) {
             return "Django rechazó el sync Firebase: HTTP ${syncResponse.code()}."
         }
 
-        tokenManager.accessToken = idToken
-        tokenManager.refreshToken = null
         _isAuthenticated.value = true
         return null
     }
 
     fun logout() {
         firebaseAuthService.logout()
-        tokenManager.clear()
         _isAuthenticated.value = false
     }
 
@@ -118,11 +112,9 @@ class AuthViewModel(
         }
     }
 
-    val token: String get() = tokenManager.accessToken ?: ""
-
     class Factory(private val context: Context) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T =
-            AuthViewModel(TracksyRepository(), FirebaseAuthService(), TokenManager(context)) as T
+            AuthViewModel(TracksyRepository(), FirebaseAuthService()) as T
     }
 }

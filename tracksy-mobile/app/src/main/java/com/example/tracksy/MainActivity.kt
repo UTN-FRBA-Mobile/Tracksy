@@ -209,7 +209,10 @@ class MainActivity : ComponentActivity() {
                             onAuthenticated = { },
                             onLogin = { email, password -> authViewModel.login(email, password) },
                             onCreateAccount = { nombre, email, password -> authViewModel.registro(nombre, email, password) },
-                            onRecoverPassword = { email -> authViewModel.sendPasswordReset(email) }
+                            onRecoverPassword = { email -> authViewModel.sendPasswordReset(email) },
+                            onResendEmailVerification = { authViewModel.resendEmailVerification() },
+                            onRefreshEmailVerification = { authViewModel.refreshEmailVerification() },
+                            onCancelPendingEmailVerification = { authViewModel.logout() }
                         )
                     } else {
                         val onTabChange: (NavTab) -> Unit = { tab ->

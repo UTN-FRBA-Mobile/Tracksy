@@ -289,13 +289,17 @@ Criterio de salida:
 
 Objetivo: completar los flujos de email desde mobile usando Firebase Auth.
 
-Estado: parcialmente implementada.
+Estado: implementada en mobile.
 
 Resultado:
 
 - Recuperacion de contrasena usa `sendPasswordResetEmail(email)`.
 - Cambio de contrasena desde perfil reautentica con Firebase y llama `updatePassword(newPassword)`.
 - Mensajes de error de auth se muestran en pantalla.
+- Registro muestra pantalla de verificacion de email.
+- Reenvio de verificacion/recuperacion usa cooldown local.
+- La app permite refrescar `emailVerified` con `currentUser.reload()`.
+- Recuperacion de contrasena usa mensaje generico para no revelar si el email existe.
 
 ### Verificacion de email
 

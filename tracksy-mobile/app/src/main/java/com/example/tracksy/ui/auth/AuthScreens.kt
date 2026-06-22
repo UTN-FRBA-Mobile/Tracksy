@@ -23,6 +23,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -51,6 +52,7 @@ import com.example.tracksy.ui.theme.TracksyErrorRed
 import com.example.tracksy.ui.theme.TracksySuccessGreen
 import com.example.tracksy.ui.theme.TracksyTextMuted
 import com.example.tracksy.ui.theme.TracksyTextSecondary
+import kotlinx.coroutines.delay
 
 private enum class AuthRoute {
     Welcome,
@@ -81,7 +83,10 @@ fun TracksyAuthApp(
     onAuthenticated: () -> Unit = {},
     onLogin: suspend (email: String, password: String) -> Boolean = { _, _ -> true },
     onCreateAccount: suspend (nombre: String, email: String, password: String) -> String? = { _, _, _ -> null },
-    onRecoverPassword: suspend (email: String) -> String? = { null }
+    onRecoverPassword: suspend (email: String) -> String? = { null },
+    onResendEmailVerification: suspend () -> String? = { null },
+    onRefreshEmailVerification: suspend () -> Boolean = { false },
+    onCancelPendingEmailVerification: () -> Unit = {}
 ) {
     val scope = rememberCoroutineScope()
     var route by remember { mutableStateOf(AuthRoute.Welcome) }
@@ -93,6 +98,15 @@ fun TracksyAuthApp(
     var recoverLoading by remember { mutableStateOf(false) }
     var recoverErrorMessage by remember { mutableStateOf<String?>(null) }
     var lastRecoveryEmail by remember { mutableStateOf<String?>(null) }
+    var checkEmailForVerification by remember { mutableStateOf(false) }
+    var resendCooldownSeconds by remember { mutableStateOf(0) }
+
+    LaunchedEffect(resendCooldownSeconds) {
+        if (resendCooldownSeconds > 0) {
+            delay(1000)
+            resendCooldownSeconds--
+        }
+    }
 
     when (route) {
         AuthRoute.Welcome -> WelcomeScreen(
@@ -126,7 +140,13 @@ fun TracksyAuthApp(
                     registerLoading = true
                     val error = onCreateAccount(nombre, email, password)
                     registerLoading = false
-                    if (error == null) onAuthenticated() else registerErrorMessage = error
+                    if (error == null) {
+                        checkEmailForVerification = true
+                        resendCooldownSeconds = 30
+                        route = AuthRoute.CheckEmail
+                    } else {
+                        registerErrorMessage = error
+                    }
                 }
                 true
             },
@@ -145,6 +165,8 @@ fun TracksyAuthApp(
                     recoverLoading = false
                     if (error == null) {
                         lastRecoveryEmail = email
+                        checkEmailForVerification = false
+                        resendCooldownSeconds = 30
                         route = AuthRoute.CheckEmail
                     } else {
                         recoverErrorMessage = error
@@ -154,14 +176,47 @@ fun TracksyAuthApp(
         )
 
         AuthRoute.CheckEmail -> CheckEmailScreen(
-            onBack = { route = AuthRoute.RecoverPassword },
-            onBackToLogin = { route = AuthRoute.Login },
-            onResend = {
-                val email = lastRecoveryEmail ?: return@CheckEmailScreen
-                scope.launch {
-                    onRecoverPassword(email)
+            onBack = {
+                route = if (checkEmailForVerification) AuthRoute.CreateAccount else AuthRoute.RecoverPassword
+            },
+            onBackToLogin = {
+                if (checkEmailForVerification) {
+                    scope.launch {
+                        if (onRefreshEmailVerification()) {
+                            onAuthenticated()
+                        }
+                    }
+                } else {
+                    route = AuthRoute.Login
                 }
-            }
+            },
+            onResend = {
+                if (resendCooldownSeconds <= 0) {
+                    scope.launch {
+                        if (checkEmailForVerification) {
+                            onResendEmailVerification()
+                        } else {
+                            val email = lastRecoveryEmail ?: return@launch
+                            onRecoverPassword(email)
+                        }
+                        resendCooldownSeconds = 30
+                    }
+                }
+            },
+            title = if (checkEmailForVerification) "Verificá tu correo" else "Revisá tu correo",
+            message = if (checkEmailForVerification) {
+                "Te enviamos un email de verificación. Confirmá tu cuenta antes de iniciar sesión."
+            } else {
+                "Si existe una cuenta asociada a ese correo, te enviaremos instrucciones para restablecer tu contraseña."
+            },
+            resendText = if (resendCooldownSeconds > 0) {
+                "Reenviar en ${resendCooldownSeconds}s"
+            } else if (checkEmailForVerification) {
+                "Reenviar verificación"
+            } else {
+                "Reenviar instrucciones"
+            },
+            primaryText = if (checkEmailForVerification) "Ya verifiqué" else "Volver a iniciar sesión"
         )
 
         AuthRoute.History -> HistoryScreen(
@@ -676,6 +731,10 @@ fun CheckEmailScreen(
     onBack: () -> Unit,
     onBackToLogin: () -> Unit,
     onResend: () -> Unit,
+    title: String = "Revisá tu correo",
+    message: String = "Si existe una cuenta asociada a ese correo, te enviaremos instrucciones para restablecer tu contraseña.",
+    resendText: String = "Reenviar instrucciones",
+    primaryText: String = "Volver a iniciar sesión",
     modifier: Modifier = Modifier
 ) {
     AuthScreenContainer(modifier = modifier) {
@@ -687,7 +746,7 @@ fun CheckEmailScreen(
                     .padding(top = 74.dp, bottom = 28.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                AuthHeader(title = "Revisá tu correo")
+                AuthHeader(title = title)
                 Spacer(modifier = Modifier.height(54.dp))
                 Column(
                     modifier = Modifier
@@ -696,7 +755,7 @@ fun CheckEmailScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = "Si existe una cuenta asociada a ese correo, te enviaremos instrucciones para restablecer tu contraseña.",
+                        text = message,
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 4.dp),
@@ -714,12 +773,12 @@ fun CheckEmailScreen(
                     )
                     Spacer(modifier = Modifier.height(35.dp))
                     TracksyPrimaryButton(
-                        text = "Volver a iniciar sesión",
+                        text = primaryText,
                         onClick = onBackToLogin
                     )
                     Spacer(modifier = Modifier.height(24.dp))
                     TracksyLinkText(
-                        text = "Reenviar instrucciones",
+                        text = resendText,
                         onClick = onResend,
                         modifier = Modifier.fillMaxWidth()
                     )

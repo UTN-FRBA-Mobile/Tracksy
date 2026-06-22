@@ -49,6 +49,10 @@ class FirebaseAuthService(
             ?: error("Firebase did not return an ID token.")
     }
 
+    suspend fun reloadCurrentUser() {
+        auth.currentUser?.reload()?.await()
+    }
+
     fun isAuthenticated(): Boolean = auth.currentUser != null
 
     fun isEmailVerified(): Boolean = auth.currentUser?.isEmailVerified == true

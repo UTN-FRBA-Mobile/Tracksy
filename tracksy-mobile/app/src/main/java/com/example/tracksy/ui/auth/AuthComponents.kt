@@ -495,9 +495,13 @@ fun ErrorMessage(
 ) {
     Row(
         modifier = modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.Top
     ) {
-        Canvas(modifier = Modifier.size(14.dp)) {
+        Canvas(
+            modifier = Modifier
+                .padding(top = 1.dp)
+                .size(14.dp)
+        ) {
             drawLine(
                 color = TracksyErrorRed,
                 start = Offset(size.width * 0.18f, size.height * 0.18f),
@@ -516,9 +520,10 @@ fun ErrorMessage(
         Spacer(modifier = Modifier.width(7.dp))
         Text(
             text = text,
+            modifier = Modifier.weight(1f),
             color = TracksyErrorRed,
             style = LinkTextStyle.copy(fontWeight = FontWeight.Medium),
-            maxLines = 1
+            maxLines = 3
         )
     }
 }

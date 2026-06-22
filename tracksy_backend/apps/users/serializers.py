@@ -28,6 +28,20 @@ class UsuarioSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "email"]
 
 
+class FirebaseSyncSerializer(serializers.ModelSerializer):
+    id = serializers.CharField(read_only=True)
+    is_email_verified = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = ["id", "firebase_uid", "email", "is_email_verified"]
+        read_only_fields = fields
+
+    def get_is_email_verified(self, obj):
+        decoded_token = getattr(self.context.get("request"), "auth", None) or {}
+        return bool(decoded_token.get("email_verified"))
+
+
 class CambiarPasswordSerializer(serializers.Serializer):
     password_actual = serializers.CharField(write_only=True)
     password_nuevo = serializers.CharField(write_only=True, min_length=8)

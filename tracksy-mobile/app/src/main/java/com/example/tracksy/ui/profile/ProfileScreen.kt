@@ -35,6 +35,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.tracksy.ui.components.TracksyDestructiveButton
 import com.example.tracksy.ui.theme.LocalTracksyColors
 import com.example.tracksy.ui.theme.TracksyColors
 
@@ -125,20 +126,12 @@ fun PerfilScreen(
 
             Spacer(Modifier.height(28.dp))
 
-            OutlinedButton(
+            TracksyDestructiveButton(
+                text = "Cerrar sesión",
                 onClick = onLogout,
-                modifier = Modifier.fillMaxWidth().height(52.dp),
-                shape = RoundedCornerShape(50),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = colors.errorRed)
-            ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Outlined.Logout,
-                    contentDescription = null,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(Modifier.width(8.dp))
-                Text("Cerrar sesión", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
-            }
+                modifier = Modifier.fillMaxWidth(),
+                icon = Icons.AutoMirrored.Outlined.Logout
+            )
 
             Spacer(Modifier.height(28.dp))
         }

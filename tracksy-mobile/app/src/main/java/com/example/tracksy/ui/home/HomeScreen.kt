@@ -47,6 +47,7 @@ fun HomeScreen(
     onTabChange: (NavTab) -> Unit,
     listas: List<ShoppingList> = emptyList(),
     sugerencias: List<Suggestion> = emptyList(),
+    userName: String = "",
     profilePhotoUri: String = "",
     onListTap: (ShoppingList) -> Unit = {},
     onProfileClick: () -> Unit = {},
@@ -79,6 +80,7 @@ fun HomeScreen(
             Spacer(Modifier.height(16.dp))
 
             TopBar(
+                userName = userName,
                 profilePhotoUri = profilePhotoUri,
                 onProfileClick = onProfileClick,
                 colors = colors
@@ -133,17 +135,20 @@ fun HomeScreen(
 
 @Composable
 private fun TopBar(
+    userName: String,
     profilePhotoUri: String,
     onProfileClick: () -> Unit,
     colors: TracksyColors
 ) {
+    val greetingName = userName.trim().ifBlank { "Usuario" }
+
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
-            text = "Tracksy",
+            text = "Hola, $greetingName",
             fontSize = 26.sp,
             fontWeight = FontWeight.Bold,
             color = colors.titleText

@@ -4,30 +4,25 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Email
-import androidx.compose.material.icons.outlined.Visibility
-import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.tracksy.ui.components.TracksyErrorMessage
+import com.example.tracksy.ui.components.TracksyPasswordField
+import com.example.tracksy.ui.components.TracksyPrimaryButton
 import com.example.tracksy.ui.theme.LocalTracksyColors
 import com.example.tracksy.ui.theme.TracksyColors
 import kotlinx.coroutines.launch
@@ -123,26 +118,22 @@ private fun NuevaContrasenaStep(
 
                 PerfilCard(colors) {
                     Column(modifier = Modifier.padding(16.dp)) {
-                        PerfilFieldLabel("Contraseña actual", colors)
-                        Spacer(Modifier.height(6.dp))
-                        ContrasenaField(
+                        TracksyPasswordField(
                             value = contrasenaActual,
                             onValueChange = { contrasenaActual = it },
-                            colors = colors,
+                            label = "Contraseña actual",
                             imeAction = ImeAction.Next
                         )
 
                         Spacer(Modifier.height(16.dp))
 
-                        PerfilFieldLabel("Nueva contraseña", colors)
-                        Spacer(Modifier.height(6.dp))
-                        ContrasenaField(
+                        TracksyPasswordField(
                             value = nuevaContrasena,
+                            label = "Nueva contraseña",
                             onValueChange = {
                                 nuevaContrasena = it
                                 if (confirmarContrasena.isNotEmpty()) confirmInteracted = true
                             },
-                            colors = colors,
                             imeAction = ImeAction.Next,
                             onFocusChanged = { focused ->
                                 pwFocused = focused
@@ -156,36 +147,30 @@ private fun NuevaContrasenaStep(
 
                         Spacer(Modifier.height(16.dp))
 
-                        PerfilFieldLabel("Confirmá tu contraseña", colors)
-                        Spacer(Modifier.height(6.dp))
-                        ContrasenaField(
+                        TracksyPasswordField(
                             value = confirmarContrasena,
+                            label = "Confirmá tu contraseña",
                             onValueChange = { confirmarContrasena = it; confirmInteracted = true },
                             isError = showMismatch,
-                            colors = colors,
                             imeAction = ImeAction.Done,
-                            onDone = { focusManager.clearFocus() }
+                            keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() })
                         )
                         if (showMismatch) {
-                            Spacer(Modifier.height(4.dp))
-                            Text("Las contraseñas no coinciden", fontSize = 11.sp, color = colors.errorRed)
+                            Spacer(Modifier.height(10.dp))
+                            TracksyErrorMessage("Las contraseñas no coinciden")
                         }
 
                         if (errorText != null) {
                             Spacer(Modifier.height(10.dp))
-                            Text(
-                                text = errorText,
-                                fontSize = 12.sp,
-                                color = colors.errorRed,
-                                lineHeight = 16.sp
-                            )
+                            TracksyErrorMessage(errorText)
                         }
                     }
                 }
 
                 Spacer(Modifier.height(28.dp))
 
-                Button(
+                TracksyPrimaryButton(
+                    text = if (isLoading) "Guardando..." else "Cambiar contraseña",
                     onClick = {
                         submitted = true
                         if (canSubmit) {
@@ -193,17 +178,9 @@ private fun NuevaContrasenaStep(
                             onSubmit(contrasenaActual, nuevaContrasena)
                         }
                     },
-                    modifier = Modifier.fillMaxWidth().height(52.dp),
-                    enabled = canSubmit,
-                    shape = RoundedCornerShape(50),
-                    colors = ButtonDefaults.buttonColors(containerColor = colors.primary)
-                ) {
-                    Text(
-                        if (isLoading) "Guardando..." else "Cambiar contraseña",
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = canSubmit
+                )
 
                 Spacer(Modifier.height(28.dp))
             }
@@ -270,14 +247,11 @@ private fun CambioContrasenaExitoStep(
 
             Spacer(Modifier.height(40.dp))
 
-            Button(
+            TracksyPrimaryButton(
+                text = "Volver al perfil",
                 onClick = onDone,
-                modifier = Modifier.fillMaxWidth().height(52.dp),
-                shape = RoundedCornerShape(50),
-                colors = ButtonDefaults.buttonColors(containerColor = colors.primary)
-            ) {
-                Text("Volver al perfil", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
-            }
+                modifier = Modifier.fillMaxWidth()
+            )
 
             Spacer(Modifier.height(16.dp))
         }
@@ -300,62 +274,6 @@ private fun ContrasenaTopBar(title: String, onBack: () -> Unit, colors: TracksyC
         Text(title, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = colors.titleText)
         Spacer(Modifier.size(24.dp))
     }
-}
-
-@Composable
-private fun ContrasenaField(
-    value: String,
-    onValueChange: (String) -> Unit,
-    modifier: Modifier = Modifier,
-    isError: Boolean = false,
-    colors: TracksyColors,
-    imeAction: ImeAction = ImeAction.Default,
-    onFocusChanged: ((Boolean) -> Unit)? = null,
-    onDone: (() -> Unit)? = null
-) {
-    var passwordVisible by remember { mutableStateOf(false) }
-
-    OutlinedTextField(
-        value = value,
-        onValueChange = onValueChange,
-        modifier = modifier
-            .fillMaxWidth()
-            .then(
-                if (onFocusChanged != null)
-                    Modifier.onFocusChanged { state -> onFocusChanged(state.isFocused) }
-                else Modifier
-            ),
-        visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-        trailingIcon = {
-            IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                Icon(
-                    if (passwordVisible) Icons.Outlined.Visibility else Icons.Outlined.VisibilityOff,
-                    contentDescription = if (passwordVisible) "Ocultar" else "Mostrar",
-                    tint = colors.subtitleText,
-                    modifier = Modifier.size(20.dp)
-                )
-            }
-        },
-        isError = isError,
-        shape = RoundedCornerShape(12.dp),
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedContainerColor = colors.background,
-            unfocusedContainerColor = colors.background,
-            focusedBorderColor = colors.primary,
-            unfocusedBorderColor = colors.divider,
-            errorBorderColor = colors.errorRed,
-            focusedTextColor = colors.titleText,
-            unfocusedTextColor = colors.titleText,
-            errorTextColor = colors.titleText,
-            cursorColor = colors.primary
-        ),
-        keyboardOptions = KeyboardOptions(
-            keyboardType = KeyboardType.Password,
-            imeAction = imeAction
-        ),
-        keyboardActions = KeyboardActions(onDone = { onDone?.invoke() }),
-        singleLine = true
-    )
 }
 
 private data class RequisitoContrasena(val texto: String, val cumplido: Boolean)

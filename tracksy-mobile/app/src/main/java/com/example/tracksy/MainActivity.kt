@@ -543,6 +543,7 @@ class MainActivity : ComponentActivity() {
                                 onTabChange    = onTabChange,
                                 listas         = listas,
                                 sugerencias    = sugerenciasVisibles,
+                                userName       = usuario.nombre,
                                 profilePhotoUri = usuario.fotoUri,
                                 isRefreshing   = isLoadingListas,
                                 onRefresh      = {

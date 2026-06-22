@@ -1,5 +1,8 @@
 package com.example.tracksy.ui.profile
 
+import android.graphics.BitmapFactory
+import android.net.Uri
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -13,7 +16,6 @@ import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import androidx.compose.material.icons.automirrored.outlined.Logout
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.DarkMode
-import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Notifications
@@ -24,8 +26,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.tracksy.ui.theme.LocalTracksyColors
@@ -33,7 +40,8 @@ import com.example.tracksy.ui.theme.TracksyColors
 
 data class PerfilUsuario(
     val nombre: String,
-    val email: String
+    val email: String,
+    val fotoUri: String = ""
 )
 
 @Composable
@@ -112,8 +120,6 @@ fun PerfilScreen(
             PerfilCard(colors) {
                 PerfilNavRow(Icons.AutoMirrored.Outlined.HelpOutline, "Ayuda y soporte", {}, colors)
                 Divisor(colors)
-                PerfilNavRow(Icons.Outlined.Description, "Términos y privacidad", {}, colors)
-                Divisor(colors)
                 PerfilInfoRow("Versión", "1.0.0", colors)
             }
 
@@ -167,17 +173,54 @@ private fun PerfilHeader(usuario: PerfilUsuario, colors: TracksyColors) {
             contentAlignment = Alignment.Center,
             modifier = Modifier.size(84.dp).clip(CircleShape).background(colors.divider)
         ) {
-            Icon(
-                imageVector = Icons.Outlined.Person,
-                contentDescription = "Avatar",
-                tint = colors.sectionText,
-                modifier = Modifier.size(44.dp)
+            ProfileAvatarImage(
+                fotoUri = usuario.fotoUri,
+                colors = colors,
+                iconSize = 44.dp,
+                modifier = Modifier.fillMaxSize()
             )
         }
         Spacer(Modifier.height(12.dp))
         Text(text = usuario.nombre, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = colors.titleText)
         Spacer(Modifier.height(4.dp))
         Text(text = usuario.email, fontSize = 13.sp, color = colors.subtitleText)
+    }
+}
+
+@Composable
+internal fun ProfileAvatarImage(
+    fotoUri: String,
+    colors: TracksyColors,
+    iconSize: Dp,
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+    val imageBitmap by produceState<ImageBitmap?>(null, fotoUri) {
+        value = if (fotoUri.isBlank()) {
+            null
+        } else {
+            runCatching {
+                context.contentResolver.openInputStream(Uri.parse(fotoUri)).use { stream ->
+                    BitmapFactory.decodeStream(stream)?.asImageBitmap()
+                }
+            }.getOrNull()
+        }
+    }
+
+    if (imageBitmap != null) {
+        Image(
+            bitmap = imageBitmap!!,
+            contentDescription = "Foto de perfil",
+            modifier = modifier,
+            contentScale = ContentScale.Crop
+        )
+    } else {
+        Icon(
+            imageVector = Icons.Outlined.Person,
+            contentDescription = "Avatar",
+            tint = colors.sectionText,
+            modifier = Modifier.size(iconSize)
+        )
     }
 }
 

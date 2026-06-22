@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.tracksy.data.auth.FirebaseAuthService
+import com.example.tracksy.data.local.TokenManager
 import com.example.tracksy.data.repository.TracksyRepository
 import com.example.tracksy.ui.profile.PerfilUsuario
 import com.google.firebase.FirebaseNetworkException
@@ -17,7 +18,8 @@ import kotlinx.coroutines.launch
 
 class PerfilViewModel(
     private val repo: TracksyRepository,
-    private val firebaseAuthService: FirebaseAuthService
+    private val firebaseAuthService: FirebaseAuthService,
+    private val tokenManager: TokenManager
 ) : ViewModel() {
 
     private val _perfil = MutableStateFlow(firebaseProfile())
@@ -41,9 +43,10 @@ class PerfilViewModel(
         }
     }
 
-    fun actualizarPerfil(nombre: String) {
+    fun actualizarPerfil(nombre: String, fotoUri: String) {
         viewModelScope.launch {
             val trimmedName = nombre.trim()
+            tokenManager.profilePhotoUri = fotoUri
             try {
                 firebaseAuthService.updateDisplayName(trimmedName)
                 _perfil.value = firebaseProfile(trimmedName)
@@ -59,7 +62,7 @@ class PerfilViewModel(
         val name = preferredName
             .ifBlank { firebaseAuthService.currentDisplayName() }
             .ifBlank { email.substringBefore("@", missingDelimiterValue = "") }
-        return PerfilUsuario(nombre = name, email = email)
+        return PerfilUsuario(nombre = name, email = email, fotoUri = tokenManager.profilePhotoUri)
     }
 
     suspend fun cambiarPassword(passwordActual: String, passwordNuevo: String): String? {
@@ -82,6 +85,6 @@ class PerfilViewModel(
     class Factory(private val context: Context) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T =
-            PerfilViewModel(TracksyRepository(), FirebaseAuthService()) as T
+            PerfilViewModel(TracksyRepository(), FirebaseAuthService(), TokenManager(context)) as T
     }
 }

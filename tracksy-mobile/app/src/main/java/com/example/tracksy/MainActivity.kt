@@ -248,7 +248,7 @@ class MainActivity : ComponentActivity() {
                             showEditarPerfil -> EditarPerfilScreen(
                                 usuario = usuario,
                                 onSave = { updated ->
-                                    perfilViewModel.actualizarPerfil(updated.nombre)
+                                    perfilViewModel.actualizarPerfil(updated.nombre, updated.fotoUri)
                                     showEditarPerfil = false
                                 },
                                 onBack = { showEditarPerfil = false }

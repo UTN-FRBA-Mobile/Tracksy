@@ -1,8 +1,12 @@
 package com.example.tracksy.ui.profile
 
+import android.content.Intent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -10,12 +14,15 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.PhotoCamera
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -32,9 +39,20 @@ fun EditarPerfilScreen(
 ) {
     val colors = LocalTracksyColors.current
     var nombre by remember(usuario.nombre) { mutableStateOf(usuario.nombre) }
+    var fotoUri by remember(usuario.fotoUri) { mutableStateOf(usuario.fotoUri) }
+    val context = LocalContext.current
     val focusManager = LocalFocusManager.current
+    val photoPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) {
+            context.contentResolver.takePersistableUriPermission(
+                uri,
+                Intent.FLAG_GRANT_READ_URI_PERMISSION
+            )
+            fotoUri = uri.toString()
+        }
+    }
 
-    val hasChanges = nombre.trim() != usuario.nombre.trim()
+    val hasChanges = nombre.trim() != usuario.nombre.trim() || fotoUri != usuario.fotoUri
     val canSave = nombre.isNotBlank() && hasChanges
 
     Scaffold(containerColor = colors.background) { padding ->
@@ -76,6 +94,41 @@ fun EditarPerfilScreen(
 
                 PerfilCard(colors) {
                     Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 16.dp)) {
+                        Box(
+                            modifier = Modifier.fillMaxWidth(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(92.dp)
+                                    .clip(CircleShape)
+                                    .clickable { photoPicker.launch(arrayOf("image/*")) },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                ProfileAvatarImage(
+                                    fotoUri = fotoUri,
+                                    colors = colors,
+                                    iconSize = 44.dp,
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            }
+                        }
+                        Spacer(Modifier.height(10.dp))
+                        TextButton(
+                            onClick = { photoPicker.launch(arrayOf("image/*")) },
+                            modifier = Modifier.align(Alignment.CenterHorizontally)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.PhotoCamera,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            Text("Cambiar foto")
+                        }
+
+                        Spacer(Modifier.height(16.dp))
+
                         PerfilFieldLabel("Nombre", colors)
                         Spacer(Modifier.height(6.dp))
                         PerfilTextField(
@@ -111,7 +164,7 @@ fun EditarPerfilScreen(
                     onClick = {
                         if (canSave) {
                             focusManager.clearFocus()
-                            onSave(PerfilUsuario(nombre.trim(), usuario.email))
+                            onSave(PerfilUsuario(nombre.trim(), usuario.email, fotoUri))
                         }
                     },
                     modifier = Modifier.fillMaxWidth().height(52.dp),

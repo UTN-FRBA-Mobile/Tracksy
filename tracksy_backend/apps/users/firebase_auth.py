@@ -7,8 +7,6 @@ from firebase_admin import auth, credentials
 from rest_framework import authentication, exceptions
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
-from .models import UserPreferences, UserProfile
-
 
 def _initialize_firebase_app():
     if firebase_admin._apps:
@@ -73,6 +71,8 @@ class FirebaseAuthentication(authentication.BaseAuthentication):
         if not email:
             raise exceptions.AuthenticationFailed("Firebase token does not include email.")
 
+        display_name = decoded_token.get("name") or email.split("@", 1)[0]
+
         User = get_user_model()
         user = User.objects.filter(firebase_uid=firebase_uid).first()
 
@@ -84,8 +84,8 @@ class FirebaseAuthentication(authentication.BaseAuthentication):
             user = User.objects.create_user(
                 email=email,
                 username=username,
+                nombre=display_name,
                 password=None,
-                role=User.ROLE_CONSUMER,
             )
 
         changed_fields = []
@@ -96,17 +96,9 @@ class FirebaseAuthentication(authentication.BaseAuthentication):
             user.email = email
             changed_fields.append("email")
 
-        email_verified = decoded_token.get("email_verified")
-        if email_verified is not None and user.is_email_verified != email_verified:
-            user.is_email_verified = email_verified
-            changed_fields.append("is_email_verified")
-
         if changed_fields:
-            changed_fields.append("updated_at")
             user.save(update_fields=changed_fields)
 
-        UserProfile.objects.get_or_create(user=user)
-        UserPreferences.objects.get_or_create(user=user)
         return user
 
     @staticmethod

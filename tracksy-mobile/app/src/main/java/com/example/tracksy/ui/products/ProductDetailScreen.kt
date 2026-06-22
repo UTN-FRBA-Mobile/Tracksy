@@ -13,7 +13,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Check
-import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -25,6 +24,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.tracksy.data.models.ItemProducto
 import com.example.tracksy.data.models.ListaCompra
+import com.example.tracksy.ui.profile.ProfileAvatarImage
 import com.example.tracksy.ui.theme.LocalTracksyColors
 
 @Composable
@@ -32,6 +32,7 @@ fun ProductDetailScreen(
     product: Product,
     listas: List<ListaCompra>,
     draftSelections: Map<Int, Int>? = null,
+    profilePhotoUri: String = "",
     onBack: () -> Unit,
     selectedTab: NavTab,
     onTabChange: (NavTab) -> Unit,
@@ -194,11 +195,11 @@ fun ProductDetailScreen(
                             .clip(CircleShape)
                             .background(colors.divider)
                     ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Person,
-                            contentDescription = "Perfil",
-                            tint = colors.sectionText,
-                            modifier = Modifier.size(24.dp)
+                        ProfileAvatarImage(
+                            fotoUri = profilePhotoUri,
+                            colors = colors,
+                            iconSize = 24.dp,
+                            modifier = Modifier.fillMaxSize()
                         )
                     }
                 }

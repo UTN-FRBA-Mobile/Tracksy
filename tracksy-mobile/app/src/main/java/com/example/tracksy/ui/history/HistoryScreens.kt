@@ -9,7 +9,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
@@ -23,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.tracksy.screens.NavTab
 import com.example.tracksy.screens.TracksyBottomBar
+import com.example.tracksy.ui.profile.ProfileAvatarImage
 import com.example.tracksy.ui.theme.LocalTracksyColors
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -33,6 +33,7 @@ fun HistoryScreen(
     items: List<HistoryItem> = HistoryMockData,
     selectedTab: NavTab = NavTab.HISTORY,
     onTabChange: (NavTab) -> Unit = {},
+    profilePhotoUri: String = "",
     onProfileClick: () -> Unit = {},
     isRefreshing: Boolean = false,
     onRefresh: () -> Unit = {},
@@ -79,7 +80,12 @@ fun HistoryScreen(
                         .background(colors.divider)
                         .clickable(onClick = onProfileClick)
                 ) {
-                    Icon(Icons.Outlined.Person, contentDescription = "Perfil", tint = colors.sectionText, modifier = Modifier.size(24.dp))
+                    ProfileAvatarImage(
+                        fotoUri = profilePhotoUri,
+                        colors = colors,
+                        iconSize = 24.dp,
+                        modifier = Modifier.fillMaxSize()
+                    )
                 }
             }
 
@@ -110,6 +116,7 @@ fun HistoryScreen(
 @Composable
 fun HistoryDetailScreen(
     item: HistoryItem,
+    profilePhotoUri: String = "",
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -145,7 +152,12 @@ fun HistoryDetailScreen(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier.size(42.dp).clip(CircleShape).background(colors.divider)
                     ) {
-                        Icon(Icons.Outlined.Person, contentDescription = "Perfil", tint = colors.sectionText, modifier = Modifier.size(24.dp))
+                        ProfileAvatarImage(
+                            fotoUri = profilePhotoUri,
+                            colors = colors,
+                            iconSize = 24.dp,
+                            modifier = Modifier.fillMaxSize()
+                        )
                     }
                 }
 

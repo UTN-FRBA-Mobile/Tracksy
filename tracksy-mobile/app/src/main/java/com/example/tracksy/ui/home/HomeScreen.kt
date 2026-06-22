@@ -21,6 +21,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.tracksy.ui.profile.ProfileAvatarImage
 import com.example.tracksy.ui.theme.*
 
 data class Suggestion(
@@ -46,6 +47,7 @@ fun HomeScreen(
     onTabChange: (NavTab) -> Unit,
     listas: List<ShoppingList> = emptyList(),
     sugerencias: List<Suggestion> = emptyList(),
+    profilePhotoUri: String = "",
     onListTap: (ShoppingList) -> Unit = {},
     onProfileClick: () -> Unit = {},
     onAgregarSugerencia: (Suggestion) -> Unit = {},
@@ -76,7 +78,11 @@ fun HomeScreen(
         ) {
             Spacer(Modifier.height(16.dp))
 
-            TopBar(onProfileClick = onProfileClick, colors = colors)
+            TopBar(
+                profilePhotoUri = profilePhotoUri,
+                onProfileClick = onProfileClick,
+                colors = colors
+            )
 
             Spacer(Modifier.height(24.dp))
 
@@ -126,7 +132,11 @@ fun HomeScreen(
 }
 
 @Composable
-private fun TopBar(onProfileClick: () -> Unit, colors: TracksyColors) {
+private fun TopBar(
+    profilePhotoUri: String,
+    onProfileClick: () -> Unit,
+    colors: TracksyColors
+) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -146,11 +156,11 @@ private fun TopBar(onProfileClick: () -> Unit, colors: TracksyColors) {
                 .background(colors.divider)
                 .clickable(onClick = onProfileClick)
         ) {
-            Icon(
-                imageVector = Icons.Outlined.Person,
-                contentDescription = "Perfil",
-                tint = colors.sectionText,
-                modifier = Modifier.size(24.dp)
+            ProfileAvatarImage(
+                fotoUri = profilePhotoUri,
+                colors = colors,
+                iconSize = 24.dp,
+                modifier = Modifier.fillMaxSize()
             )
         }
     }

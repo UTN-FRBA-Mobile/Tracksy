@@ -10,7 +10,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Close
-import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
@@ -25,6 +24,7 @@ import androidx.compose.ui.unit.sp
 import com.example.tracksy.screens.NavTab
 import com.example.tracksy.screens.ShoppingList
 import com.example.tracksy.screens.TracksyBottomBar
+import com.example.tracksy.ui.profile.ProfileAvatarImage
 import com.example.tracksy.ui.theme.LocalTracksyColors
 import com.example.tracksy.ui.theme.TracksyColors
 
@@ -34,6 +34,7 @@ fun MisListasScreen(
     selectedTab: NavTab,
     onTabChange: (NavTab) -> Unit,
     listas: List<ShoppingList> = emptyList(),
+    profilePhotoUri: String = "",
     onListClick: (ShoppingList) -> Unit = {},
     onCreateNewList: () -> Unit = {},
     onDeleteList: (ShoppingList) -> Unit = {},
@@ -98,11 +99,11 @@ fun MisListasScreen(
                         .background(colors.divider)
                         .clickable(onClick = onProfileClick)
                 ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Person,
-                        contentDescription = "Perfil",
-                        tint = colors.sectionText,
-                        modifier = Modifier.size(24.dp)
+                    ProfileAvatarImage(
+                        fotoUri = profilePhotoUri,
+                        colors = colors,
+                        iconSize = 24.dp,
+                        modifier = Modifier.fillMaxSize()
                     )
                 }
             }

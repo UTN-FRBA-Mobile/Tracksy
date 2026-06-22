@@ -9,7 +9,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -22,6 +21,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.tracksy.ui.profile.ProfileAvatarImage
 import com.example.tracksy.ui.theme.LocalTracksyColors
 
 data class Product(
@@ -38,6 +38,7 @@ fun ProductsScreen(
     onTabChange: (NavTab) -> Unit,
     productosApi: List<Product> = emptyList(),
     favoritosApi: List<Product> = emptyList(),
+    profilePhotoUri: String = "",
     onProductTap: (Product) -> Unit = {},
     onProfileClick: () -> Unit = {},
     onSearchChange: (String) -> Unit = {},
@@ -111,11 +112,11 @@ fun ProductsScreen(
                             .background(colors.divider)
                             .clickable(onClick = onProfileClick)
                     ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Person,
-                            contentDescription = "Perfil",
-                            tint = colors.sectionText,
-                            modifier = Modifier.size(24.dp)
+                        ProfileAvatarImage(
+                            fotoUri = profilePhotoUri,
+                            colors = colors,
+                            iconSize = 24.dp,
+                            modifier = Modifier.fillMaxSize()
                         )
                     }
                 }

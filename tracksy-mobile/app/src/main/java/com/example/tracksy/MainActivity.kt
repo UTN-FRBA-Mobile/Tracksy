@@ -301,6 +301,7 @@ class MainActivity : ComponentActivity() {
 
                             selectedHistoryItem != null -> HistoryDetailScreen(
                                 item        = selectedHistoryItem!!,
+                                profilePhotoUri = usuario.fotoUri,
                                 onBackClick = { selectedHistoryItem = null }
                             )
 
@@ -308,6 +309,7 @@ class MainActivity : ComponentActivity() {
                                 product          = selectedProduct!!,
                                 listas           = listasDetalladas,
                                 draftSelections  = draftProductSelections,
+                                profilePhotoUri  = usuario.fotoUri,
                                 onBack      = {
                                     draftProductSelections = null
                                     selectedProduct = null
@@ -491,6 +493,7 @@ class MainActivity : ComponentActivity() {
                                 selectedTab     = selectedTab,
                                 onTabChange     = onTabChange,
                                 listas          = listas,
+                                profilePhotoUri = usuario.fotoUri,
                                 onListClick     = { list ->
                                     selectedList  = list
                                     currentScreen = AppScreen.DetalleLista
@@ -508,6 +511,7 @@ class MainActivity : ComponentActivity() {
                                 items          = compras,
                                 selectedTab    = selectedTab,
                                 onTabChange    = onTabChange,
+                                profilePhotoUri = usuario.fotoUri,
                                 onProfileClick = { showPerfil = true },
                                 isRefreshing   = isLoadingCompras,
                                 onRefresh      = { compraViewModel.cargarCompras() }
@@ -518,6 +522,7 @@ class MainActivity : ComponentActivity() {
                                 onTabChange      = onTabChange,
                                 productosApi     = productos,
                                 favoritosApi     = favoritos,
+                                profilePhotoUri  = usuario.fotoUri,
                                 onProductTap     = { product -> selectedProduct = product },
                                 onProfileClick   = { showPerfil = true },
                                 onSearchChange   = { query ->
@@ -538,6 +543,7 @@ class MainActivity : ComponentActivity() {
                                 onTabChange    = onTabChange,
                                 listas         = listas,
                                 sugerencias    = sugerenciasVisibles,
+                                profilePhotoUri = usuario.fotoUri,
                                 isRefreshing   = isLoadingListas,
                                 onRefresh      = {
                                     listaViewModel.cargarListas()

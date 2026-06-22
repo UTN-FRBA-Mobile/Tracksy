@@ -5,8 +5,10 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.verticalScroll
@@ -135,14 +137,7 @@ fun EditarPerfilScreen(
 
                         Spacer(Modifier.height(16.dp))
 
-                        TracksyTextField(
-                            value = usuario.email,
-                            onValueChange = {},
-                            label = "Correo electrónico",
-                            enabled = false,
-                            imeAction = ImeAction.Done,
-                            keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() })
-                        )
+                        ReadOnlyEmail(email = usuario.email)
                     }
                 }
 
@@ -163,5 +158,32 @@ fun EditarPerfilScreen(
                 Spacer(Modifier.height(28.dp))
             }
         }
+    }
+}
+
+@Composable
+private fun ReadOnlyEmail(email: String) {
+    val colors = LocalTracksyColors.current
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .background(colors.background.copy(alpha = 0.72f))
+            .padding(horizontal = 15.dp, vertical = 12.dp)
+    ) {
+        Text(
+            text = "Correo electrónico",
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Medium,
+            color = colors.subtitleText
+        )
+        Spacer(Modifier.height(5.dp))
+        Text(
+            text = email,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Medium,
+            color = colors.titleText
+        )
     }
 }

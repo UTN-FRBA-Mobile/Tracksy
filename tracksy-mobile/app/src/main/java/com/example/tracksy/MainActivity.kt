@@ -208,7 +208,8 @@ class MainActivity : ComponentActivity() {
                         TracksyAuthApp(
                             onAuthenticated = { },
                             onLogin = { email, password -> authViewModel.login(email, password) },
-                            onCreateAccount = { nombre, email, password -> authViewModel.registro(nombre, email, password) }
+                            onCreateAccount = { nombre, email, password -> authViewModel.registro(nombre, email, password) },
+                            onRecoverPassword = { email -> authViewModel.sendPasswordReset(email) }
                         )
                     } else {
                         val onTabChange: (NavTab) -> Unit = { tab ->

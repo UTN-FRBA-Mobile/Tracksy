@@ -50,7 +50,7 @@ private fun RecoverPasswordValidPreview() {
     TracksyTheme {
         RecoverPasswordContent(
             email = "juan.perez@gmail.com",
-            showEmailError = false,
+            emailErrorText = null,
             onEmailChange = {},
             onEmailFocusChanged = {},
             onBack = {},
@@ -65,7 +65,7 @@ private fun RecoverPasswordInvalidPreview() {
     TracksyTheme {
         RecoverPasswordContent(
             email = "juan.perez@gmail",
-            showEmailError = true,
+            emailErrorText = "Ingresá un correo electrónico válido",
             onEmailChange = {},
             onEmailFocusChanged = {},
             onBack = {},

@@ -80,7 +80,8 @@ private val PasswordRequirementTextStyle = TextStyle(
 fun TracksyAuthApp(
     onAuthenticated: () -> Unit = {},
     onLogin: suspend (email: String, password: String) -> Boolean = { _, _ -> true },
-    onCreateAccount: suspend (nombre: String, email: String, password: String) -> String? = { _, _, _ -> null }
+    onCreateAccount: suspend (nombre: String, email: String, password: String) -> String? = { _, _, _ -> null },
+    onRecoverPassword: suspend (email: String) -> String? = { null }
 ) {
     val scope = rememberCoroutineScope()
     var route by remember { mutableStateOf(AuthRoute.Welcome) }
@@ -89,6 +90,9 @@ fun TracksyAuthApp(
     var loginServerError by remember { mutableStateOf(false) }
     var registerLoading by remember { mutableStateOf(false) }
     var registerErrorMessage by remember { mutableStateOf<String?>(null) }
+    var recoverLoading by remember { mutableStateOf(false) }
+    var recoverErrorMessage by remember { mutableStateOf<String?>(null) }
+    var lastRecoveryEmail by remember { mutableStateOf<String?>(null) }
 
     when (route) {
         AuthRoute.Welcome -> WelcomeScreen(
@@ -130,10 +134,22 @@ fun TracksyAuthApp(
         )
 
         AuthRoute.RecoverPassword -> RecoverPasswordScreen(
+            isLoading = recoverLoading,
+            serverErrorText = recoverErrorMessage,
             onBack = { route = AuthRoute.Login },
-            onSubmit = {
-                // TODO: Send recover password instructions when backend is available.
-                route = AuthRoute.CheckEmail
+            onSubmit = { email ->
+                recoverErrorMessage = null
+                scope.launch {
+                    recoverLoading = true
+                    val error = onRecoverPassword(email)
+                    recoverLoading = false
+                    if (error == null) {
+                        lastRecoveryEmail = email
+                        route = AuthRoute.CheckEmail
+                    } else {
+                        recoverErrorMessage = error
+                    }
+                }
             }
         )
 
@@ -141,7 +157,10 @@ fun TracksyAuthApp(
             onBack = { route = AuthRoute.RecoverPassword },
             onBackToLogin = { route = AuthRoute.Login },
             onResend = {
-                // TODO: Resend recover password instructions when backend is available.
+                val email = lastRecoveryEmail ?: return@CheckEmailScreen
+                scope.launch {
+                    onRecoverPassword(email)
+                }
             }
         )
 
@@ -527,6 +546,8 @@ internal fun CreateAccountContent(
 fun RecoverPasswordScreen(
     onBack: () -> Unit,
     onSubmit: (email: String) -> Unit,
+    isLoading: Boolean = false,
+    serverErrorText: String? = null,
     modifier: Modifier = Modifier
 ) {
     var email by remember { mutableStateOf("") }
@@ -534,14 +555,22 @@ fun RecoverPasswordScreen(
     var hasBlurred by remember { mutableStateOf(false) }
     var isEmailFocused by remember { mutableStateOf(false) }
     val isEmailValid = isValidEmail(email)
-    val showError = email.isNotBlank() && !isEmailValid && hasBlurred && !isEmailFocused
+    var localServerErrorText by remember(serverErrorText) { mutableStateOf(serverErrorText) }
+    val emailErrorText = when {
+        localServerErrorText != null -> localServerErrorText
+        email.isNotBlank() && !isEmailValid && hasBlurred && !isEmailFocused ->
+            "Ingresá un correo electrónico válido"
+        else -> null
+    }
 
     RecoverPasswordContent(
         email = email,
-        showEmailError = showError,
+        emailErrorText = emailErrorText,
+        isLoading = isLoading,
         onEmailChange = {
             email = it
             hasInteracted = true
+            localServerErrorText = null
         },
         onEmailFocusChanged = { isFocused ->
             isEmailFocused = isFocused
@@ -562,14 +591,15 @@ fun RecoverPasswordScreen(
 @Composable
 internal fun RecoverPasswordContent(
     email: String,
-    showEmailError: Boolean,
+    emailErrorText: String?,
+    isLoading: Boolean = false,
     onEmailChange: (String) -> Unit,
     onEmailFocusChanged: (Boolean) -> Unit,
     onBack: () -> Unit,
     onSubmit: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val isSubmitEnabled = isValidEmail(email)
+    val isSubmitEnabled = isValidEmail(email) && !isLoading
     val focusManager = LocalFocusManager.current
 
     AuthScreenContainer(modifier = modifier) {
@@ -609,7 +639,7 @@ internal fun RecoverPasswordContent(
                         value = email,
                         onValueChange = onEmailChange,
                         label = "Correo electrónico",
-                        isError = showEmailError,
+                        isError = emailErrorText != null,
                         onFocusChanged = onEmailFocusChanged,
                         keyboardType = KeyboardType.Email,
                         imeAction = ImeAction.Done,
@@ -617,15 +647,15 @@ internal fun RecoverPasswordContent(
                             onDone = { focusManager.clearFocus() }
                         )
                     )
-                    if (showEmailError) {
+                    if (emailErrorText != null) {
                         Spacer(modifier = Modifier.height(13.dp))
-                        ErrorMessage(text = "Ingresá un correo electrónico válido")
+                        ErrorMessage(text = emailErrorText)
                         Spacer(modifier = Modifier.height(35.dp))
                     } else {
                         Spacer(modifier = Modifier.height(76.dp))
                     }
                     TracksyPrimaryButton(
-                        text = "Enviar instrucciones",
+                        text = if (isLoading) "Enviando..." else "Enviar instrucciones",
                         onClick = onSubmit,
                         enabled = isSubmitEnabled
                     )

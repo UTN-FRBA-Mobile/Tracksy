@@ -187,6 +187,18 @@ Criterio de salida:
 
 Objetivo: reemplazar login/registro Django por Firebase en la app.
 
+Estado: implementada en mobile.
+
+Resultado:
+
+- Se creo `FirebaseAuthService`.
+- `AuthViewModel.login()` usa Firebase Auth.
+- `AuthViewModel.registro()` usa Firebase Auth.
+- Recuperacion de contrasena usa Firebase Auth.
+- Logout cierra sesion en Firebase y limpia tokens locales.
+- Luego de login/registro, mobile obtiene Firebase ID token y llama sync con Django.
+- Como compatibilidad temporal hasta Fase 4, el Firebase ID token se guarda en `TokenManager.accessToken` para que los ViewModels actuales sigan pasando `Authorization: Bearer`.
+
 Cambios mobile:
 
 1. Crear servicio:

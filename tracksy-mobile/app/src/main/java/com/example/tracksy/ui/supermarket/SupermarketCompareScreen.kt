@@ -13,18 +13,31 @@ import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableDoubleStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import com.example.tracksy.data.models.ListaCompra
 import com.example.tracksy.data.models.ProductoListado
 import com.example.tracksy.data.models.Supermercado
 import com.example.tracksy.ui.theme.LocalTracksyColors
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
+import com.google.android.gms.tasks.CancellationTokenSource
 import kotlin.math.*
 
 // ── Modelo interno de resultado por supermercado ───────────────────────────────
@@ -46,33 +59,65 @@ fun CompararSupermercadosScreen(
     val colors = LocalTracksyColors.current
 
     // ── GEOLOCALIZACIÓN ────────────────────────────────────────────────────────
-    // TODO: Reemplazar con coordenadas reales del dispositivo usando FusedLocationProviderClient:
-    //
-    //   val context = LocalContext.current
-    //   val fusedClient = remember { LocationServices.getFusedLocationProviderClient(context) }
-    //   var userLat by remember { mutableDoubleStateOf(-34.6037) }
-    //   var userLng by remember { mutableDoubleStateOf(-58.3816) }
-    //   LaunchedEffect(Unit) {
-    //       if (ActivityCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
-    //               == PackageManager.PERMISSION_GRANTED) {
-    //           fusedClient.lastLocation.addOnSuccessListener { location ->
-    //               if (location != null) { userLat = location.latitude; userLng = location.longitude }
-    //           }
-    //       }
-    //   }
-    //   También agregar en AndroidManifest.xml:
-    //     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-    //
-    // Por ahora se usan coordenadas simuladas (Buenos Aires centro):
-    val userLat = -34.6037
-    val userLng = -58.3816
+    val context = LocalContext.current
+    val fusedClient = remember { LocationServices.getFusedLocationProviderClient(context) }
+
+    // Coordenadas del dispositivo. Default: Bs As centro (fallback si no hay
+    // permiso o el GPS todavía no devolvió una posición).
+    var userLat by remember { mutableDoubleStateOf(-34.6037) }
+    var userLng by remember { mutableDoubleStateOf(-58.3816) }
+
+    // Pide la ubicación actual al GPS (asume permiso ya concedido).
+    fun actualizarUbicacion() {
+        if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED
+        ) return
+        try {
+            fusedClient.getCurrentLocation(
+                Priority.PRIORITY_HIGH_ACCURACY,
+                CancellationTokenSource().token
+            ).addOnSuccessListener { location ->
+                if (location != null) {
+                    userLat = location.latitude
+                    userLng = location.longitude
+                } else {
+                    // En emulador getCurrentLocation suele venir null: caemos a la
+                    // última posición conocida (la que inyecta el 'geo fix').
+                    fusedClient.lastLocation.addOnSuccessListener { last ->
+                        if (last != null) {
+                            userLat = last.latitude
+                            userLng = last.longitude
+                        }
+                    }
+                }
+            }
+        } catch (_: SecurityException) {
+            // Permiso revocado entre el check y la llamada: se mantiene el fallback.
+        }
+    }
+
+    // Launcher para pedir el permiso en runtime.
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { concedido -> if (concedido) actualizarUbicacion() }
+
+    // Al abrir la pantalla: si ya hay permiso leo la ubicación, si no lo pido.
+    LaunchedEffect(Unit) {
+        if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
+                == PackageManager.PERMISSION_GRANTED
+        ) {
+            actualizarUbicacion()
+        } else {
+            permissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+        }
+    }
     // ─────────────────────────────────────────────────────────────────────────
 
     val productosEnLista = lista?.items ?: emptyList()
     val totalProductos = productosEnLista.size
 
     // Calcula resultado para cada supermercado
-    val resultados = remember(supermercados, listados, lista) {
+    val resultados = remember(supermercados, listados, lista, userLat, userLng) {
         supermercados.map { super_ ->
             val listadosDelSuper = listados.filter {
                 it.supermercado == super_.id && it.disponible

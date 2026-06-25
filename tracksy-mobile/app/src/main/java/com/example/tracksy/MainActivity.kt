@@ -1,16 +1,28 @@
 package com.example.tracksy
 
+import android.Manifest
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
+import androidx.core.content.ContextCompat
 import com.example.tracksy.data.local.TokenManager
+import com.example.tracksy.data.local.UserPreferencesRepository
+import com.example.tracksy.location.LocationService
+import com.example.tracksy.location.ProximityTargets
+import com.example.tracksy.location.SupermarketTarget
+import com.example.tracksy.recommendations.RecommendationWorker
 import com.example.tracksy.screens.BarcodeScannerScreen
 import com.example.tracksy.screens.HomeScreen
 import com.example.tracksy.screens.NavTab
@@ -42,6 +54,7 @@ import com.example.tracksy.viewmodel.CompraViewModel
 import com.example.tracksy.viewmodel.ListaViewModel
 import com.example.tracksy.viewmodel.PerfilViewModel
 import com.example.tracksy.viewmodel.ProductoViewModel
+import com.example.tracksy.viewmodel.RecommendationViewModel
 
 enum class AppScreen {
     EditarLista, DetalleLista, CompararSupermercados, FinalizarCompra
@@ -50,12 +63,14 @@ enum class AppScreen {
 class MainActivity : ComponentActivity() {
 
     private val tokenManager by lazy { TokenManager(this) }
+    private val userPrefs    by lazy { UserPreferencesRepository(this) }
 
-    private val authViewModel:     AuthViewModel     by viewModels { AuthViewModel.Factory(this) }
-    private val perfilViewModel:   PerfilViewModel   by viewModels { PerfilViewModel.Factory(this) }
-    private val productoViewModel: ProductoViewModel by viewModels { ProductoViewModel.Factory(this) }
-    private val listaViewModel:    ListaViewModel    by viewModels { ListaViewModel.Factory(this) }
-    private val compraViewModel:   CompraViewModel   by viewModels { CompraViewModel.Factory(this) }
+    private val authViewModel:           AuthViewModel           by viewModels { AuthViewModel.Factory(this) }
+    private val perfilViewModel:         PerfilViewModel         by viewModels { PerfilViewModel.Factory(this) }
+    private val productoViewModel:       ProductoViewModel       by viewModels { ProductoViewModel.Factory(this) }
+    private val listaViewModel:          ListaViewModel          by viewModels { ListaViewModel.Factory(this) }
+    private val compraViewModel:         CompraViewModel         by viewModels { CompraViewModel.Factory(this) }
+    private val recommendationViewModel: RecommendationViewModel by viewModels { RecommendationViewModel.Factory(this) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -81,31 +96,37 @@ class MainActivity : ComponentActivity() {
                 val listados             by listaViewModel.listados.collectAsState()
                 val compras              by compraViewModel.compras.collectAsState()
 
-                // ── Sugerencias derivadas del historial de compras ───────────
-                val sugerenciasGeneradas by remember(compras, productos) {
-                    derivedStateOf {
-                        compras
-                            .flatMap { it.products }
-                            .groupBy { it.name }
-                            .entries
-                            .sortedByDescending { it.value.size }
-                            .take(5)
-                            .map { entry ->
-                                val nombre = entry.key
-                                val veces = entry.value.size
-                                val productoId = productos.firstOrNull { p -> p.name == nombre }?.id
-                                Suggestion(
-                                    productoId = productoId,
-                                    emoji = "🛒",
-                                    name = nombre,
-                                    reason = "Comprado $veces ${if (veces == 1) "vez" else "veces"}"
-                                )
-                            }
-                    }
+                // ── Preferencias de usuario ──────────────────────────────────
+                var notificacionesEnabled     by remember { mutableStateOf(userPrefs.notificationsEnabled) }
+                var alertasEnabled            by remember { mutableStateOf(userPrefs.proximityAlertsEnabled) }
+                var distanciaMetros           by remember { mutableStateOf(userPrefs.proximityDistanceMeters) }
+
+                // ── Permisos ─────────────────────────────────────────────────
+                var hasLocationPermission by remember {
+                    mutableStateOf(
+                        ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.ACCESS_FINE_LOCATION)
+                            == PackageManager.PERMISSION_GRANTED
+                    )
                 }
-                var dismissedSuggestionIds by remember { mutableStateOf(emptySet<Long>()) }
-                val sugerenciasVisibles = remember(sugerenciasGeneradas, dismissedSuggestionIds) {
-                    sugerenciasGeneradas.filter { (it.productoId ?: -1L) !in dismissedSuggestionIds }
+                val permissionLauncher = rememberLauncherForActivityResult(
+                    ActivityResultContracts.RequestMultiplePermissions()
+                ) { permissions ->
+                    hasLocationPermission = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
+                            permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+                }
+
+                // ── Sugerencias del motor de recomendaciones ─────────────────
+                val recommendations by recommendationViewModel.recommendations.collectAsState()
+                val sugerenciasVisibles = recommendations.map { rec ->
+                    Suggestion(
+                        productoId = rec.productoId,
+                        emoji = when (rec.criterionType) {
+                            com.example.tracksy.recommendations.RecommendationCriterionType.FAVORITO_NO_PLANIFICADO -> "⭐"
+                            com.example.tracksy.recommendations.RecommendationCriterionType.PRODUCTO_FRECUENTE -> "🔄"
+                        },
+                        name = rec.productoNombre,
+                        reason = rec.reason
+                    )
                 }
 
                 // ── UI navigation state ──────────────────────────────────────
@@ -137,6 +158,50 @@ class MainActivity : ComponentActivity() {
                         listaViewModel.cargarEstadosProducto()
                         listaViewModel.cargarSupermercados()
                         compraViewModel.cargarCompras()
+                        recommendationViewModel.refresh()
+                        RecommendationWorker.schedule(this@MainActivity)
+
+                        val permsToRequest = buildList {
+                            if (ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.ACCESS_FINE_LOCATION)
+                                != PackageManager.PERMISSION_GRANTED) {
+                                add(Manifest.permission.ACCESS_FINE_LOCATION)
+                                add(Manifest.permission.ACCESS_COARSE_LOCATION)
+                            }
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                                ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.POST_NOTIFICATIONS)
+                                != PackageManager.PERMISSION_GRANTED) {
+                                add(Manifest.permission.POST_NOTIFICATIONS)
+                            }
+                        }
+                        if (permsToRequest.isNotEmpty()) {
+                            permissionLauncher.launch(permsToRequest.toTypedArray())
+                        }
+                    }
+                }
+
+                // Actualizar objetivos de proximidad cuando cambian las listas activas
+                LaunchedEffect(listasDetalladas, supermercados) {
+                    ProximityTargets.targets = listasDetalladas
+                        .mapNotNull { lista ->
+                            val super_ = supermercados.find { it.id == lista.supermercado }
+                                ?: return@mapNotNull null
+                            SupermarketTarget(
+                                supermercadoId = super_.id,
+                                nombre = super_.nombre,
+                                listaNombre = lista.nombre,
+                                latitud = super_.latitud,
+                                longitud = super_.longitud
+                            )
+                        }
+                        .distinctBy { it.supermercadoId }
+                }
+
+                // Iniciar o detener el servicio de ubicación según permisos y preferencias
+                LaunchedEffect(isAuthenticated, hasLocationPermission, alertasEnabled) {
+                    if (isAuthenticated && hasLocationPermission && alertasEnabled) {
+                        startForegroundService(Intent(this@MainActivity, LocationService::class.java))
+                    } else {
+                        stopService(Intent(this@MainActivity, LocationService::class.java))
                     }
                 }
 
@@ -259,9 +324,25 @@ class MainActivity : ComponentActivity() {
                             showPerfil -> PerfilScreen(
                                 usuario    = usuario,
                                 isDarkMode = isDarkMode,
+                                notificacionesEnabled = notificacionesEnabled,
+                                onNotificacionesChange = {
+                                    notificacionesEnabled = it
+                                    userPrefs.notificationsEnabled = it
+                                },
+                                alertasSupermercadoEnabled = alertasEnabled,
+                                onAlertasSupermercadoChange = {
+                                    alertasEnabled = it
+                                    userPrefs.proximityAlertsEnabled = it
+                                },
+                                distanciaMetros = distanciaMetros,
+                                onDistanciaChange = {
+                                    distanciaMetros = it
+                                    userPrefs.proximityDistanceMeters = it
+                                },
                                 onBack     = { showPerfil = false },
                                 onLogout   = {
                                     authViewModel.logout()
+                                    recommendationViewModel.clearOnLogout()
                                     showPerfil                = false
                                     selectedTab               = NavTab.HOME
                                     selectedProduct           = null
@@ -275,8 +356,8 @@ class MainActivity : ComponentActivity() {
                                     preloadedListItem         = null
                                     productPendingReturn      = null
                                     draftProductSelections    = null
-                                    dismissedSuggestionIds    = emptySet()
                                     listaViewModel.limpiarListaRecienCreada()
+                                    stopService(Intent(this@MainActivity, LocationService::class.java))
                                 },
                                 onEditarPerfil      = { showEditarPerfil = true },
                                 onCambiarContrasena = { showCambiarContrasena = true },
@@ -557,29 +638,24 @@ class MainActivity : ComponentActivity() {
                                     currentScreen = AppScreen.DetalleLista
                                 },
                                 onProfileClick = { showPerfil = true },
-                                onAgregarSugerencia = { suggestion ->
-                                    val ultimaLista = listas.firstOrNull()
-                                    if (ultimaLista != null && suggestion.productoId != null) {
+                                onAgregarSugerencia = { suggestion, listaId ->
+                                    if (suggestion.productoId != null) {
                                         val estadoId = listaViewModel.idEstadoPendiente()
                                             ?: listaViewModel.estadosProducto.value.firstOrNull()?.id
                                         estadoId?.let {
                                             listaViewModel.agregarItem(
-                                                listaId    = ultimaLista.id,
+                                                listaId    = listaId,
                                                 productoId = suggestion.productoId,
                                                 cantidad   = 1,
                                                 estadoId   = it,
                                                 precio     = 0.0
                                             )
                                         }
-                                    }
-                                    suggestion.productoId?.let {
-                                        dismissedSuggestionIds = dismissedSuggestionIds + it
+                                        recommendationViewModel.dismiss(suggestion.productoId)
                                     }
                                 },
                                 onDismissSugerencia = { suggestion ->
-                                    suggestion.productoId?.let {
-                                        dismissedSuggestionIds = dismissedSuggestionIds + it
-                                    }
+                                    suggestion.productoId?.let { recommendationViewModel.dismiss(it) }
                                 }
                             )
                         }

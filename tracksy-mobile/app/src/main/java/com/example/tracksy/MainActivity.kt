@@ -65,6 +65,50 @@ class MainActivity : ComponentActivity() {
     private val tokenManager by lazy { TokenManager(this) }
     private val userPrefs    by lazy { UserPreferencesRepository(this) }
 
+    companion object {
+        // Activar para testear sin backend ni Firebase
+        const val DEBUG_BYPASS_AUTH = true
+    }
+
+    private fun loadDebugMockData() {
+        val storage = com.example.tracksy.data.local.RecommendationStorage(this)
+        if (storage.loadVisible().isEmpty()) {
+            storage.mergeAndSave(
+                listOf(
+                    com.example.tracksy.recommendations.Recommendation(
+                        productoId = 7790001001234L,
+                        productoNombre = "Leche La Serenísima 1L",
+                        criterionType = com.example.tracksy.recommendations.RecommendationCriterionType.FAVORITO_NO_PLANIFICADO,
+                        reason = "Es tu favorito y no está planificado"
+                    ),
+                    com.example.tracksy.recommendations.Recommendation(
+                        productoId = 7790001005678L,
+                        productoNombre = "Pan Lactal Bimbo",
+                        criterionType = com.example.tracksy.recommendations.RecommendationCriterionType.PRODUCTO_FRECUENTE,
+                        reason = "Lo compraste 4 veces en el último mes"
+                    ),
+                    com.example.tracksy.recommendations.Recommendation(
+                        productoId = 7790001009999L,
+                        productoNombre = "Yogur Activia x4",
+                        criterionType = com.example.tracksy.recommendations.RecommendationCriterionType.PRODUCTO_FRECUENTE,
+                        reason = "Lo compraste 3 veces en el último mes"
+                    )
+                )
+            )
+        }
+
+        // Supermercado mock cercano — reemplazar lat/lon por las del dispositivo de prueba
+        com.example.tracksy.location.ProximityTargets.targets = listOf(
+            com.example.tracksy.location.SupermarketTarget(
+                supermercadoId = 1,
+                nombre = "Carrefour Palermo",
+                listaNombre = "Lista del super (demo)",
+                latitud = -34.5885,   // <-- reemplazar con coordenadas reales para la prueba
+                longitud = -58.4310
+            )
+        )
+    }
+
     private val authViewModel:           AuthViewModel           by viewModels { AuthViewModel.Factory(this) }
     private val perfilViewModel:         PerfilViewModel         by viewModels { PerfilViewModel.Factory(this) }
     private val productoViewModel:       ProductoViewModel       by viewModels { ProductoViewModel.Factory(this) }
@@ -150,16 +194,20 @@ class MainActivity : ComponentActivity() {
 
                 // Cargar datos al autenticarse
                 LaunchedEffect(isAuthenticated) {
-                    if (isAuthenticated) {
-                        perfilViewModel.cargarPerfil()
-                        productoViewModel.cargarProductos()
-                        productoViewModel.cargarFavoritos()
-                        listaViewModel.cargarListas()
-                        listaViewModel.cargarEstadosProducto()
-                        listaViewModel.cargarSupermercados()
-                        compraViewModel.cargarCompras()
-                        recommendationViewModel.refresh()
-                        RecommendationWorker.schedule(this@MainActivity)
+                    if (isAuthenticated || DEBUG_BYPASS_AUTH) {
+                        if (DEBUG_BYPASS_AUTH) {
+                            loadDebugMockData()
+                        } else {
+                            perfilViewModel.cargarPerfil()
+                            productoViewModel.cargarProductos()
+                            productoViewModel.cargarFavoritos()
+                            listaViewModel.cargarListas()
+                            listaViewModel.cargarEstadosProducto()
+                            listaViewModel.cargarSupermercados()
+                            compraViewModel.cargarCompras()
+                            recommendationViewModel.refresh()
+                            RecommendationWorker.schedule(this@MainActivity)
+                        }
 
                         val permsToRequest = buildList {
                             if (ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.ACCESS_FINE_LOCATION)
@@ -180,7 +228,9 @@ class MainActivity : ComponentActivity() {
                 }
 
                 // Actualizar objetivos de proximidad cuando cambian las listas activas
+                // (en modo debug los targets ya fueron cargados por loadDebugMockData)
                 LaunchedEffect(listasDetalladas, supermercados) {
+                    if (DEBUG_BYPASS_AUTH) return@LaunchedEffect
                     ProximityTargets.targets = listasDetalladas
                         .mapNotNull { lista ->
                             val super_ = supermercados.find { it.id == lista.supermercado }
@@ -267,7 +317,7 @@ class MainActivity : ComponentActivity() {
                 val usuario = perfilState ?: PerfilUsuario("", "")
 
                 Crossfade(
-                    targetState = isAuthenticated,
+                    targetState = if (DEBUG_BYPASS_AUTH) true else isAuthenticated,
                     animationSpec = tween(400),
                     label = "auth_transition"
                 ) { authenticated ->

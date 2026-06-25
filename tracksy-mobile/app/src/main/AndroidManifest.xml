@@ -38,6 +38,7 @@
             android:foregroundServiceType="location"
             android:exported="false" />
 
+
     </application>
 
 </manifest>

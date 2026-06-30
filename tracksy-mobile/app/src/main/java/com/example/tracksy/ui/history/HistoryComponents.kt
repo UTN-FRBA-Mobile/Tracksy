@@ -134,7 +134,7 @@ fun HistoryCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = item.supermarketName,
+                    text = item.listName,
                     style = CardTitleStyle
                 )
                 Text(
@@ -142,41 +142,19 @@ fun HistoryCard(
                     style = CardAmountStyle
                 )
             }
-            
+
+            if (item.supermarketName.isNotBlank()) {
+                Text(
+                    text = item.supermarketName,
+                    style = CardSubtitleStyle
+                )
+            }
+
             Text(
                 text = "${item.dateLabel} · ${item.productCount} productos",
                 style = CardSubtitleStyle
             )
-            
-            StatusBadge(status = item.status, pendingCount = item.pendingCount)
         }
-    }
-}
-
-@Composable
-fun StatusBadge(
-    status: PurchaseStatus,
-    pendingCount: Int = 0,
-    modifier: Modifier = Modifier
-) {
-    val backgroundColor = if (status == PurchaseStatus.COMPLETED) 
-        TracksySuccessBadgeBackground else TracksyWarningBadgeBackground
-    val textColor = if (status == PurchaseStatus.COMPLETED) 
-        TracksySuccessGreen else TracksyWarningText
-    val text = if (status == PurchaseStatus.COMPLETED) 
-        "Completada" else "Incompleta ($pendingCount pendientes)"
-
-    Surface(
-        color = backgroundColor,
-        shape = RoundedCornerShape(12.dp),
-        modifier = modifier
-    ) {
-        Text(
-            text = text,
-            color = textColor,
-            style = BadgeTextStyle,
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
-        )
     }
 }
 

@@ -23,7 +23,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.tracksy.data.models.ItemProducto
 import com.example.tracksy.data.models.ListaCompra
+import com.example.tracksy.data.models.ProductoListado
 import com.example.tracksy.data.models.Supermercado
+import com.example.tracksy.ui.components.TracksyPrimaryButton
+import com.example.tracksy.ui.components.TracksySecondaryButton
 import com.example.tracksy.ui.theme.LocalTracksyColors
 import com.example.tracksy.ui.theme.TracksyColors
 
@@ -31,6 +34,7 @@ import com.example.tracksy.ui.theme.TracksyColors
 fun DetalleListaScreen(
     lista: ListaCompra?,
     supermercados: List<Supermercado> = emptyList(),
+    listados: List<ProductoListado> = emptyList(),
     onToggleItem: (listaId: Int, itemId: Int, estaComprado: Boolean) -> Unit = { _, _, _ -> },
     onEditar: () -> Unit = {},
     onComparar: () -> Unit = {},
@@ -43,6 +47,11 @@ fun DetalleListaScreen(
     val items = lista?.items ?: emptyList()
     val pendientes = items.filter { !it.esComprado() }
     val comprados  = items.filter { it.esComprado() }
+
+    val preciosPorProducto: Map<Long, Double> = remember(listados, lista?.supermercado) {
+        val supId = lista?.supermercado ?: return@remember emptyMap()
+        listados.filter { it.supermercado == supId }.associate { it.producto to it.precio }
+    }
 
     val itemsFiltrados = when (tabSeleccionado) {
         1 -> pendientes
@@ -83,12 +92,7 @@ fun DetalleListaScreen(
                         fontWeight = FontWeight.Bold,
                         color = colors.titleText
                     )
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier.size(42.dp).clip(CircleShape).background(colors.divider)
-                    ) {
-                        Icon(Icons.Outlined.Person, contentDescription = "Perfil", tint = colors.sectionText, modifier = Modifier.size(24.dp))
-                    }
+                    Spacer(Modifier.size(42.dp))
                 }
 
                 Text("Supermercado", fontSize = 13.sp, color = colors.sectionText, fontWeight = FontWeight.Medium)
@@ -156,8 +160,9 @@ fun DetalleListaScreen(
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         itemsFiltrados.forEach { item ->
                             ItemProductoRow(
-                                item = item,
+                                item   = item,
                                 colors = colors,
+                                precio = preciosPorProducto[item.producto],
                                 onToggle = {
                                     lista?.let { onToggleItem(it.id, item.id, item.esComprado()) }
                                 }
@@ -181,38 +186,29 @@ fun DetalleListaScreen(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Button(
+                    TracksySecondaryButton(
+                        text = "Editar Lista",
                         onClick = onEditar,
-                        modifier = Modifier.weight(1f).height(52.dp),
-                        shape = RoundedCornerShape(50),
-                        colors = ButtonDefaults.buttonColors(containerColor = colors.primary)
-                    ) {
-                        Text("Editar Lista", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = Color.White)
-                    }
-                    Button(
+                        modifier = Modifier.weight(1f)
+                    )
+                    TracksySecondaryButton(
+                        text = "Comparar",
                         onClick = onComparar,
-                        modifier = Modifier.weight(1f).height(52.dp),
-                        shape = RoundedCornerShape(50),
-                        colors = ButtonDefaults.buttonColors(containerColor = colors.primary)
-                    ) {
-                        Text("Comparar", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = Color.White)
-                    }
+                        modifier = Modifier.weight(1f)
+                    )
                 }
-                Button(
+                TracksyPrimaryButton(
+                    text = "Finalizar Compra",
                     onClick = onFinalizar,
-                    modifier = Modifier.fillMaxWidth().height(52.dp),
-                    shape = RoundedCornerShape(50),
-                    colors = ButtonDefaults.buttonColors(containerColor = colors.titleText)
-                ) {
-                    Text("Finalizar Compra", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = Color.White)
-                }
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
         }
     }
 }
 
 @Composable
-private fun ItemProductoRow(item: ItemProducto, colors: TracksyColors, onToggle: () -> Unit) {
+private fun ItemProductoRow(item: ItemProducto, colors: TracksyColors, precio: Double? = null, onToggle: () -> Unit) {
     val comprado = item.esComprado()
     Row(
         modifier = Modifier
@@ -244,12 +240,12 @@ private fun ItemProductoRow(item: ItemProducto, colors: TracksyColors, onToggle:
                 Text(text = "x${item.cantidad}", color = colors.subtitleText, fontSize = 12.sp)
             }
         }
-        if (item.precioUnitario > 0) {
+        val displayPrice = precio ?: if (item.precioUnitario > 0) item.precioUnitario else null
+        if (displayPrice != null) {
             Text(
-                text = "$%.0f".format(item.precioUnitario * item.cantidad),
-                color = if (comprado) colors.subtitleText else colors.titleText,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.Medium
+                text = "$%.0f".format(displayPrice * item.cantidad),
+                color = colors.subtitleText,
+                fontSize = 15.sp
             )
         }
     }

@@ -4,29 +4,11 @@ import com.google.gson.annotations.SerializedName
 
 // ── Auth ─────────────────────────────────────────────────────────────────────
 
-data class RegistroRequest(
-    val nombre: String,
+data class FirebaseSyncResponse(
+    val id: String,
+    @SerializedName("firebase_uid") val firebaseUid: String?,
     val email: String,
-    val password: String
-)
-
-data class RegistroResponse(
-    val message: String,
-    val id: Int
-)
-
-data class LoginRequest(
-    val email: String,
-    val password: String
-)
-
-data class TokenResponse(
-    val access: String,
-    val refresh: String
-)
-
-data class RefreshRequest(
-    val refresh: String
+    @SerializedName("is_email_verified") val isEmailVerified: Boolean
 )
 
 // ── Usuario ───────────────────────────────────────────────────────────────────
@@ -158,15 +140,17 @@ data class ProductoComprado(
 data class Compra(
     val id: Int,
     val usuario: Int,
-    val supermercado: Int,
-    @SerializedName("supermercado_nombre") val supermercadoNombre: String,
+    val supermercado: Int?,
+    @SerializedName("supermercado_nombre") val supermercadoNombre: String?,
+    @SerializedName("nombre_lista") val nombreLista: String,
     val fecha: String,
     val total: Double,
     val productos: List<ProductoComprado>
 )
 
 data class CompraRequest(
-    val supermercado: Int,
+    val supermercado: Int?,
+    @SerializedName("nombre_lista") val nombreLista: String,
     val total: Double,
     val productos: List<ProductoCompradoRequest>
 )

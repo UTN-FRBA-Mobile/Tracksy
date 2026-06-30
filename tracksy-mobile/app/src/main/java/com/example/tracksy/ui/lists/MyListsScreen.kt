@@ -10,7 +10,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Close
-import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
@@ -25,7 +24,10 @@ import androidx.compose.ui.unit.sp
 import com.example.tracksy.screens.NavTab
 import com.example.tracksy.screens.ShoppingList
 import com.example.tracksy.screens.TracksyBottomBar
+import com.example.tracksy.ui.components.TracksyTextAction
+import com.example.tracksy.ui.profile.ProfileAvatarImage
 import com.example.tracksy.ui.theme.LocalTracksyColors
+import com.example.tracksy.ui.theme.TracksyPrimaryPurple
 import com.example.tracksy.ui.theme.TracksyColors
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -34,6 +36,7 @@ fun MisListasScreen(
     selectedTab: NavTab,
     onTabChange: (NavTab) -> Unit,
     listas: List<ShoppingList> = emptyList(),
+    profilePhotoUri: String = "",
     onListClick: (ShoppingList) -> Unit = {},
     onCreateNewList: () -> Unit = {},
     onDeleteList: (ShoppingList) -> Unit = {},
@@ -54,7 +57,7 @@ fun MisListasScreen(
                 modifier = Modifier
                     .size(56.dp)
                     .clip(CircleShape)
-                    .background(colors.primary)
+                    .background(TracksyPrimaryPurple)
                     .clickable(onClick = onCreateNewList)
             ) {
                 Icon(
@@ -98,11 +101,11 @@ fun MisListasScreen(
                         .background(colors.divider)
                         .clickable(onClick = onProfileClick)
                 ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Person,
-                        contentDescription = "Perfil",
-                        tint = colors.sectionText,
-                        modifier = Modifier.size(24.dp)
+                    ProfileAvatarImage(
+                        fotoUri = profilePhotoUri,
+                        colors = colors,
+                        iconSize = 24.dp,
+                        modifier = Modifier.fillMaxSize()
                     )
                 }
             }
@@ -181,7 +184,7 @@ private fun ShoppingListCard(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier.size(32.dp).clip(CircleShape).clickable(onClick = onDelete)
             ) {
-                Icon(imageVector = Icons.Outlined.Close, contentDescription = "Eliminar lista", tint = colors.primary, modifier = Modifier.size(20.dp))
+                Icon(imageVector = Icons.Outlined.Close, contentDescription = "Eliminar lista", tint = colors.errorRed, modifier = Modifier.size(20.dp))
             }
         }
     }
@@ -202,14 +205,10 @@ private fun DeleteListDialog(
         title = { Text("¿Eliminar \"$listName\"?") },
         text = { Text("Esta acción no se puede deshacer.") },
         confirmButton = {
-            TextButton(onClick = onConfirm) {
-                Text(text = "Eliminar", color = colors.errorRed, fontWeight = FontWeight.SemiBold)
-            }
+            TracksyTextAction(text = "Eliminar", onClick = onConfirm, contentColor = colors.errorRed)
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancelar", color = colors.subtitleText)
-            }
+            TracksyTextAction(text = "Cancelar", onClick = onDismiss, contentColor = colors.subtitleText)
         }
     )
 }

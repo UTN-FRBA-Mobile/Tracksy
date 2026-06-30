@@ -9,7 +9,6 @@ import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
 import com.example.tracksy.data.local.TokenManager
 import com.example.tracksy.screens.BarcodeScannerScreen
@@ -35,6 +34,8 @@ import com.example.tracksy.ui.profile.EditarPerfilScreen
 import com.example.tracksy.ui.profile.PerfilScreen
 import com.example.tracksy.ui.profile.PerfilUsuario
 import com.example.tracksy.ui.supermarket.CompararSupermercadosScreen
+import com.example.tracksy.ui.components.TracksyTextAction
+import com.example.tracksy.ui.theme.LocalTracksyColors
 import com.example.tracksy.ui.theme.TracksyTheme
 import com.example.tracksy.viewmodel.AuthViewModel
 import com.example.tracksy.viewmodel.CompraViewModel
@@ -184,7 +185,10 @@ class MainActivity : ComponentActivity() {
 
                 // Cargar detalle de lista cuando se selecciona una
                 LaunchedEffect(selectedList) {
-                    selectedList?.let { listaViewModel.cargarLista(it.id) }
+                    selectedList?.let {
+                        listaViewModel.cargarLista(it.id)
+                        listaViewModel.cargarListados()
+                    }
                 }
 
                 // Cargar listados de precios al entrar a la pantalla de comparación
@@ -194,6 +198,7 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
+                val colors = LocalTracksyColors.current
                 val usuario = perfilState ?: PerfilUsuario("", "")
 
                 Crossfade(
@@ -205,7 +210,11 @@ class MainActivity : ComponentActivity() {
                         TracksyAuthApp(
                             onAuthenticated = { },
                             onLogin = { email, password -> authViewModel.login(email, password) },
-                            onCreateAccount = { nombre, email, password -> authViewModel.registro(nombre, email, password) }
+                            onCreateAccount = { nombre, email, password -> authViewModel.registro(nombre, email, password) },
+                            onRecoverPassword = { email -> authViewModel.sendPasswordReset(email) },
+                            onResendEmailVerification = { authViewModel.resendEmailVerification() },
+                            onRefreshEmailVerification = { authViewModel.refreshEmailVerification() },
+                            onCancelPendingEmailVerification = { authViewModel.logout() }
                         )
                     } else {
                         val onTabChange: (NavTab) -> Unit = { tab ->
@@ -231,7 +240,9 @@ class MainActivity : ComponentActivity() {
 
                         when {
                             showCambiarContrasena -> CambiarContrasenaScreen(
-                                emailUsuario = usuario.email,
+                                onChangePassword = { passwordActual, passwordNuevo ->
+                                    perfilViewModel.cambiarPassword(passwordActual, passwordNuevo)
+                                },
                                 onBack    = { showCambiarContrasena = false },
                                 onSuccess = { showCambiarContrasena = false }
                             )
@@ -239,7 +250,7 @@ class MainActivity : ComponentActivity() {
                             showEditarPerfil -> EditarPerfilScreen(
                                 usuario = usuario,
                                 onSave = { updated ->
-                                    perfilViewModel.actualizarPerfil(updated.nombre)
+                                    perfilViewModel.actualizarPerfil(updated.nombre, updated.fotoUri)
                                     showEditarPerfil = false
                                 },
                                 onBack = { showEditarPerfil = false }
@@ -292,6 +303,7 @@ class MainActivity : ComponentActivity() {
 
                             selectedHistoryItem != null -> HistoryDetailScreen(
                                 item        = selectedHistoryItem!!,
+                                profilePhotoUri = usuario.fotoUri,
                                 onBackClick = { selectedHistoryItem = null }
                             )
 
@@ -299,6 +311,7 @@ class MainActivity : ComponentActivity() {
                                 product          = selectedProduct!!,
                                 listas           = listasDetalladas,
                                 draftSelections  = draftProductSelections,
+                                profilePhotoUri  = usuario.fotoUri,
                                 onBack      = {
                                     draftProductSelections = null
                                     selectedProduct = null
@@ -375,6 +388,7 @@ class MainActivity : ComponentActivity() {
                                 AppScreen.DetalleLista -> DetalleListaScreen(
                                     lista         = listaActual,
                                     supermercados = supermercados,
+                                    listados      = listados,
                                     onToggleItem  = { listaId, itemId, estaComprado ->
                                         listaViewModel.toggleItem(listaId, itemId, estaComprado)
                                     },
@@ -430,15 +444,18 @@ class MainActivity : ComponentActivity() {
                                 AppScreen.FinalizarCompra -> {
                                     val lista     = selectedList!!
                                     val realItems = listaActual?.items ?: emptyList()
-                                    val comprados = realItems.count {
-                                        it.estadoNombre.lowercase().let { n -> n.contains("comprad") || n.contains("completad") }
+                                    val esComprado: (String) -> Boolean = { estadoNombre ->
+                                        estadoNombre.lowercase().let { n -> n.contains("comprad") || n.contains("completad") }
                                     }
-                                    val pendientes = realItems.filter {
-                                        !it.estadoNombre.lowercase().let { n -> n.contains("comprad") || n.contains("completad") }
-                                    }
+                                    val comprados  = realItems.count { esComprado(it.estadoNombre) }
+                                    val pendientes = realItems.filter { !esComprado(it.estadoNombre) }
+                                    val superId    = listaActual?.supermercado
+                                    val preciosDelSuper = if (superId != null) {
+                                        listados.filter { it.supermercado == superId }.associate { it.producto to it.precio }
+                                    } else emptyMap<Long, Double>()
                                     val totalGastado = realItems
-                                        .filter { it.estadoNombre.lowercase().let { n -> n.contains("comprad") || n.contains("completad") } }
-                                        .sumOf { it.precioUnitario * it.cantidad }
+                                        .filter { esComprado(it.estadoNombre) }
+                                        .sumOf { item -> (preciosDelSuper[item.producto] ?: item.precioUnitario) * item.cantidad }
 
                                     FinalizarCompraScreen(
                                         summary = PurchaseSummary(
@@ -449,25 +466,26 @@ class MainActivity : ComponentActivity() {
                                             pendingItems      = pendientes.map { it.productoNombre }
                                         ),
                                         onBack = { currentScreen = AppScreen.DetalleLista },
-                                        onConfirm = { createPendingList ->
-                                            val supermercadoId = listaActual?.supermercado
-                                            if (supermercadoId != null && comprados > 0) {
-                                                compraViewModel.crearCompra(
-                                                    supermercadoId = supermercadoId,
-                                                    total          = totalGastado,
-                                                    productos      = realItems
-                                                        .filter { it.estadoNombre.lowercase().let { n -> n.contains("comprad") || n.contains("completad") } }
-                                                        .map { Triple(it.producto, it.cantidad, it.precioUnitario) }
-                                                )
-                                            }
+                                        onCrearListaPendientes = { nombre ->
+                                            listaViewModel.crearListaConItems(
+                                                nombre         = nombre,
+                                                supermercadoId = null,
+                                                items          = pendientes.map { it.producto to it.cantidad }
+                                            )
+                                        },
+                                        onConfirm = {
+                                            compraViewModel.crearCompra(
+                                                supermercadoId = superId,
+                                                nombreLista    = lista.name,
+                                                total          = totalGastado,
+                                                productos      = realItems
+                                                    .filter { esComprado(it.estadoNombre) }
+                                                    .map { item -> Triple(item.producto, item.cantidad, preciosDelSuper[item.producto] ?: item.precioUnitario) }
+                                            )
+                                            listaViewModel.eliminarLista(lista.id)
                                             selectedList  = null
                                             currentScreen = AppScreen.DetalleLista
-                                            compraViewModel.cargarCompras()
-                                            if (createPendingList) {
-                                                showEditarListaStandalone = true
-                                            } else {
-                                                selectedTab = NavTab.HOME
-                                            }
+                                            selectedTab   = NavTab.HISTORY
                                         }
                                     )
                                 }
@@ -477,6 +495,7 @@ class MainActivity : ComponentActivity() {
                                 selectedTab     = selectedTab,
                                 onTabChange     = onTabChange,
                                 listas          = listas,
+                                profilePhotoUri = usuario.fotoUri,
                                 onListClick     = { list ->
                                     selectedList  = list
                                     currentScreen = AppScreen.DetalleLista
@@ -494,6 +513,7 @@ class MainActivity : ComponentActivity() {
                                 items          = compras,
                                 selectedTab    = selectedTab,
                                 onTabChange    = onTabChange,
+                                profilePhotoUri = usuario.fotoUri,
                                 onProfileClick = { showPerfil = true },
                                 isRefreshing   = isLoadingCompras,
                                 onRefresh      = { compraViewModel.cargarCompras() }
@@ -504,6 +524,7 @@ class MainActivity : ComponentActivity() {
                                 onTabChange      = onTabChange,
                                 productosApi     = productos,
                                 favoritosApi     = favoritos,
+                                profilePhotoUri  = usuario.fotoUri,
                                 onProductTap     = { product -> selectedProduct = product },
                                 onProfileClick   = { showPerfil = true },
                                 onSearchChange   = { query ->
@@ -524,6 +545,8 @@ class MainActivity : ComponentActivity() {
                                 onTabChange    = onTabChange,
                                 listas         = listas,
                                 sugerencias    = sugerenciasVisibles,
+                                userName       = usuario.nombre,
+                                profilePhotoUri = usuario.fotoUri,
                                 isRefreshing   = isLoadingListas,
                                 onRefresh      = {
                                     listaViewModel.cargarListas()
@@ -567,18 +590,21 @@ class MainActivity : ComponentActivity() {
                                 title = { Text("Producto no encontrado") },
                                 text  = { Text("El producto escaneado no existe o no fue encontrado.") },
                                 confirmButton = {
-                                    TextButton(onClick = {
-                                        productoViewModel.limpiarProductoNoEncontrado()
-                                        if (addingProductToList) scannerFromList = true
-                                        showScanner = true
-                                    }) {
-                                        Text("Reintentar")
-                                    }
+                                    TracksyTextAction(
+                                        text = "Reintentar",
+                                        onClick = {
+                                            productoViewModel.limpiarProductoNoEncontrado()
+                                            if (addingProductToList) scannerFromList = true
+                                            showScanner = true
+                                        }
+                                    )
                                 },
                                 dismissButton = {
-                                    TextButton(onClick = { productoViewModel.limpiarProductoNoEncontrado() }) {
-                                        Text("Cancelar")
-                                    }
+                                    TracksyTextAction(
+                                        text = "Cancelar",
+                                        onClick = { productoViewModel.limpiarProductoNoEncontrado() },
+                                        contentColor = colors.subtitleText
+                                    )
                                 }
                             )
                         }

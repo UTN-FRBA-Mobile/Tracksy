@@ -21,6 +21,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.tracksy.ui.components.TracksyPrimaryButtonSmall
+import com.example.tracksy.ui.components.TracksySecondaryButtonSmall
+import com.example.tracksy.ui.profile.ProfileAvatarImage
 import com.example.tracksy.ui.theme.*
 
 data class Suggestion(
@@ -46,6 +49,8 @@ fun HomeScreen(
     onTabChange: (NavTab) -> Unit,
     listas: List<ShoppingList> = emptyList(),
     sugerencias: List<Suggestion> = emptyList(),
+    userName: String = "",
+    profilePhotoUri: String = "",
     onListTap: (ShoppingList) -> Unit = {},
     onProfileClick: () -> Unit = {},
     onAgregarSugerencia: (Suggestion) -> Unit = {},
@@ -76,7 +81,12 @@ fun HomeScreen(
         ) {
             Spacer(Modifier.height(16.dp))
 
-            TopBar(onProfileClick = onProfileClick, colors = colors)
+            TopBar(
+                userName = userName,
+                profilePhotoUri = profilePhotoUri,
+                onProfileClick = onProfileClick,
+                colors = colors
+            )
 
             Spacer(Modifier.height(24.dp))
 
@@ -126,14 +136,21 @@ fun HomeScreen(
 }
 
 @Composable
-private fun TopBar(onProfileClick: () -> Unit, colors: TracksyColors) {
+private fun TopBar(
+    userName: String,
+    profilePhotoUri: String,
+    onProfileClick: () -> Unit,
+    colors: TracksyColors
+) {
+    val greetingName = userName.trim().ifBlank { "Usuario" }
+
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
-            text = "Tracksy",
+            text = "Hola, $greetingName",
             fontSize = 26.sp,
             fontWeight = FontWeight.Bold,
             color = colors.titleText
@@ -146,11 +163,11 @@ private fun TopBar(onProfileClick: () -> Unit, colors: TracksyColors) {
                 .background(colors.divider)
                 .clickable(onClick = onProfileClick)
         ) {
-            Icon(
-                imageVector = Icons.Outlined.Person,
-                contentDescription = "Perfil",
-                tint = colors.sectionText,
-                modifier = Modifier.size(24.dp)
+            ProfileAvatarImage(
+                fotoUri = profilePhotoUri,
+                colors = colors,
+                iconSize = 24.dp,
+                modifier = Modifier.fillMaxSize()
             )
         }
     }
@@ -214,27 +231,16 @@ private fun SuggestionCard(
             Spacer(Modifier.width(8.dp))
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(
+                TracksyPrimaryButtonSmall(
+                    text = "+ Agregar",
                     onClick = onAgregar,
-                    shape = RoundedCornerShape(50),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = colors.primary,
-                        contentColor = Color.White
-                    ),
-                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
-                    modifier = Modifier.height(36.dp)
-                ) {
-                    Text(text = "+ Agregar", fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
-                }
-                OutlinedButton(
+                    modifier = Modifier
+                )
+                TracksySecondaryButtonSmall(
+                    text = "No",
                     onClick = onDismiss,
-                    shape = RoundedCornerShape(50),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = colors.subtitleText),
-                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
-                    modifier = Modifier.height(36.dp)
-                ) {
-                    Text(text = "No", fontSize = 12.sp)
-                }
+                    modifier = Modifier
+                )
             }
         }
     }
@@ -276,10 +282,9 @@ private fun ListCard(list: ShoppingList, colors: TracksyColors, onClick: () -> U
 
 @Composable
 fun TracksyBottomBar(selected: NavTab, onSelect: (NavTab) -> Unit) {
-    val colors = LocalTracksyColors.current
     Box(modifier = Modifier.fillMaxWidth()) {
         Surface(
-            color = colors.surface,
+            color = TracksySurfaceCard,
             shadowElevation = 12.dp,
             shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
             modifier = Modifier
@@ -311,8 +316,7 @@ fun TracksyBottomBar(selected: NavTab, onSelect: (NavTab) -> Unit) {
 
 @Composable
 fun NavItem(icon: ImageVector, label: String, selected: Boolean, onClick: () -> Unit) {
-    val colors = LocalTracksyColors.current
-    val tint = if (selected) colors.navActive else colors.navInactive
+    val tint = if (selected) TracksyPrimaryPurple else TracksyTextMuted
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
@@ -321,7 +325,7 @@ fun NavItem(icon: ImageVector, label: String, selected: Boolean, onClick: () -> 
     ) {
         Icon(imageVector = icon, contentDescription = label, tint = tint, modifier = Modifier.size(22.dp))
         Spacer(Modifier.height(2.dp))
-        Text(text = label, fontSize = 10.sp, color = tint, fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal)
+        Text(text = label, fontSize = 10.sp, color = tint, fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium)
     }
 }
 
@@ -332,7 +336,7 @@ fun QrNavButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
         modifier = modifier
             .size(64.dp)
             .clip(CircleShape)
-            .background(TracksyQrBorder)
+            .background(TracksyDisabledButtonBackground)
             .clickable(onClick = onClick)
     ) {
         Box(
@@ -340,7 +344,7 @@ fun QrNavButton(onClick: () -> Unit, modifier: Modifier = Modifier) {
             modifier = Modifier
                 .size(60.dp)
                 .clip(CircleShape)
-                .background(TracksyNavActive)
+                .background(TracksyPrimaryPurple)
         ) {
             Icon(
                 imageVector = Icons.Outlined.QrCodeScanner,

@@ -9,7 +9,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
-import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
@@ -23,6 +22,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.tracksy.screens.NavTab
 import com.example.tracksy.screens.TracksyBottomBar
+import com.example.tracksy.ui.components.TracksyPrimaryButton
+import com.example.tracksy.ui.profile.ProfileAvatarImage
 import com.example.tracksy.ui.theme.LocalTracksyColors
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -33,6 +34,7 @@ fun HistoryScreen(
     items: List<HistoryItem> = HistoryMockData,
     selectedTab: NavTab = NavTab.HISTORY,
     onTabChange: (NavTab) -> Unit = {},
+    profilePhotoUri: String = "",
     onProfileClick: () -> Unit = {},
     isRefreshing: Boolean = false,
     onRefresh: () -> Unit = {},
@@ -79,7 +81,12 @@ fun HistoryScreen(
                         .background(colors.divider)
                         .clickable(onClick = onProfileClick)
                 ) {
-                    Icon(Icons.Outlined.Person, contentDescription = "Perfil", tint = colors.sectionText, modifier = Modifier.size(24.dp))
+                    ProfileAvatarImage(
+                        fotoUri = profilePhotoUri,
+                        colors = colors,
+                        iconSize = 24.dp,
+                        modifier = Modifier.fillMaxSize()
+                    )
                 }
             }
 
@@ -110,6 +117,7 @@ fun HistoryScreen(
 @Composable
 fun HistoryDetailScreen(
     item: HistoryItem,
+    profilePhotoUri: String = "",
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -136,7 +144,7 @@ fun HistoryDetailScreen(
                         modifier = Modifier.size(24.dp).clickable { onBackClick() }
                     )
                     Text(
-                        text = item.supermarketName,
+                        text = item.listName,
                         fontSize = 22.sp,
                         fontWeight = FontWeight.Bold,
                         color = colors.titleText
@@ -145,7 +153,12 @@ fun HistoryDetailScreen(
                         contentAlignment = Alignment.Center,
                         modifier = Modifier.size(42.dp).clip(CircleShape).background(colors.divider)
                     ) {
-                        Icon(Icons.Outlined.Person, contentDescription = "Perfil", tint = colors.sectionText, modifier = Modifier.size(24.dp))
+                        ProfileAvatarImage(
+                            fotoUri = profilePhotoUri,
+                            colors = colors,
+                            iconSize = 24.dp,
+                            modifier = Modifier.fillMaxSize()
+                        )
                     }
                 }
 
@@ -158,9 +171,8 @@ fun HistoryDetailScreen(
                     .background(colors.titleText)
                     .padding(horizontal = 24.dp, vertical = 24.dp)
             ) {
-                val statusText = if (item.status == PurchaseStatus.COMPLETED) "Completada" else "Incompleta"
                 Text(
-                    text = "${item.dateLabel} · ${item.productCount} productos · $statusText",
+                    text = "${item.dateLabel} · ${item.productCount} productos",
                     color = Color.White.copy(alpha = 0.8f),
                     fontSize = 12.sp,
                     fontWeight = FontWeight.Medium
@@ -203,14 +215,12 @@ fun HistoryDetailScreen(
                     .padding(24.dp)
                     .navigationBarsPadding()
             ) {
-                Button(
+                TracksyPrimaryButton(
+                    text = "Reutilizar Lista",
                     onClick = {},
-                    shape = RoundedCornerShape(50),
-                    colors = ButtonDefaults.buttonColors(containerColor = colors.titleText),
-                    modifier = Modifier.fillMaxWidth().height(52.dp)
-                ) {
-                    Text(text = "Reutilizar Lista", fontSize = 16.sp, fontWeight = FontWeight.Medium, color = Color.White)
-                }
+                    enabled = false,
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
         }
     }

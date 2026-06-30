@@ -50,7 +50,7 @@ private fun RecoverPasswordValidPreview() {
     TracksyTheme {
         RecoverPasswordContent(
             email = "juan.perez@gmail.com",
-            showEmailError = false,
+            emailErrorText = null,
             onEmailChange = {},
             onEmailFocusChanged = {},
             onBack = {},
@@ -65,7 +65,7 @@ private fun RecoverPasswordInvalidPreview() {
     TracksyTheme {
         RecoverPasswordContent(
             email = "juan.perez@gmail",
-            showEmailError = true,
+            emailErrorText = "Ingresá un correo electrónico válido",
             onEmailChange = {},
             onEmailFocusChanged = {},
             onBack = {},
@@ -172,7 +172,7 @@ private fun CreateAccountEmailAlreadyRegisteredPreview() {
             email = "juan.perez@gmail.com",
             password = "Mobile*123",
             confirmPassword = "Mobile*123",
-            emailErrorText = "Este correo ya está registrado",
+            emailErrorText = "Firebase rechazó el registro: ERROR_EMAIL_ALREADY_IN_USE",
             showPasswordRequirements = true
         )
     }

@@ -39,6 +39,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import com.example.tracksy.ui.components.TracksySecondaryButton
 import com.example.tracksy.ui.theme.TracksyBackground
 import com.example.tracksy.ui.theme.TracksyPrimary
 import com.example.tracksy.ui.theme.TracksyQrBorder
@@ -322,12 +323,11 @@ private fun PermissionDeniedView(onDismiss: () -> Unit) {
                 color     = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
             )
             Spacer(Modifier.height(28.dp))
-            Button(
+            TracksySecondaryButton(
+                text = "Volver",
                 onClick = onDismiss,
-                shape   = RoundedCornerShape(50)
-            ) {
-                Text("Volver")
-            }
+                modifier = Modifier.fillMaxWidth()
+            )
         }
     }
 }

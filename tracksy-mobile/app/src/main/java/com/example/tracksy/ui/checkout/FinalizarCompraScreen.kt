@@ -1,7 +1,6 @@
 package com.example.tracksy.ui.checkout
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -15,12 +14,16 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.tracksy.ui.components.TracksyPrimaryButton
+import com.example.tracksy.ui.components.TracksySecondaryButton
+import com.example.tracksy.ui.components.TracksyTextAction
+import com.example.tracksy.ui.components.TracksyTextField
 import com.example.tracksy.ui.theme.LocalTracksyColors
 import com.example.tracksy.ui.theme.TracksyColors
+import com.example.tracksy.ui.theme.TracksySuccessGreen
 import com.example.tracksy.ui.theme.TracksyWarningBadgeBackground
 
 data class PurchaseSummary(
@@ -38,10 +41,52 @@ data class PurchaseSummary(
 fun FinalizarCompraScreen(
     summary: PurchaseSummary,
     onBack: () -> Unit,
-    onConfirm: (createPendingList: Boolean) -> Unit
+    onConfirm: () -> Unit,
+    onCrearListaPendientes: (nombre: String) -> Unit = {}
 ) {
     val colors = LocalTracksyColors.current
-    var createPendingList by remember { mutableStateOf(true) }
+    var showNombreDialog by remember { mutableStateOf(false) }
+    var nombreLista by remember { mutableStateOf("") }
+    var listaYaCreada by remember { mutableStateOf(false) }
+    var listaOmitida by remember { mutableStateOf(false) }
+
+    if (showNombreDialog) {
+        AlertDialog(
+            onDismissRequest = { showNombreDialog = false; nombreLista = "" },
+            containerColor    = colors.surface,
+            titleContentColor = colors.titleText,
+            textContentColor  = colors.subtitleText,
+            title = { Text("Nombre de la nueva lista") },
+            text = {
+                TracksyTextField(
+                    value = nombreLista,
+                    onValueChange = { nombreLista = it },
+                    label = "Ingresá un nombre..."
+                )
+            },
+            confirmButton = {
+                TracksyTextAction(
+                    text = "Crear",
+                    onClick = {
+                        if (nombreLista.isNotBlank()) {
+                            onCrearListaPendientes(nombreLista.trim())
+                            listaYaCreada = true
+                            showNombreDialog = false
+                            nombreLista = ""
+                        }
+                    },
+                    enabled = nombreLista.isNotBlank()
+                )
+            },
+            dismissButton = {
+                TracksyTextAction(
+                    text = "Cancelar",
+                    onClick = { showNombreDialog = false; nombreLista = "" },
+                    contentColor = colors.subtitleText
+                )
+            }
+        )
+    }
 
     Scaffold(containerColor = colors.background) { padding ->
         Box(
@@ -83,34 +128,26 @@ fun FinalizarCompraScreen(
 
                 SummaryCard(summary = summary, colors = colors)
 
-                if (summary.hasPending) {
+                if (summary.hasPending && !listaOmitida) {
                     Spacer(Modifier.height(16.dp))
                     PendingListSuggestion(
-                        pendingItems = summary.pendingItems,
-                        createList = createPendingList,
-                        colors = colors,
-                        onToggle = { createPendingList = it }
+                        pendingItems  = summary.pendingItems,
+                        listaYaCreada = listaYaCreada,
+                        colors        = colors,
+                        onCrearLista  = { showNombreDialog = true },
+                        onOmitir      = { listaOmitida = true }
                     )
                 }
             }
 
-            Button(
-                onClick = { onConfirm(createPendingList && summary.hasPending) },
-                shape = RoundedCornerShape(50),
-                colors = ButtonDefaults.buttonColors(containerColor = colors.primary),
+            TracksyPrimaryButton(
+                text = "Confirmar y guardar en historial",
+                onClick = onConfirm,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
                     .padding(horizontal = 20.dp, vertical = 16.dp)
-                    .height(56.dp)
-            ) {
-                Text(
-                    text = "Confirmar y guardar en historial",
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = Color.White
-                )
-            }
+            )
         }
     }
 }
@@ -129,12 +166,7 @@ private fun FinalizarCompraTopBar(onBack: () -> Unit, colors: TracksyColors) {
             modifier = Modifier.size(24.dp).clickable(onClick = onBack)
         )
         Text(text = "Finalizar compra", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = colors.titleText)
-        Box(
-            contentAlignment = Alignment.Center,
-            modifier = Modifier.size(42.dp).clip(CircleShape).background(colors.divider)
-        ) {
-            Icon(imageVector = Icons.Outlined.Person, contentDescription = "Perfil", tint = colors.sectionText, modifier = Modifier.size(24.dp))
-        }
+        Spacer(Modifier.size(42.dp))
     }
 }
 
@@ -202,18 +234,17 @@ private fun SummaryRow(label: String, value: String, emphasized: Boolean = false
 @Composable
 private fun PendingListSuggestion(
     pendingItems: List<String>,
-    createList: Boolean,
+    listaYaCreada: Boolean,
     colors: TracksyColors,
-    onToggle: (Boolean) -> Unit
+    onCrearLista: () -> Unit,
+    onOmitir: () -> Unit
 ) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .border(1.dp, colors.divider, RoundedCornerShape(16.dp))
-            .padding(horizontal = 18.dp, vertical = 16.dp)
+    Surface(
+        shape = RoundedCornerShape(16.dp),
+        color = colors.surface,
+        modifier = Modifier.fillMaxWidth()
     ) {
-        Column {
+        Column(modifier = Modifier.padding(horizontal = 18.dp, vertical = 16.dp)) {
             Text(
                 text = "¿Agregar pendientes a una nueva lista?",
                 fontSize = 15.sp,
@@ -223,27 +254,25 @@ private fun PendingListSuggestion(
             Spacer(Modifier.height(6.dp))
             Text(text = pendingItems.joinToString(", "), fontSize = 13.sp, color = colors.subtitleText)
             Spacer(Modifier.height(14.dp))
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Button(
-                    onClick = { onToggle(true) },
-                    modifier = Modifier.weight(1f).height(44.dp),
-                    shape = RoundedCornerShape(50),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (createList) colors.primary else colors.divider,
-                        contentColor = if (createList) Color.White else colors.titleText
+            if (listaYaCreada) {
+                Text(
+                    text = "Lista creada con los productos pendientes",
+                    fontSize = 13.sp,
+                    color = TracksySuccessGreen,
+                    fontWeight = FontWeight.Medium
+                )
+            } else {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    TracksyPrimaryButton(
+                        text = "Sí, crear lista",
+                        onClick = onCrearLista,
+                        modifier = Modifier.weight(1f)
                     )
-                ) {
-                    Text("Sí, crear lista", fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
-                }
-                OutlinedButton(
-                    onClick = { onToggle(false) },
-                    modifier = Modifier.weight(1f).height(44.dp),
-                    shape = RoundedCornerShape(50),
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = if (!createList) colors.primary else colors.subtitleText
+                    TracksySecondaryButton(
+                        text = "No, omitir",
+                        onClick = onOmitir,
+                        modifier = Modifier.weight(1f)
                     )
-                ) {
-                    Text("No, omitir", fontSize = 13.sp, fontWeight = if (!createList) FontWeight.SemiBold else FontWeight.Normal)
                 }
             }
         }

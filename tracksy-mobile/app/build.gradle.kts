@@ -83,6 +83,8 @@ dependencies {
     // Coroutines
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.coroutines.play.services)
+    // Ubicación (FusedLocationProviderClient) — geolocalización
+    implementation("com.google.android.gms:play-services-location:21.3.0")
     // ViewModel Compose
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     // Firebase

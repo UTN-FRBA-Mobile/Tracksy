@@ -1,59 +1,186 @@
 package com.example.tracksy.viewmodel
 
 import android.content.Context
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.viewModelScope
+import com.example.tracksy.data.auth.FirebaseAuthService
 import com.example.tracksy.data.local.TokenManager
 import com.example.tracksy.data.repository.TracksyRepository
+import com.google.firebase.FirebaseNetworkException
+import com.google.firebase.auth.FirebaseAuthException
+import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
+import com.google.firebase.auth.FirebaseAuthInvalidUserException
+import com.google.firebase.auth.FirebaseAuthUserCollisionException
+import com.google.firebase.auth.FirebaseAuthWeakPasswordException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.launch
 
 class AuthViewModel(
     private val repo: TracksyRepository,
-    val tokenManager: TokenManager
+    private val firebaseAuthService: FirebaseAuthService,
+    private val tokenManager: TokenManager
 ) : ViewModel() {
 
-    private val _isAuthenticated = MutableStateFlow(tokenManager.isLoggedIn())
+    private val _isAuthenticated = MutableStateFlow(
+        firebaseAuthService.isAuthenticated() && !tokenManager.pendingEmailVerification
+    )
     val isAuthenticated: StateFlow<Boolean> = _isAuthenticated
 
-    suspend fun login(email: String, password: String): Boolean {
-        return try {
-            val response = repo.login(email, password)
-            if (response.isSuccessful) {
-                val body = response.body()!!
-                tokenManager.accessToken  = body.access
-                tokenManager.refreshToken = body.refresh
-                _isAuthenticated.value = true
-                true
-            } else false
-        } catch (e: Exception) {
-            false
+    suspend fun login(email: String, password: String): String? {
+        return authenticateWithFirebase {
+            firebaseAuthService.login(email, password)
         }
     }
 
-    suspend fun registro(nombre: String, email: String, password: String): Boolean {
+    suspend fun registro(nombre: String, email: String, password: String): String? {
         return try {
-            val response = repo.registro(nombre, email, password)
-            if (response.isSuccessful) {
-                login(email, password)
-            } else false
+            firebaseAuthService.register(nombre, email, password)
+            val syncResponse = repo.firebaseSync()
+            if (!syncResponse.isSuccessful) {
+                return "Django rechazó el sync Firebase: HTTP ${syncResponse.code()}."
+            }
+            tokenManager.pendingEmailVerification = true
+            _isAuthenticated.value = false
+            null
+        } catch (e: FirebaseAuthUserCollisionException) {
+            Log.e("AuthViewModel", "Firebase register failed: ${e.errorCode}", e)
+            "Ya existe una cuenta con este correo. Iniciá sesión o recuperá tu contraseña."
+        } catch (e: FirebaseAuthWeakPasswordException) {
+            Log.e("AuthViewModel", "Firebase register failed: ${e.errorCode}", e)
+            e.reason ?: "Firebase rechazó el registro: ${e.errorCode}"
+        } catch (e: FirebaseAuthInvalidCredentialsException) {
+            Log.e("AuthViewModel", "Firebase register failed: ${e.errorCode}", e)
+            "Ingresá un correo electrónico válido."
+        } catch (e: FirebaseNetworkException) {
+            "No se pudo conectar con Firebase. Revisá la conexión a internet."
+        } catch (e: FirebaseAuthException) {
+            Log.e("AuthViewModel", "Firebase register failed: ${e.errorCode}", e)
+            when (e.errorCode) {
+                "ERROR_OPERATION_NOT_ALLOWED" ->
+                    "El proveedor Email/Password no está habilitado en Firebase Console."
+                "ERROR_APP_NOT_AUTHORIZED" ->
+                    "La app no está autorizada en Firebase. Revisá package name, google-services.json y SHA."
+                else ->
+                    "Firebase rechazó el registro: ${e.errorCode}"
+            }
         } catch (e: Exception) {
-            false
+            Log.e("AuthViewModel", "Register failed", e)
+            "No se pudo crear la cuenta. Revisá Logcat para ver el error de Firebase."
         }
+    }
+
+    private suspend fun authenticateWithFirebase(authAction: suspend () -> Unit): String? {
+        return try {
+            authAction()
+            syncFirebaseUser()
+        } catch (e: FirebaseAuthUserCollisionException) {
+            Log.e("AuthViewModel", "Firebase register failed: ${e.errorCode}", e)
+            "Ya existe una cuenta con este correo. Iniciá sesión o recuperá tu contraseña."
+        } catch (e: FirebaseAuthWeakPasswordException) {
+            Log.e("AuthViewModel", "Firebase register failed: ${e.errorCode}", e)
+            e.reason ?: "Firebase rechazó el registro: ${e.errorCode}"
+        } catch (e: FirebaseAuthInvalidCredentialsException) {
+            Log.e("AuthViewModel", "Firebase register failed: ${e.errorCode}", e)
+            when (e.errorCode) {
+                "ERROR_INVALID_CREDENTIAL",
+                "ERROR_INVALID_EMAIL",
+                "ERROR_WRONG_PASSWORD" ->
+                    "El correo o la contraseña son incorrectos."
+                else ->
+                    "Firebase rechazó la autenticación: ${e.errorCode}"
+            }
+        } catch (e: FirebaseAuthInvalidUserException) {
+            Log.e("AuthViewModel", "Firebase auth failed: ${e.errorCode}", e)
+            "No existe una cuenta Firebase activa para ese correo."
+        } catch (e: FirebaseNetworkException) {
+            "No se pudo conectar con Firebase. Revisá la conexión a internet."
+        } catch (e: FirebaseAuthException) {
+            Log.e("AuthViewModel", "Firebase register failed: ${e.errorCode}", e)
+            when (e.errorCode) {
+                "ERROR_OPERATION_NOT_ALLOWED" ->
+                    "El proveedor Email/Password no está habilitado en Firebase Console."
+                "ERROR_APP_NOT_AUTHORIZED" ->
+                    "La app no está autorizada en Firebase. Revisá package name, google-services.json y SHA."
+                else ->
+                    "Firebase rechazó el registro: ${e.errorCode}"
+            }
+        } catch (e: Exception) {
+            Log.e("AuthViewModel", "Register failed", e)
+            "No se pudo crear la cuenta. Revisá Logcat para ver el error de Firebase."
+        }
+    }
+
+    private suspend fun syncFirebaseUser(): String? {
+        val syncResponse = repo.firebaseSync()
+        if (!syncResponse.isSuccessful) {
+            return "Django rechazó el sync Firebase: HTTP ${syncResponse.code()}."
+        }
+
+        tokenManager.pendingEmailVerification = false
+        _isAuthenticated.value = true
+        return null
     }
 
     fun logout() {
-        tokenManager.clear()
+        firebaseAuthService.logout()
+        tokenManager.pendingEmailVerification = false
         _isAuthenticated.value = false
     }
 
-    val token: String get() = tokenManager.accessToken ?: ""
+    suspend fun resendEmailVerification(): String? {
+        return try {
+            firebaseAuthService.sendEmailVerification()
+            null
+        } catch (e: FirebaseNetworkException) {
+            "No se pudo conectar con Firebase. Revisá la conexión a internet."
+        } catch (e: FirebaseAuthException) {
+            Log.e("AuthViewModel", "Firebase email verification resend failed: ${e.errorCode}", e)
+            "Firebase rechazó el reenvío de verificación: ${e.errorCode}"
+        } catch (e: Exception) {
+            Log.e("AuthViewModel", "Email verification resend failed", e)
+            "No se pudo reenviar el email de verificación."
+        }
+    }
+
+    suspend fun refreshEmailVerification(): Boolean {
+        return try {
+            firebaseAuthService.reloadCurrentUser()
+            if (!firebaseAuthService.isEmailVerified()) {
+                return false
+            }
+            tokenManager.pendingEmailVerification = false
+            syncFirebaseUser() == null
+        } catch (e: Exception) {
+            Log.e("AuthViewModel", "Email verification refresh failed", e)
+            false
+        }
+    }
+
+    suspend fun sendPasswordReset(email: String): String? {
+        return try {
+            firebaseAuthService.sendPasswordReset(email)
+            null
+        } catch (e: FirebaseAuthInvalidCredentialsException) {
+            Log.e("AuthViewModel", "Firebase password reset failed: ${e.errorCode}", e)
+            "Ingresá un correo electrónico válido."
+        } catch (e: FirebaseAuthInvalidUserException) {
+            Log.e("AuthViewModel", "Firebase password reset failed: ${e.errorCode}", e)
+            null
+        } catch (e: FirebaseNetworkException) {
+            "No se pudo conectar con Firebase. Revisá la conexión a internet."
+        } catch (e: FirebaseAuthException) {
+            Log.e("AuthViewModel", "Firebase password reset failed: ${e.errorCode}", e)
+            "Firebase rechazó el recupero de contraseña: ${e.errorCode}"
+        } catch (e: Exception) {
+            Log.e("AuthViewModel", "Password reset failed", e)
+            "No se pudo enviar el email de recuperación. Revisá Logcat para ver el error."
+        }
+    }
 
     class Factory(private val context: Context) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T =
-            AuthViewModel(TracksyRepository(), TokenManager(context)) as T
+            AuthViewModel(TracksyRepository(), FirebaseAuthService(), TokenManager(context)) as T
     }
 }

@@ -17,8 +17,12 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Person
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -29,6 +33,10 @@ import androidx.compose.ui.unit.sp
 import com.example.tracksy.data.models.ListaCompra
 import com.example.tracksy.data.models.Supermercado
 import com.example.tracksy.screens.Product
+import com.example.tracksy.ui.components.TracksyPrimaryButton
+import com.example.tracksy.ui.components.TracksySecondaryButton
+import com.example.tracksy.ui.components.TracksyTextAction
+import com.example.tracksy.ui.components.TracksyTextField
 import com.example.tracksy.ui.theme.LocalTracksyColors
 import com.example.tracksy.ui.theme.TracksyColors
 import com.example.tracksy.ui.utils.dashedBorder
@@ -114,18 +122,18 @@ fun EditarListaScreen(
             title = { Text("¿Descartar cambios?") },
             text  = { Text("Si salís ahora perderás lo que ingresaste.") },
             confirmButton = {
-                TextButton(onClick = { showExitDialog = false; onBack() }) {
-                    Text(
-                        "Descartar",
-                        color = MaterialTheme.colorScheme.error,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
+                TracksyTextAction(
+                    text = "Descartar",
+                    onClick = { showExitDialog = false; onBack() },
+                    contentColor = colors.errorRed
+                )
             },
             dismissButton = {
-                TextButton(onClick = { showExitDialog = false }) {
-                    Text("Cancelar", color = colors.subtitleText)
-                }
+                TracksyTextAction(
+                    text = "Cancelar",
+                    onClick = { showExitDialog = false },
+                    contentColor = colors.subtitleText
+                )
             }
         )
     }
@@ -154,33 +162,16 @@ fun EditarListaScreen(
                         modifier = Modifier.size(24.dp).clickable { tryBack() }
                     )
                     Text(text = tituloScreen, fontSize = 22.sp, fontWeight = FontWeight.Bold, color = colors.titleText)
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier.size(42.dp).clip(CircleShape).background(colors.divider)
-                    ) {
-                        Icon(Icons.Outlined.Person, contentDescription = "Perfil", tint = colors.sectionText, modifier = Modifier.size(24.dp))
-                    }
+                    Spacer(Modifier.size(42.dp))
                 }
 
                 Spacer(Modifier.height(12.dp))
 
                 // ── Nombre ────────────────────────────────────────────────────
-                FieldLabel("Nombre de la lista", colors)
-                OutlinedTextField(
+                TracksyTextField(
                     value = listaNombre,
                     onValueChange = { listaNombre = it },
-                    placeholder = { Text("Nombre de la lista", color = colors.subtitleText, fontSize = 15.sp) },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = colors.surface,
-                        unfocusedContainerColor = colors.surface,
-                        focusedBorderColor = Color.Transparent,
-                        unfocusedBorderColor = Color.Transparent,
-                        focusedTextColor = colors.titleText,
-                        unfocusedTextColor = colors.titleText
-                    ),
-                    singleLine = true
+                    label = "Nombre de la lista"
                 )
 
                 // ── Supermercado ──────────────────────────────────────────────
@@ -291,47 +282,27 @@ fun EditarListaScreen(
                     }
                 } else {
                     // Campo manual
-                    OutlinedTextField(
+                    TracksyTextField(
                         value = barcodeManual,
                         onValueChange = { barcodeManual = it },
-                        placeholder = { Text("Ingresar código de barras...", color = colors.subtitleText, fontSize = 15.sp) },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedContainerColor = colors.surface,
-                            unfocusedContainerColor = colors.surface,
-                            focusedBorderColor = colors.primary,
-                            unfocusedBorderColor = Color.Transparent,
-                            focusedTextColor = colors.titleText,
-                            unfocusedTextColor = colors.titleText
-                        ),
-                        trailingIcon = {
+                        label = "Ingresar código de barras...",
+                        keyboardType = KeyboardType.Number,
+                        imeAction = ImeAction.Search,
+                        keyboardActions = KeyboardActions(onSearch = { onBuscarCatalogo(barcodeManual) }),
+                        trailingContent = {
                             Icon(Icons.Default.Edit, contentDescription = null, tint = colors.subtitleText)
-                        },
-                        singleLine = true
+                        }
                     )
                 }
 
                 // ── Buscar en catálogo ────────────────────────────────────────
-                FieldLabel("Buscar en catálogo", colors)
-                OutlinedTextField(
+                TracksyTextField(
                     value = busquedaCatalogo,
                     onValueChange = { busquedaCatalogo = it },
-                    placeholder = { Text("Buscar producto...", color = colors.subtitleText, fontSize = 15.sp) },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedContainerColor = colors.surface,
-                        unfocusedContainerColor = colors.surface,
-                        focusedBorderColor = Color.Transparent,
-                        unfocusedBorderColor = Color.Transparent,
-                        focusedTextColor = colors.titleText,
-                        unfocusedTextColor = colors.titleText
-                    ),
-                    trailingIcon = {
+                    label = "Buscar producto...",
+                    trailingContent = {
                         Icon(Icons.Default.Search, contentDescription = null, tint = colors.subtitleText)
-                    },
-                    singleLine = true
+                    }
                 )
 
                 // Resultados del catálogo
@@ -413,27 +384,21 @@ fun EditarListaScreen(
                     .padding(horizontal = 20.dp, vertical = 14.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                OutlinedButton(
+                TracksySecondaryButton(
+                    text = "Cancelar",
                     onClick = { tryBack() },
-                    modifier = Modifier.weight(1f).height(52.dp),
-                    shape = RoundedCornerShape(50),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = colors.titleText)
-                ) {
-                    Text("Cancelar", fontSize = 14.sp, fontWeight = FontWeight.Medium)
-                }
-                Button(
+                    modifier = Modifier.weight(1f)
+                )
+                TracksyPrimaryButton(
+                    text = "Confirmar",
                     onClick = {
                         if (listaNombre.isNotBlank()) {
                             onConfirmar(listaNombre.trim(), supermercadoSeleccionado?.id, itemsEnLista)
                         }
                     },
                     enabled = listaNombre.isNotBlank(),
-                    modifier = Modifier.weight(1f).height(52.dp),
-                    shape = RoundedCornerShape(50),
-                    colors = ButtonDefaults.buttonColors(containerColor = colors.titleText)
-                ) {
-                    Text("Confirmar", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = Color.White)
-                }
+                    modifier = Modifier.weight(1f)
+                )
             }
         }
     }

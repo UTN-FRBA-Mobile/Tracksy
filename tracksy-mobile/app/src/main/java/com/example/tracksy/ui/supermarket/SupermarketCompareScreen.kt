@@ -174,17 +174,7 @@ fun CompararSupermercadosScreen(
                     fontWeight = FontWeight.Bold,
                     color = colors.titleText
                 )
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier.size(42.dp).clip(CircleShape).background(colors.divider)
-                ) {
-                    Icon(
-                        Icons.Outlined.Person,
-                        contentDescription = "Perfil",
-                        tint = colors.sectionText,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
+                Spacer(Modifier.size(42.dp))
             }
 
             // ── Subtítulo con info de la lista ────────────────────────────────

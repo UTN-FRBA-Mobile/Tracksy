@@ -9,7 +9,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Star
 import androidx.compose.material3.*
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -22,6 +21,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.tracksy.ui.components.TracksyTextField
+import com.example.tracksy.ui.profile.ProfileAvatarImage
 import com.example.tracksy.ui.theme.LocalTracksyColors
 
 data class Product(
@@ -38,6 +39,7 @@ fun ProductsScreen(
     onTabChange: (NavTab) -> Unit,
     productosApi: List<Product> = emptyList(),
     favoritosApi: List<Product> = emptyList(),
+    profilePhotoUri: String = "",
     onProductTap: (Product) -> Unit = {},
     onProfileClick: () -> Unit = {},
     onSearchChange: (String) -> Unit = {},
@@ -111,11 +113,11 @@ fun ProductsScreen(
                             .background(colors.divider)
                             .clickable(onClick = onProfileClick)
                     ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Person,
-                            contentDescription = "Perfil",
-                            tint = colors.sectionText,
-                            modifier = Modifier.size(24.dp)
+                        ProfileAvatarImage(
+                            fotoUri = profilePhotoUri,
+                            colors = colors,
+                            iconSize = 24.dp,
+                            modifier = Modifier.fillMaxSize()
                         )
                     }
                 }
@@ -123,22 +125,10 @@ fun ProductsScreen(
                 Spacer(Modifier.height(20.dp))
 
                 // ── Buscador ───────────────────────────────────────────────────
-                TextField(
+                TracksyTextField(
                     value = searchQuery,
                     onValueChange = { searchQuery = it; onSearchChange(it) },
-                    placeholder = {
-                        Text("Buscar productos...", color = colors.subtitleText, fontSize = 15.sp)
-                    },
-                    shape = RoundedCornerShape(16.dp),
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor   = colors.surface,
-                        unfocusedContainerColor = colors.surface,
-                        focusedIndicatorColor   = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent,
-                        cursorColor             = colors.primary
-                    ),
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
+                    label = "Buscar productos..."
                 )
 
                 Spacer(Modifier.height(20.dp))

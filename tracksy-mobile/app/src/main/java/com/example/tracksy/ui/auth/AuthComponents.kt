@@ -62,6 +62,11 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.tracksy.R
+import com.example.tracksy.ui.components.TracksyErrorMessage as SharedTracksyErrorMessage
+import com.example.tracksy.ui.components.TracksyPasswordField as SharedTracksyPasswordField
+import com.example.tracksy.ui.components.TracksyPrimaryButton as SharedTracksyPrimaryButton
+import com.example.tracksy.ui.components.TracksySecondaryButton as SharedTracksySecondaryButton
+import com.example.tracksy.ui.components.TracksyTextField as SharedTracksyTextField
 import com.example.tracksy.ui.theme.TracksyBorderSoft
 import com.example.tracksy.ui.theme.TracksyDisabledButtonBackground
 import com.example.tracksy.ui.theme.TracksyDisabledButtonText
@@ -227,76 +232,20 @@ fun TracksyTextField(
     visualTransformation: VisualTransformation = VisualTransformation.None,
     trailingContent: (@Composable () -> Unit)? = null
 ) {
-    var isFocused by remember { mutableStateOf(false) }
-    val showLabel = isFocused || value.isNotEmpty()
-    val borderColor = if (isError) TracksyErrorRed else TracksyBorderSoft.copy(alpha = 0.35f)
-
-    Column(modifier = modifier.fillMaxWidth()) {
-        AnimatedVisibility(
-            visible = showLabel,
-            enter = fadeIn() + expandVertically(),
-            exit = fadeOut() + shrinkVertically()
-        ) {
-            Text(
-                text = label,
-                color = TracksyTextSecondary,
-                style = FieldTextStyle,
-                modifier = Modifier.padding(start = 15.dp, bottom = 5.dp)
-            )
-        }
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(44.dp)
-                .shadow(2.dp, AuthFieldShape, clip = false)
-                .border(1.dp, borderColor, AuthFieldShape),
-            shape = AuthFieldShape,
-            color = Color.White
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(start = 15.dp, end = if (trailingContent == null) 15.dp else 9.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                BasicTextField(
-                    value = value,
-                    onValueChange = onValueChange,
-                    modifier = Modifier
-                        .weight(1f)
-                        .onFocusChanged {
-                            isFocused = it.isFocused
-                            onFocusChanged(it.isFocused)
-                        },
-                    enabled = enabled,
-                    singleLine = true,
-                    textStyle = FieldTextStyle.copy(color = TracksyTextPrimary),
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = keyboardType,
-                        imeAction = imeAction
-                    ),
-                    keyboardActions = keyboardActions,
-                    visualTransformation = visualTransformation,
-                    decorationBox = { innerTextField ->
-                        Box(
-                            modifier = Modifier.fillMaxWidth(),
-                            contentAlignment = Alignment.CenterStart
-                        ) {
-                            if (value.isEmpty() && !isFocused) {
-                                Text(
-                                    text = label,
-                                    color = TracksyPlaceholder,
-                                    style = FieldTextStyle
-                                )
-                            }
-                            innerTextField()
-                        }
-                    }
-                )
-                trailingContent?.invoke()
-            }
-        }
-    }
+    SharedTracksyTextField(
+        value = value,
+        onValueChange = onValueChange,
+        label = label,
+        modifier = modifier,
+        enabled = enabled,
+        isError = isError,
+        onFocusChanged = onFocusChanged,
+        keyboardType = keyboardType,
+        imeAction = imeAction,
+        keyboardActions = keyboardActions,
+        visualTransformation = visualTransformation,
+        trailingContent = trailingContent
+    )
 }
 
 @Composable
@@ -311,9 +260,7 @@ fun TracksyPasswordField(
     imeAction: ImeAction = ImeAction.Done,
     keyboardActions: KeyboardActions = KeyboardActions.Default
 ) {
-    var passwordVisible by remember { mutableStateOf(false) }
-
-    TracksyTextField(
+    SharedTracksyPasswordField(
         value = value,
         onValueChange = onValueChange,
         label = label,
@@ -321,20 +268,8 @@ fun TracksyPasswordField(
         enabled = enabled,
         isError = isError,
         onFocusChanged = onFocusChanged,
-        keyboardType = KeyboardType.Password,
         imeAction = imeAction,
-        keyboardActions = keyboardActions,
-        visualTransformation = if (passwordVisible) {
-            VisualTransformation.None
-        } else {
-            PasswordVisualTransformation()
-        },
-        trailingContent = {
-            PasswordVisibilityButton(
-                visible = passwordVisible,
-                onClick = { passwordVisible = !passwordVisible }
-            )
-        }
+        keyboardActions = keyboardActions
     )
 }
 
@@ -388,58 +323,27 @@ fun TracksyPrimaryButton(
     modifier: Modifier = Modifier,
     enabled: Boolean = true
 ) {
-    Button(
+    SharedTracksyPrimaryButton(
+        text = text,
         onClick = onClick,
-        modifier = modifier
-            .fillMaxWidth()
-            .height(44.dp)
-            .shadow(2.dp, AuthButtonShape, clip = false),
-        enabled = enabled,
-        shape = AuthButtonShape,
-        colors = ButtonDefaults.buttonColors(
-            containerColor = TracksyPrimaryPurple,
-            contentColor = Color.White,
-            disabledContainerColor = TracksyDisabledButtonBackground,
-            disabledContentColor = TracksyDisabledButtonText
-        ),
-        contentPadding = PaddingValues(horizontal = 12.dp)
-    ) {
-        Text(
-            text = text,
-            style = ButtonTextStyle,
-            maxLines = 1
-        )
-    }
+        modifier = modifier,
+        enabled = enabled
+    )
 }
 
 @Composable
 fun TracksySecondaryButton(
     text: String,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true
 ) {
-    Button(
+    SharedTracksySecondaryButton(
+        text = text,
         onClick = onClick,
-        modifier = modifier
-            .fillMaxWidth()
-            .height(44.dp)
-            .shadow(2.dp, AuthButtonShape, clip = false),
-        shape = AuthButtonShape,
-        border = BorderStroke(1.dp, TracksyBorderSoft),
-        colors = ButtonDefaults.buttonColors(
-            containerColor = Color.White.copy(alpha = 0.94f),
-            contentColor = TracksyPrimaryPurple,
-            disabledContainerColor = Color.White.copy(alpha = 0.94f),
-            disabledContentColor = TracksyPrimaryPurple
-        ),
-        contentPadding = PaddingValues(horizontal = 12.dp)
-    ) {
-        Text(
-            text = text,
-            style = ButtonTextStyle,
-            maxLines = 1
-        )
-    }
+        modifier = modifier,
+        enabled = enabled
+    )
 }
 
 @Composable
@@ -493,34 +397,7 @@ fun ErrorMessage(
     text: String,
     modifier: Modifier = Modifier
 ) {
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Canvas(modifier = Modifier.size(14.dp)) {
-            drawLine(
-                color = TracksyErrorRed,
-                start = Offset(size.width * 0.18f, size.height * 0.18f),
-                end = Offset(size.width * 0.82f, size.height * 0.82f),
-                strokeWidth = 1.6.dp.toPx(),
-                cap = StrokeCap.Round
-            )
-            drawLine(
-                color = TracksyErrorRed,
-                start = Offset(size.width * 0.82f, size.height * 0.18f),
-                end = Offset(size.width * 0.18f, size.height * 0.82f),
-                strokeWidth = 1.6.dp.toPx(),
-                cap = StrokeCap.Round
-            )
-        }
-        Spacer(modifier = Modifier.width(7.dp))
-        Text(
-            text = text,
-            color = TracksyErrorRed,
-            style = LinkTextStyle.copy(fontWeight = FontWeight.Medium),
-            maxLines = 1
-        )
-    }
+    SharedTracksyErrorMessage(text = text, modifier = modifier)
 }
 
 @Composable
@@ -586,7 +463,8 @@ fun AuthSecondaryButton(
     TracksySecondaryButton(
         text = text,
         onClick = onClick,
-        modifier = modifier.widthIn(max = 254.dp)
+        modifier = modifier.widthIn(max = 254.dp),
+        enabled = enabled
     )
 }
 

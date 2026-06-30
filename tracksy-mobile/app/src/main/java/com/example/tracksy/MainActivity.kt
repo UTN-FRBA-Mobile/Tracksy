@@ -1,17 +1,28 @@
 package com.example.tracksy
 
+import android.Manifest
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
+import androidx.core.content.ContextCompat
 import com.example.tracksy.data.local.TokenManager
+import com.example.tracksy.data.local.UserPreferencesRepository
+import com.example.tracksy.location.LocationService
+import com.example.tracksy.location.ProximityTargets
+import com.example.tracksy.location.SupermarketTarget
+import com.example.tracksy.recommendations.RecommendationWorker
 import com.example.tracksy.screens.BarcodeScannerScreen
 import com.example.tracksy.screens.HomeScreen
 import com.example.tracksy.screens.NavTab
@@ -35,12 +46,15 @@ import com.example.tracksy.ui.profile.EditarPerfilScreen
 import com.example.tracksy.ui.profile.PerfilScreen
 import com.example.tracksy.ui.profile.PerfilUsuario
 import com.example.tracksy.ui.supermarket.CompararSupermercadosScreen
+import com.example.tracksy.ui.components.TracksyTextAction
+import com.example.tracksy.ui.theme.LocalTracksyColors
 import com.example.tracksy.ui.theme.TracksyTheme
 import com.example.tracksy.viewmodel.AuthViewModel
 import com.example.tracksy.viewmodel.CompraViewModel
 import com.example.tracksy.viewmodel.ListaViewModel
 import com.example.tracksy.viewmodel.PerfilViewModel
 import com.example.tracksy.viewmodel.ProductoViewModel
+import com.example.tracksy.viewmodel.RecommendationViewModel
 
 enum class AppScreen {
     EditarLista, DetalleLista, CompararSupermercados, FinalizarCompra
@@ -49,12 +63,58 @@ enum class AppScreen {
 class MainActivity : ComponentActivity() {
 
     private val tokenManager by lazy { TokenManager(this) }
+    private val userPrefs    by lazy { UserPreferencesRepository(this) }
 
-    private val authViewModel:     AuthViewModel     by viewModels { AuthViewModel.Factory(this) }
-    private val perfilViewModel:   PerfilViewModel   by viewModels { PerfilViewModel.Factory(this) }
-    private val productoViewModel: ProductoViewModel by viewModels { ProductoViewModel.Factory(this) }
-    private val listaViewModel:    ListaViewModel    by viewModels { ListaViewModel.Factory(this) }
-    private val compraViewModel:   CompraViewModel   by viewModels { CompraViewModel.Factory(this) }
+    companion object {
+        // Activar para testear sin backend ni Firebase
+        const val DEBUG_BYPASS_AUTH = true
+    }
+
+    private fun loadDebugMockData() {
+        val storage = com.example.tracksy.data.local.RecommendationStorage(this)
+        if (storage.loadVisible().isEmpty()) {
+            storage.mergeAndSave(
+                listOf(
+                    com.example.tracksy.recommendations.Recommendation(
+                        productoId = 7790001001234L,
+                        productoNombre = "Leche La Serenísima 1L",
+                        criterionType = com.example.tracksy.recommendations.RecommendationCriterionType.FAVORITO_NO_PLANIFICADO,
+                        reason = "Es tu favorito y no está planificado"
+                    ),
+                    com.example.tracksy.recommendations.Recommendation(
+                        productoId = 7790001005678L,
+                        productoNombre = "Pan Lactal Bimbo",
+                        criterionType = com.example.tracksy.recommendations.RecommendationCriterionType.PRODUCTO_FRECUENTE,
+                        reason = "Lo compraste 4 veces en el último mes"
+                    ),
+                    com.example.tracksy.recommendations.Recommendation(
+                        productoId = 7790001009999L,
+                        productoNombre = "Yogur Activia x4",
+                        criterionType = com.example.tracksy.recommendations.RecommendationCriterionType.PRODUCTO_FRECUENTE,
+                        reason = "Lo compraste 3 veces en el último mes"
+                    )
+                )
+            )
+        }
+
+        // Supermercado mock cercano — reemplazar lat/lon por las del dispositivo de prueba
+        com.example.tracksy.location.ProximityTargets.targets = listOf(
+            com.example.tracksy.location.SupermarketTarget(
+                supermercadoId = 1,
+                nombre = "Carrefour Palermo",
+                listaNombre = "Lista del super (demo)",
+                latitud = -34.5885,   // <-- reemplazar con coordenadas reales para la prueba
+                longitud = -58.4310
+            )
+        )
+    }
+
+    private val authViewModel:           AuthViewModel           by viewModels { AuthViewModel.Factory(this) }
+    private val perfilViewModel:         PerfilViewModel         by viewModels { PerfilViewModel.Factory(this) }
+    private val productoViewModel:       ProductoViewModel       by viewModels { ProductoViewModel.Factory(this) }
+    private val listaViewModel:          ListaViewModel          by viewModels { ListaViewModel.Factory(this) }
+    private val compraViewModel:         CompraViewModel         by viewModels { CompraViewModel.Factory(this) }
+    private val recommendationViewModel: RecommendationViewModel by viewModels { RecommendationViewModel.Factory(this) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -80,31 +140,37 @@ class MainActivity : ComponentActivity() {
                 val listados             by listaViewModel.listados.collectAsState()
                 val compras              by compraViewModel.compras.collectAsState()
 
-                // ── Sugerencias derivadas del historial de compras ───────────
-                val sugerenciasGeneradas by remember(compras, productos) {
-                    derivedStateOf {
-                        compras
-                            .flatMap { it.products }
-                            .groupBy { it.name }
-                            .entries
-                            .sortedByDescending { it.value.size }
-                            .take(5)
-                            .map { entry ->
-                                val nombre = entry.key
-                                val veces = entry.value.size
-                                val productoId = productos.firstOrNull { p -> p.name == nombre }?.id
-                                Suggestion(
-                                    productoId = productoId,
-                                    emoji = "🛒",
-                                    name = nombre,
-                                    reason = "Comprado $veces ${if (veces == 1) "vez" else "veces"}"
-                                )
-                            }
-                    }
+                // ── Preferencias de usuario ──────────────────────────────────
+                var notificacionesEnabled     by remember { mutableStateOf(userPrefs.notificationsEnabled) }
+                var alertasEnabled            by remember { mutableStateOf(userPrefs.proximityAlertsEnabled) }
+                var distanciaMetros           by remember { mutableStateOf(userPrefs.proximityDistanceMeters) }
+
+                // ── Permisos ─────────────────────────────────────────────────
+                var hasLocationPermission by remember {
+                    mutableStateOf(
+                        ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.ACCESS_FINE_LOCATION)
+                            == PackageManager.PERMISSION_GRANTED
+                    )
                 }
-                var dismissedSuggestionIds by remember { mutableStateOf(emptySet<Long>()) }
-                val sugerenciasVisibles = remember(sugerenciasGeneradas, dismissedSuggestionIds) {
-                    sugerenciasGeneradas.filter { (it.productoId ?: -1L) !in dismissedSuggestionIds }
+                val permissionLauncher = rememberLauncherForActivityResult(
+                    ActivityResultContracts.RequestMultiplePermissions()
+                ) { permissions ->
+                    hasLocationPermission = permissions[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
+                            permissions[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+                }
+
+                // ── Sugerencias del motor de recomendaciones ─────────────────
+                val recommendations by recommendationViewModel.recommendations.collectAsState()
+                val sugerenciasVisibles = recommendations.map { rec ->
+                    Suggestion(
+                        productoId = rec.productoId,
+                        emoji = when (rec.criterionType) {
+                            com.example.tracksy.recommendations.RecommendationCriterionType.FAVORITO_NO_PLANIFICADO -> "⭐"
+                            com.example.tracksy.recommendations.RecommendationCriterionType.PRODUCTO_FRECUENTE -> "🔄"
+                        },
+                        name = rec.productoNombre,
+                        reason = rec.reason
+                    )
                 }
 
                 // ── UI navigation state ──────────────────────────────────────
@@ -128,14 +194,64 @@ class MainActivity : ComponentActivity() {
 
                 // Cargar datos al autenticarse
                 LaunchedEffect(isAuthenticated) {
-                    if (isAuthenticated) {
-                        perfilViewModel.cargarPerfil()
-                        productoViewModel.cargarProductos()
-                        productoViewModel.cargarFavoritos()
-                        listaViewModel.cargarListas()
-                        listaViewModel.cargarEstadosProducto()
-                        listaViewModel.cargarSupermercados()
-                        compraViewModel.cargarCompras()
+                    if (isAuthenticated || DEBUG_BYPASS_AUTH) {
+                        if (DEBUG_BYPASS_AUTH) {
+                            loadDebugMockData()
+                        } else {
+                            perfilViewModel.cargarPerfil()
+                            productoViewModel.cargarProductos()
+                            productoViewModel.cargarFavoritos()
+                            listaViewModel.cargarListas()
+                            listaViewModel.cargarEstadosProducto()
+                            listaViewModel.cargarSupermercados()
+                            compraViewModel.cargarCompras()
+                            recommendationViewModel.refresh()
+                            RecommendationWorker.schedule(this@MainActivity)
+                        }
+
+                        val permsToRequest = buildList {
+                            if (ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.ACCESS_FINE_LOCATION)
+                                != PackageManager.PERMISSION_GRANTED) {
+                                add(Manifest.permission.ACCESS_FINE_LOCATION)
+                                add(Manifest.permission.ACCESS_COARSE_LOCATION)
+                            }
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                                ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.POST_NOTIFICATIONS)
+                                != PackageManager.PERMISSION_GRANTED) {
+                                add(Manifest.permission.POST_NOTIFICATIONS)
+                            }
+                        }
+                        if (permsToRequest.isNotEmpty()) {
+                            permissionLauncher.launch(permsToRequest.toTypedArray())
+                        }
+                    }
+                }
+
+                // Actualizar objetivos de proximidad cuando cambian las listas activas
+                // (en modo debug los targets ya fueron cargados por loadDebugMockData)
+                LaunchedEffect(listasDetalladas, supermercados) {
+                    if (DEBUG_BYPASS_AUTH) return@LaunchedEffect
+                    ProximityTargets.targets = listasDetalladas
+                        .mapNotNull { lista ->
+                            val super_ = supermercados.find { it.id == lista.supermercado }
+                                ?: return@mapNotNull null
+                            SupermarketTarget(
+                                supermercadoId = super_.id,
+                                nombre = super_.nombre,
+                                listaNombre = lista.nombre,
+                                latitud = super_.latitud,
+                                longitud = super_.longitud
+                            )
+                        }
+                        .distinctBy { it.supermercadoId }
+                }
+
+                // Iniciar o detener el servicio de ubicación según permisos y preferencias
+                LaunchedEffect(isAuthenticated, hasLocationPermission, alertasEnabled) {
+                    if (isAuthenticated && hasLocationPermission && alertasEnabled) {
+                        startForegroundService(Intent(this@MainActivity, LocationService::class.java))
+                    } else {
+                        stopService(Intent(this@MainActivity, LocationService::class.java))
                     }
                 }
 
@@ -184,7 +300,10 @@ class MainActivity : ComponentActivity() {
 
                 // Cargar detalle de lista cuando se selecciona una
                 LaunchedEffect(selectedList) {
-                    selectedList?.let { listaViewModel.cargarLista(it.id) }
+                    selectedList?.let {
+                        listaViewModel.cargarLista(it.id)
+                        listaViewModel.cargarListados()
+                    }
                 }
 
                 // Cargar listados de precios al entrar a la pantalla de comparación
@@ -194,10 +313,11 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
+                val colors = LocalTracksyColors.current
                 val usuario = perfilState ?: PerfilUsuario("", "")
 
                 Crossfade(
-                    targetState = isAuthenticated,
+                    targetState = if (DEBUG_BYPASS_AUTH) true else isAuthenticated,
                     animationSpec = tween(400),
                     label = "auth_transition"
                 ) { authenticated ->
@@ -205,7 +325,11 @@ class MainActivity : ComponentActivity() {
                         TracksyAuthApp(
                             onAuthenticated = { },
                             onLogin = { email, password -> authViewModel.login(email, password) },
-                            onCreateAccount = { nombre, email, password -> authViewModel.registro(nombre, email, password) }
+                            onCreateAccount = { nombre, email, password -> authViewModel.registro(nombre, email, password) },
+                            onRecoverPassword = { email -> authViewModel.sendPasswordReset(email) },
+                            onResendEmailVerification = { authViewModel.resendEmailVerification() },
+                            onRefreshEmailVerification = { authViewModel.refreshEmailVerification() },
+                            onCancelPendingEmailVerification = { authViewModel.logout() }
                         )
                     } else {
                         val onTabChange: (NavTab) -> Unit = { tab ->
@@ -231,7 +355,9 @@ class MainActivity : ComponentActivity() {
 
                         when {
                             showCambiarContrasena -> CambiarContrasenaScreen(
-                                emailUsuario = usuario.email,
+                                onChangePassword = { passwordActual, passwordNuevo ->
+                                    perfilViewModel.cambiarPassword(passwordActual, passwordNuevo)
+                                },
                                 onBack    = { showCambiarContrasena = false },
                                 onSuccess = { showCambiarContrasena = false }
                             )
@@ -239,7 +365,7 @@ class MainActivity : ComponentActivity() {
                             showEditarPerfil -> EditarPerfilScreen(
                                 usuario = usuario,
                                 onSave = { updated ->
-                                    perfilViewModel.actualizarPerfil(updated.nombre)
+                                    perfilViewModel.actualizarPerfil(updated.nombre, updated.fotoUri)
                                     showEditarPerfil = false
                                 },
                                 onBack = { showEditarPerfil = false }
@@ -248,9 +374,25 @@ class MainActivity : ComponentActivity() {
                             showPerfil -> PerfilScreen(
                                 usuario    = usuario,
                                 isDarkMode = isDarkMode,
+                                notificacionesEnabled = notificacionesEnabled,
+                                onNotificacionesChange = {
+                                    notificacionesEnabled = it
+                                    userPrefs.notificationsEnabled = it
+                                },
+                                alertasSupermercadoEnabled = alertasEnabled,
+                                onAlertasSupermercadoChange = {
+                                    alertasEnabled = it
+                                    userPrefs.proximityAlertsEnabled = it
+                                },
+                                distanciaMetros = distanciaMetros,
+                                onDistanciaChange = {
+                                    distanciaMetros = it
+                                    userPrefs.proximityDistanceMeters = it
+                                },
                                 onBack     = { showPerfil = false },
                                 onLogout   = {
                                     authViewModel.logout()
+                                    recommendationViewModel.clearOnLogout()
                                     showPerfil                = false
                                     selectedTab               = NavTab.HOME
                                     selectedProduct           = null
@@ -264,8 +406,8 @@ class MainActivity : ComponentActivity() {
                                     preloadedListItem         = null
                                     productPendingReturn      = null
                                     draftProductSelections    = null
-                                    dismissedSuggestionIds    = emptySet()
                                     listaViewModel.limpiarListaRecienCreada()
+                                    stopService(Intent(this@MainActivity, LocationService::class.java))
                                 },
                                 onEditarPerfil      = { showEditarPerfil = true },
                                 onCambiarContrasena = { showCambiarContrasena = true },
@@ -292,6 +434,7 @@ class MainActivity : ComponentActivity() {
 
                             selectedHistoryItem != null -> HistoryDetailScreen(
                                 item        = selectedHistoryItem!!,
+                                profilePhotoUri = usuario.fotoUri,
                                 onBackClick = { selectedHistoryItem = null }
                             )
 
@@ -299,6 +442,7 @@ class MainActivity : ComponentActivity() {
                                 product          = selectedProduct!!,
                                 listas           = listasDetalladas,
                                 draftSelections  = draftProductSelections,
+                                profilePhotoUri  = usuario.fotoUri,
                                 onBack      = {
                                     draftProductSelections = null
                                     selectedProduct = null
@@ -375,6 +519,7 @@ class MainActivity : ComponentActivity() {
                                 AppScreen.DetalleLista -> DetalleListaScreen(
                                     lista         = listaActual,
                                     supermercados = supermercados,
+                                    listados      = listados,
                                     onToggleItem  = { listaId, itemId, estaComprado ->
                                         listaViewModel.toggleItem(listaId, itemId, estaComprado)
                                     },
@@ -430,15 +575,18 @@ class MainActivity : ComponentActivity() {
                                 AppScreen.FinalizarCompra -> {
                                     val lista     = selectedList!!
                                     val realItems = listaActual?.items ?: emptyList()
-                                    val comprados = realItems.count {
-                                        it.estadoNombre.lowercase().let { n -> n.contains("comprad") || n.contains("completad") }
+                                    val esComprado: (String) -> Boolean = { estadoNombre ->
+                                        estadoNombre.lowercase().let { n -> n.contains("comprad") || n.contains("completad") }
                                     }
-                                    val pendientes = realItems.filter {
-                                        !it.estadoNombre.lowercase().let { n -> n.contains("comprad") || n.contains("completad") }
-                                    }
+                                    val comprados  = realItems.count { esComprado(it.estadoNombre) }
+                                    val pendientes = realItems.filter { !esComprado(it.estadoNombre) }
+                                    val superId    = listaActual?.supermercado
+                                    val preciosDelSuper = if (superId != null) {
+                                        listados.filter { it.supermercado == superId }.associate { it.producto to it.precio }
+                                    } else emptyMap<Long, Double>()
                                     val totalGastado = realItems
-                                        .filter { it.estadoNombre.lowercase().let { n -> n.contains("comprad") || n.contains("completad") } }
-                                        .sumOf { it.precioUnitario * it.cantidad }
+                                        .filter { esComprado(it.estadoNombre) }
+                                        .sumOf { item -> (preciosDelSuper[item.producto] ?: item.precioUnitario) * item.cantidad }
 
                                     FinalizarCompraScreen(
                                         summary = PurchaseSummary(
@@ -449,25 +597,26 @@ class MainActivity : ComponentActivity() {
                                             pendingItems      = pendientes.map { it.productoNombre }
                                         ),
                                         onBack = { currentScreen = AppScreen.DetalleLista },
-                                        onConfirm = { createPendingList ->
-                                            val supermercadoId = listaActual?.supermercado
-                                            if (supermercadoId != null && comprados > 0) {
-                                                compraViewModel.crearCompra(
-                                                    supermercadoId = supermercadoId,
-                                                    total          = totalGastado,
-                                                    productos      = realItems
-                                                        .filter { it.estadoNombre.lowercase().let { n -> n.contains("comprad") || n.contains("completad") } }
-                                                        .map { Triple(it.producto, it.cantidad, it.precioUnitario) }
-                                                )
-                                            }
+                                        onCrearListaPendientes = { nombre ->
+                                            listaViewModel.crearListaConItems(
+                                                nombre         = nombre,
+                                                supermercadoId = null,
+                                                items          = pendientes.map { it.producto to it.cantidad }
+                                            )
+                                        },
+                                        onConfirm = {
+                                            compraViewModel.crearCompra(
+                                                supermercadoId = superId,
+                                                nombreLista    = lista.name,
+                                                total          = totalGastado,
+                                                productos      = realItems
+                                                    .filter { esComprado(it.estadoNombre) }
+                                                    .map { item -> Triple(item.producto, item.cantidad, preciosDelSuper[item.producto] ?: item.precioUnitario) }
+                                            )
+                                            listaViewModel.eliminarLista(lista.id)
                                             selectedList  = null
                                             currentScreen = AppScreen.DetalleLista
-                                            compraViewModel.cargarCompras()
-                                            if (createPendingList) {
-                                                showEditarListaStandalone = true
-                                            } else {
-                                                selectedTab = NavTab.HOME
-                                            }
+                                            selectedTab   = NavTab.HISTORY
                                         }
                                     )
                                 }
@@ -477,6 +626,7 @@ class MainActivity : ComponentActivity() {
                                 selectedTab     = selectedTab,
                                 onTabChange     = onTabChange,
                                 listas          = listas,
+                                profilePhotoUri = usuario.fotoUri,
                                 onListClick     = { list ->
                                     selectedList  = list
                                     currentScreen = AppScreen.DetalleLista
@@ -494,6 +644,7 @@ class MainActivity : ComponentActivity() {
                                 items          = compras,
                                 selectedTab    = selectedTab,
                                 onTabChange    = onTabChange,
+                                profilePhotoUri = usuario.fotoUri,
                                 onProfileClick = { showPerfil = true },
                                 isRefreshing   = isLoadingCompras,
                                 onRefresh      = { compraViewModel.cargarCompras() }
@@ -504,6 +655,7 @@ class MainActivity : ComponentActivity() {
                                 onTabChange      = onTabChange,
                                 productosApi     = productos,
                                 favoritosApi     = favoritos,
+                                profilePhotoUri  = usuario.fotoUri,
                                 onProductTap     = { product -> selectedProduct = product },
                                 onProfileClick   = { showPerfil = true },
                                 onSearchChange   = { query ->
@@ -524,6 +676,8 @@ class MainActivity : ComponentActivity() {
                                 onTabChange    = onTabChange,
                                 listas         = listas,
                                 sugerencias    = sugerenciasVisibles,
+                                userName       = usuario.nombre,
+                                profilePhotoUri = usuario.fotoUri,
                                 isRefreshing   = isLoadingListas,
                                 onRefresh      = {
                                     listaViewModel.cargarListas()
@@ -534,29 +688,24 @@ class MainActivity : ComponentActivity() {
                                     currentScreen = AppScreen.DetalleLista
                                 },
                                 onProfileClick = { showPerfil = true },
-                                onAgregarSugerencia = { suggestion ->
-                                    val ultimaLista = listas.firstOrNull()
-                                    if (ultimaLista != null && suggestion.productoId != null) {
+                                onAgregarSugerencia = { suggestion, listaId ->
+                                    if (suggestion.productoId != null) {
                                         val estadoId = listaViewModel.idEstadoPendiente()
                                             ?: listaViewModel.estadosProducto.value.firstOrNull()?.id
                                         estadoId?.let {
                                             listaViewModel.agregarItem(
-                                                listaId    = ultimaLista.id,
+                                                listaId    = listaId,
                                                 productoId = suggestion.productoId,
                                                 cantidad   = 1,
                                                 estadoId   = it,
                                                 precio     = 0.0
                                             )
                                         }
-                                    }
-                                    suggestion.productoId?.let {
-                                        dismissedSuggestionIds = dismissedSuggestionIds + it
+                                        recommendationViewModel.dismiss(suggestion.productoId)
                                     }
                                 },
                                 onDismissSugerencia = { suggestion ->
-                                    suggestion.productoId?.let {
-                                        dismissedSuggestionIds = dismissedSuggestionIds + it
-                                    }
+                                    suggestion.productoId?.let { recommendationViewModel.dismiss(it) }
                                 }
                             )
                         }
@@ -567,18 +716,21 @@ class MainActivity : ComponentActivity() {
                                 title = { Text("Producto no encontrado") },
                                 text  = { Text("El producto escaneado no existe o no fue encontrado.") },
                                 confirmButton = {
-                                    TextButton(onClick = {
-                                        productoViewModel.limpiarProductoNoEncontrado()
-                                        if (addingProductToList) scannerFromList = true
-                                        showScanner = true
-                                    }) {
-                                        Text("Reintentar")
-                                    }
+                                    TracksyTextAction(
+                                        text = "Reintentar",
+                                        onClick = {
+                                            productoViewModel.limpiarProductoNoEncontrado()
+                                            if (addingProductToList) scannerFromList = true
+                                            showScanner = true
+                                        }
+                                    )
                                 },
                                 dismissButton = {
-                                    TextButton(onClick = { productoViewModel.limpiarProductoNoEncontrado() }) {
-                                        Text("Cancelar")
-                                    }
+                                    TracksyTextAction(
+                                        text = "Cancelar",
+                                        onClick = { productoViewModel.limpiarProductoNoEncontrado() },
+                                        contentColor = colors.subtitleText
+                                    )
                                 }
                             )
                         }

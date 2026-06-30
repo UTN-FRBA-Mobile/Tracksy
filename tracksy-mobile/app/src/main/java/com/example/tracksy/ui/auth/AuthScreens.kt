@@ -23,6 +23,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -51,6 +52,7 @@ import com.example.tracksy.ui.theme.TracksyErrorRed
 import com.example.tracksy.ui.theme.TracksySuccessGreen
 import com.example.tracksy.ui.theme.TracksyTextMuted
 import com.example.tracksy.ui.theme.TracksyTextSecondary
+import kotlinx.coroutines.delay
 
 private enum class AuthRoute {
     Welcome,
@@ -79,16 +81,32 @@ private val PasswordRequirementTextStyle = TextStyle(
 @Composable
 fun TracksyAuthApp(
     onAuthenticated: () -> Unit = {},
-    onLogin: suspend (email: String, password: String) -> Boolean = { _, _ -> true },
-    onCreateAccount: suspend (nombre: String, email: String, password: String) -> Boolean = { _, _, _ -> true }
+    onLogin: suspend (email: String, password: String) -> String? = { _, _ -> null },
+    onCreateAccount: suspend (nombre: String, email: String, password: String) -> String? = { _, _, _ -> null },
+    onRecoverPassword: suspend (email: String) -> String? = { null },
+    onResendEmailVerification: suspend () -> String? = { null },
+    onRefreshEmailVerification: suspend () -> Boolean = { false },
+    onCancelPendingEmailVerification: () -> Unit = {}
 ) {
     val scope = rememberCoroutineScope()
     var route by remember { mutableStateOf(AuthRoute.Welcome) }
     var selectedHistoryItem by remember { mutableStateOf<HistoryItem?>(null) }
     var loginLoading by remember { mutableStateOf(false) }
-    var loginServerError by remember { mutableStateOf(false) }
+    var loginErrorMessage by remember { mutableStateOf<String?>(null) }
     var registerLoading by remember { mutableStateOf(false) }
-    var registerEmailTaken by remember { mutableStateOf(false) }
+    var registerErrorMessage by remember { mutableStateOf<String?>(null) }
+    var recoverLoading by remember { mutableStateOf(false) }
+    var recoverErrorMessage by remember { mutableStateOf<String?>(null) }
+    var lastRecoveryEmail by remember { mutableStateOf<String?>(null) }
+    var checkEmailForVerification by remember { mutableStateOf(false) }
+    var resendCooldownSeconds by remember { mutableStateOf(0) }
+
+    LaunchedEffect(resendCooldownSeconds) {
+        if (resendCooldownSeconds > 0) {
+            delay(1000)
+            resendCooldownSeconds--
+        }
+    }
 
     when (route) {
         AuthRoute.Welcome -> WelcomeScreen(
@@ -98,16 +116,16 @@ fun TracksyAuthApp(
 
         AuthRoute.Login -> LoginScreen(
             isLoading = loginLoading,
-            serverError = loginServerError,
+            serverErrorText = loginErrorMessage,
             onLogin = { email, password ->
-                loginServerError = false
+                loginErrorMessage = null
                 scope.launch {
                     loginLoading = true
-                    val ok = onLogin(email, password)
+                    val error = onLogin(email, password)
                     loginLoading = false
-                    if (ok) onAuthenticated() else loginServerError = true
+                    if (error == null) onAuthenticated() else loginErrorMessage = error
                 }
-                true // return true to avoid internal error — server error shown via serverError flag
+                true
             },
             onForgotPassword = { route = AuthRoute.RecoverPassword },
             onCreateAccount = { route = AuthRoute.CreateAccount }
@@ -115,14 +133,20 @@ fun TracksyAuthApp(
 
         AuthRoute.CreateAccount -> CreateAccountScreen(
             isLoading = registerLoading,
-            emailTaken = registerEmailTaken,
+            serverErrorText = registerErrorMessage,
             onCreateAccount = { nombre, email, password ->
-                registerEmailTaken = false
+                registerErrorMessage = null
                 scope.launch {
                     registerLoading = true
-                    val ok = onCreateAccount(nombre, email, password)
+                    val error = onCreateAccount(nombre, email, password)
                     registerLoading = false
-                    if (ok) onAuthenticated() else registerEmailTaken = true
+                    if (error == null) {
+                        checkEmailForVerification = true
+                        resendCooldownSeconds = 30
+                        route = AuthRoute.CheckEmail
+                    } else {
+                        registerErrorMessage = error
+                    }
                 }
                 true
             },
@@ -130,19 +154,69 @@ fun TracksyAuthApp(
         )
 
         AuthRoute.RecoverPassword -> RecoverPasswordScreen(
+            isLoading = recoverLoading,
+            serverErrorText = recoverErrorMessage,
             onBack = { route = AuthRoute.Login },
-            onSubmit = {
-                // TODO: Send recover password instructions when backend is available.
-                route = AuthRoute.CheckEmail
+            onSubmit = { email ->
+                recoverErrorMessage = null
+                scope.launch {
+                    recoverLoading = true
+                    val error = onRecoverPassword(email)
+                    recoverLoading = false
+                    if (error == null) {
+                        lastRecoveryEmail = email
+                        checkEmailForVerification = false
+                        resendCooldownSeconds = 30
+                        route = AuthRoute.CheckEmail
+                    } else {
+                        recoverErrorMessage = error
+                    }
+                }
             }
         )
 
         AuthRoute.CheckEmail -> CheckEmailScreen(
-            onBack = { route = AuthRoute.RecoverPassword },
-            onBackToLogin = { route = AuthRoute.Login },
+            onBack = {
+                route = if (checkEmailForVerification) AuthRoute.CreateAccount else AuthRoute.RecoverPassword
+            },
+            onBackToLogin = {
+                if (checkEmailForVerification) {
+                    scope.launch {
+                        if (onRefreshEmailVerification()) {
+                            onAuthenticated()
+                        }
+                    }
+                } else {
+                    route = AuthRoute.Login
+                }
+            },
             onResend = {
-                // TODO: Resend recover password instructions when backend is available.
-            }
+                if (resendCooldownSeconds <= 0) {
+                    scope.launch {
+                        if (checkEmailForVerification) {
+                            onResendEmailVerification()
+                        } else {
+                            val email = lastRecoveryEmail ?: return@launch
+                            onRecoverPassword(email)
+                        }
+                        resendCooldownSeconds = 30
+                    }
+                }
+            },
+            title = if (checkEmailForVerification) "Verificá tu correo" else "Revisá tu correo",
+            message = if (checkEmailForVerification) {
+                "Te enviamos un email de verificación. Confirmá tu cuenta antes de iniciar sesión."
+            } else {
+                "Si existe una cuenta asociada a ese correo, te enviaremos instrucciones para restablecer tu contraseña."
+            },
+            resendText = if (resendCooldownSeconds > 0) {
+                "Reenviar en ${resendCooldownSeconds}s"
+            } else if (checkEmailForVerification) {
+                "Reenviar verificación"
+            } else {
+                "Reenviar instrucciones"
+            },
+            primaryText = if (checkEmailForVerification) "Ya verifiqué" else "Volver a iniciar sesión"
         )
 
         AuthRoute.History -> HistoryScreen(
@@ -213,25 +287,33 @@ fun LoginScreen(
     onForgotPassword: () -> Unit,
     onCreateAccount: () -> Unit,
     isLoading: Boolean = false,
-    serverError: Boolean = false,
+    serverErrorText: String? = null,
     modifier: Modifier = Modifier
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var showError by remember { mutableStateOf(false) }
+    var localServerErrorText by remember(serverErrorText) { mutableStateOf(serverErrorText) }
+    val errorText = when {
+        localServerErrorText != null -> localServerErrorText
+        showError -> "Correo electrónico o contraseña incorrectos"
+        else -> null
+    }
 
     LoginContent(
         email = email,
         password = password,
-        showError = showError || serverError,
+        errorText = errorText,
         isLoading = isLoading,
         onEmailChange = {
             email = it
             if (showError) showError = false
+            localServerErrorText = null
         },
         onPasswordChange = {
             password = it
             if (showError) showError = false
+            localServerErrorText = null
         },
         onLogin = {
             if (email.isNotBlank() && password.isNotBlank()) {
@@ -248,7 +330,7 @@ fun LoginScreen(
 internal fun LoginContent(
     email: String,
     password: String,
-    showError: Boolean,
+    errorText: String?,
     isLoading: Boolean = false,
     onEmailChange: (String) -> Unit,
     onPasswordChange: (String) -> Unit,
@@ -279,6 +361,7 @@ internal fun LoginContent(
                     value = email,
                     onValueChange = onEmailChange,
                     label = "Correo electrónico",
+                    isError = errorText != null,
                     keyboardType = KeyboardType.Email
                 )
                 Spacer(modifier = Modifier.height(20.dp))
@@ -287,9 +370,9 @@ internal fun LoginContent(
                     onValueChange = onPasswordChange,
                     label = "Contraseña"
                 )
-                if (showError) {
+                if (errorText != null) {
                     Spacer(modifier = Modifier.height(13.dp))
-                    ErrorMessage(text = "Correo electrónico o contraseña incorrectos")
+                    ErrorMessage(text = errorText)
                     Spacer(modifier = Modifier.height(35.dp))
                 } else {
                     Spacer(modifier = Modifier.height(38.dp))
@@ -322,7 +405,7 @@ fun CreateAccountScreen(
     onCreateAccount: (name: String, email: String, password: String) -> Boolean,
     onLogin: () -> Unit,
     isLoading: Boolean = false,
-    emailTaken: Boolean = false,
+    serverErrorText: String? = null,
     modifier: Modifier = Modifier
 ) {
     var name by remember { mutableStateOf("") }
@@ -334,7 +417,7 @@ fun CreateAccountScreen(
     var passwordBlurred by remember { mutableStateOf(false) }
     var confirmInteracted by remember { mutableStateOf(false) }
     var submitAttempted by remember { mutableStateOf(false) }
-    var isEmailAlreadyRegistered by remember(emailTaken) { mutableStateOf(emailTaken) }
+    var localServerErrorText by remember(serverErrorText) { mutableStateOf(serverErrorText) }
     val focusManager = LocalFocusManager.current
     val passwordRequirements = passwordRequirements(password)
     val isPasswordValid = passwordRequirements.all { it.isValid }
@@ -346,7 +429,7 @@ fun CreateAccountScreen(
         isPasswordValid &&
         isConfirmValid
     val emailErrorText = when {
-        isEmailAlreadyRegistered -> "Este correo ya está registrado"
+        localServerErrorText != null -> localServerErrorText
         email.isNotBlank() && !isEmailFormatValid && (emailBlurred || submitAttempted) ->
             "Ingresá un correo electrónico válido"
         else -> null
@@ -365,12 +448,12 @@ fun CreateAccountScreen(
         passwordRequirements = passwordRequirements,
         showPasswordRequirementErrors = passwordBlurred || submitAttempted,
         showConfirmMismatch = showConfirmMismatch,
-        isCreateEnabled = isFrontendValid && !isEmailAlreadyRegistered && !isLoading,
+        isCreateEnabled = isFrontendValid && localServerErrorText == null && !isLoading,
         onNameChange = { name = it },
         onEmailChange = {
             email = it
             emailBlurred = false
-            isEmailAlreadyRegistered = false
+            localServerErrorText = null
         },
         onEmailFocusChanged = { isFocused ->
             if (!isFocused && email.isNotBlank()) {
@@ -379,6 +462,7 @@ fun CreateAccountScreen(
         },
         onPasswordChange = {
             password = it
+            localServerErrorText = null
             if (confirmPassword.isNotEmpty()) {
                 confirmInteracted = true
             }
@@ -391,13 +475,16 @@ fun CreateAccountScreen(
         },
         onConfirmPasswordChange = {
             confirmPassword = it
+            localServerErrorText = null
             confirmInteracted = true
         },
         onSubmit = {
             submitAttempted = true
             focusManager.clearFocus()
             if (isFrontendValid) {
-                isEmailAlreadyRegistered = !onCreateAccount(name, email, password)
+                if (onCreateAccount(name, email, password)) {
+                    localServerErrorText = null
+                }
             }
         },
         onLogin = onLogin,
@@ -523,6 +610,8 @@ internal fun CreateAccountContent(
 fun RecoverPasswordScreen(
     onBack: () -> Unit,
     onSubmit: (email: String) -> Unit,
+    isLoading: Boolean = false,
+    serverErrorText: String? = null,
     modifier: Modifier = Modifier
 ) {
     var email by remember { mutableStateOf("") }
@@ -530,14 +619,22 @@ fun RecoverPasswordScreen(
     var hasBlurred by remember { mutableStateOf(false) }
     var isEmailFocused by remember { mutableStateOf(false) }
     val isEmailValid = isValidEmail(email)
-    val showError = email.isNotBlank() && !isEmailValid && hasBlurred && !isEmailFocused
+    var localServerErrorText by remember(serverErrorText) { mutableStateOf(serverErrorText) }
+    val emailErrorText = when {
+        localServerErrorText != null -> localServerErrorText
+        email.isNotBlank() && !isEmailValid && hasBlurred && !isEmailFocused ->
+            "Ingresá un correo electrónico válido"
+        else -> null
+    }
 
     RecoverPasswordContent(
         email = email,
-        showEmailError = showError,
+        emailErrorText = emailErrorText,
+        isLoading = isLoading,
         onEmailChange = {
             email = it
             hasInteracted = true
+            localServerErrorText = null
         },
         onEmailFocusChanged = { isFocused ->
             isEmailFocused = isFocused
@@ -558,14 +655,15 @@ fun RecoverPasswordScreen(
 @Composable
 internal fun RecoverPasswordContent(
     email: String,
-    showEmailError: Boolean,
+    emailErrorText: String?,
+    isLoading: Boolean = false,
     onEmailChange: (String) -> Unit,
     onEmailFocusChanged: (Boolean) -> Unit,
     onBack: () -> Unit,
     onSubmit: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val isSubmitEnabled = isValidEmail(email)
+    val isSubmitEnabled = isValidEmail(email) && !isLoading
     val focusManager = LocalFocusManager.current
 
     AuthScreenContainer(modifier = modifier) {
@@ -605,7 +703,7 @@ internal fun RecoverPasswordContent(
                         value = email,
                         onValueChange = onEmailChange,
                         label = "Correo electrónico",
-                        isError = showEmailError,
+                        isError = emailErrorText != null,
                         onFocusChanged = onEmailFocusChanged,
                         keyboardType = KeyboardType.Email,
                         imeAction = ImeAction.Done,
@@ -613,15 +711,15 @@ internal fun RecoverPasswordContent(
                             onDone = { focusManager.clearFocus() }
                         )
                     )
-                    if (showEmailError) {
+                    if (emailErrorText != null) {
                         Spacer(modifier = Modifier.height(13.dp))
-                        ErrorMessage(text = "Ingresá un correo electrónico válido")
+                        ErrorMessage(text = emailErrorText)
                         Spacer(modifier = Modifier.height(35.dp))
                     } else {
                         Spacer(modifier = Modifier.height(76.dp))
                     }
                     TracksyPrimaryButton(
-                        text = "Enviar instrucciones",
+                        text = if (isLoading) "Enviando..." else "Enviar instrucciones",
                         onClick = onSubmit,
                         enabled = isSubmitEnabled
                     )
@@ -642,6 +740,10 @@ fun CheckEmailScreen(
     onBack: () -> Unit,
     onBackToLogin: () -> Unit,
     onResend: () -> Unit,
+    title: String = "Revisá tu correo",
+    message: String = "Si existe una cuenta asociada a ese correo, te enviaremos instrucciones para restablecer tu contraseña.",
+    resendText: String = "Reenviar instrucciones",
+    primaryText: String = "Volver a iniciar sesión",
     modifier: Modifier = Modifier
 ) {
     AuthScreenContainer(modifier = modifier) {
@@ -653,7 +755,7 @@ fun CheckEmailScreen(
                     .padding(top = 74.dp, bottom = 28.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                AuthHeader(title = "Revisá tu correo")
+                AuthHeader(title = title)
                 Spacer(modifier = Modifier.height(54.dp))
                 Column(
                     modifier = Modifier
@@ -662,7 +764,7 @@ fun CheckEmailScreen(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
-                        text = "Si existe una cuenta asociada a ese correo, te enviaremos instrucciones para restablecer tu contraseña.",
+                        text = message,
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 4.dp),
@@ -680,12 +782,12 @@ fun CheckEmailScreen(
                     )
                     Spacer(modifier = Modifier.height(35.dp))
                     TracksyPrimaryButton(
-                        text = "Volver a iniciar sesión",
+                        text = primaryText,
                         onClick = onBackToLogin
                     )
                     Spacer(modifier = Modifier.height(24.dp))
                     TracksyLinkText(
-                        text = "Reenviar instrucciones",
+                        text = resendText,
                         onClick = onResend,
                         modifier = Modifier.fillMaxWidth()
                     )

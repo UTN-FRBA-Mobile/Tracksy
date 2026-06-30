@@ -1,5 +1,8 @@
 package com.example.tracksy.ui.profile
 
+import android.graphics.BitmapFactory
+import android.net.Uri
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -13,7 +16,6 @@ import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import androidx.compose.material.icons.automirrored.outlined.Logout
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.DarkMode
-import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Notifications
@@ -24,22 +26,35 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.tracksy.ui.components.TracksyDestructiveButton
 import com.example.tracksy.ui.theme.LocalTracksyColors
 import com.example.tracksy.ui.theme.TracksyColors
 
 data class PerfilUsuario(
     val nombre: String,
-    val email: String
+    val email: String,
+    val fotoUri: String = ""
 )
 
 @Composable
 fun PerfilScreen(
     usuario: PerfilUsuario,
     isDarkMode: Boolean,
+    notificacionesEnabled: Boolean,
+    onNotificacionesChange: (Boolean) -> Unit,
+    alertasSupermercadoEnabled: Boolean,
+    onAlertasSupermercadoChange: (Boolean) -> Unit,
+    distanciaMetros: Int,
+    onDistanciaChange: (Int) -> Unit,
     onBack: () -> Unit,
     onLogout: () -> Unit,
     onEditarPerfil: () -> Unit,
@@ -47,8 +62,6 @@ fun PerfilScreen(
     onModoOscuroChange: (Boolean) -> Unit
 ) {
     val colors = LocalTracksyColors.current
-    var notificaciones by remember { mutableStateOf(true) }
-    var alertasSupermercado by remember { mutableStateOf(true) }
 
     Scaffold(containerColor = colors.background) { padding ->
         Column(
@@ -81,8 +94,8 @@ fun PerfilScreen(
                     icon = Icons.Outlined.Notifications,
                     label = "Notificaciones",
                     description = "Recordatorios de compra y sugerencias",
-                    checked = notificaciones,
-                    onCheckedChange = { notificaciones = it },
+                    checked = notificacionesEnabled,
+                    onCheckedChange = onNotificacionesChange,
                     colors = colors
                 )
                 Divisor(colors)
@@ -90,10 +103,18 @@ fun PerfilScreen(
                     icon = Icons.Outlined.LocationOn,
                     label = "Alertas de supermercado",
                     description = "Avisos al entrar a un comercio cercano",
-                    checked = alertasSupermercado,
-                    onCheckedChange = { alertasSupermercado = it },
+                    checked = alertasSupermercadoEnabled,
+                    onCheckedChange = onAlertasSupermercadoChange,
                     colors = colors
                 )
+                if (alertasSupermercadoEnabled) {
+                    Divisor(colors)
+                    DistanciaSliderRow(
+                        distanciaMetros = distanciaMetros,
+                        onDistanciaChange = onDistanciaChange,
+                        colors = colors
+                    )
+                }
                 Divisor(colors)
                 PerfilToggleRow(
                     icon = Icons.Outlined.DarkMode,
@@ -112,27 +133,17 @@ fun PerfilScreen(
             PerfilCard(colors) {
                 PerfilNavRow(Icons.AutoMirrored.Outlined.HelpOutline, "Ayuda y soporte", {}, colors)
                 Divisor(colors)
-                PerfilNavRow(Icons.Outlined.Description, "Términos y privacidad", {}, colors)
-                Divisor(colors)
                 PerfilInfoRow("Versión", "1.0.0", colors)
             }
 
             Spacer(Modifier.height(28.dp))
 
-            OutlinedButton(
+            TracksyDestructiveButton(
+                text = "Cerrar sesión",
                 onClick = onLogout,
-                modifier = Modifier.fillMaxWidth().height(52.dp),
-                shape = RoundedCornerShape(50),
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = colors.errorRed)
-            ) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Outlined.Logout,
-                    contentDescription = null,
-                    modifier = Modifier.size(20.dp)
-                )
-                Spacer(Modifier.width(8.dp))
-                Text("Cerrar sesión", fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
-            }
+                modifier = Modifier.fillMaxWidth(),
+                icon = Icons.AutoMirrored.Outlined.Logout
+            )
 
             Spacer(Modifier.height(28.dp))
         }
@@ -167,17 +178,54 @@ private fun PerfilHeader(usuario: PerfilUsuario, colors: TracksyColors) {
             contentAlignment = Alignment.Center,
             modifier = Modifier.size(84.dp).clip(CircleShape).background(colors.divider)
         ) {
-            Icon(
-                imageVector = Icons.Outlined.Person,
-                contentDescription = "Avatar",
-                tint = colors.sectionText,
-                modifier = Modifier.size(44.dp)
+            ProfileAvatarImage(
+                fotoUri = usuario.fotoUri,
+                colors = colors,
+                iconSize = 44.dp,
+                modifier = Modifier.fillMaxSize()
             )
         }
         Spacer(Modifier.height(12.dp))
         Text(text = usuario.nombre, fontSize = 20.sp, fontWeight = FontWeight.Bold, color = colors.titleText)
         Spacer(Modifier.height(4.dp))
         Text(text = usuario.email, fontSize = 13.sp, color = colors.subtitleText)
+    }
+}
+
+@Composable
+internal fun ProfileAvatarImage(
+    fotoUri: String,
+    colors: TracksyColors,
+    iconSize: Dp,
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+    val imageBitmap by produceState<ImageBitmap?>(null, fotoUri) {
+        value = if (fotoUri.isBlank()) {
+            null
+        } else {
+            runCatching {
+                context.contentResolver.openInputStream(Uri.parse(fotoUri)).use { stream ->
+                    BitmapFactory.decodeStream(stream)?.asImageBitmap()
+                }
+            }.getOrNull()
+        }
+    }
+
+    if (imageBitmap != null) {
+        Image(
+            bitmap = imageBitmap!!,
+            contentDescription = "Foto de perfil",
+            modifier = modifier,
+            contentScale = ContentScale.Crop
+        )
+    } else {
+        Icon(
+            imageVector = Icons.Outlined.Person,
+            contentDescription = "Avatar",
+            tint = colors.sectionText,
+            modifier = Modifier.size(iconSize)
+        )
     }
 }
 
@@ -264,4 +312,44 @@ private fun PerfilInfoRow(label: String, value: String, colors: TracksyColors) {
 @Composable
 internal fun Divisor(colors: TracksyColors) {
     HorizontalDivider(thickness = 1.dp, color = colors.divider, modifier = Modifier.padding(start = 52.dp))
+}
+
+@Composable
+private fun DistanciaSliderRow(
+    distanciaMetros: Int,
+    onDistanciaChange: (Int) -> Unit,
+    colors: TracksyColors
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 12.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                imageVector = Icons.Outlined.LocationOn,
+                contentDescription = null,
+                tint = colors.primary,
+                modifier = Modifier.size(22.dp)
+            )
+            Spacer(Modifier.width(14.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text("Distancia de alerta", fontSize = 15.sp, color = colors.titleText)
+                Text("$distanciaMetros metros", fontSize = 12.sp, color = colors.subtitleText)
+            }
+        }
+        Slider(
+            value = distanciaMetros.toFloat(),
+            onValueChange = { onDistanciaChange(it.toInt()) },
+            valueRange = 100f..1000f,
+            steps = 8,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 36.dp, top = 4.dp),
+            colors = SliderDefaults.colors(
+                thumbColor = colors.primary,
+                activeTrackColor = colors.primary
+            )
+        )
+    }
 }

@@ -3,6 +3,8 @@ package com.example.tracksy.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -53,13 +55,14 @@ fun HomeScreen(
     profilePhotoUri: String = "",
     onListTap: (ShoppingList) -> Unit = {},
     onProfileClick: () -> Unit = {},
-    onAgregarSugerencia: (Suggestion) -> Unit = {},
+    onAgregarSugerencia: (Suggestion, Int) -> Unit = { _, _ -> },
     onDismissSugerencia: (Suggestion) -> Unit = {},
     isRefreshing: Boolean = false,
     onRefresh: () -> Unit = {}
 ) {
     val colors = LocalTracksyColors.current
     val pullRefreshState = rememberPullToRefreshState()
+    var suggestionPendingList by remember { mutableStateOf<Suggestion?>(null) }
 
     Scaffold(
         containerColor = colors.background,
@@ -97,12 +100,63 @@ fun HomeScreen(
                     SuggestionCard(
                         suggestion = suggestion,
                         colors = colors,
-                        onAgregar = { onAgregarSugerencia(suggestion) },
+                        onAgregar = { suggestionPendingList = suggestion },
                         onDismiss = { onDismissSugerencia(suggestion) }
                     )
                     Spacer(Modifier.height(12.dp))
                 }
                 Spacer(Modifier.height(8.dp))
+            }
+
+            if (suggestionPendingList != null) {
+                ModalBottomSheet(
+                    onDismissRequest = { suggestionPendingList = null },
+                    containerColor = colors.surface
+                ) {
+                    Text(
+                        text = "Agregar a lista",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        color = colors.titleText,
+                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
+                    )
+                    if (listas.isEmpty()) {
+                        Text(
+                            text = "No tenés listas activas",
+                            fontSize = 14.sp,
+                            color = colors.subtitleText,
+                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 16.dp)
+                        )
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier.navigationBarsPadding()
+                        ) {
+                            items(listas) { lista ->
+                                ListItem(
+                                    headlineContent = {
+                                        Text(lista.name, color = colors.titleText)
+                                    },
+                                    supportingContent = {
+                                        Text(
+                                            "${lista.pendingProducts} pendientes",
+                                            color = colors.subtitleText,
+                                            fontSize = 12.sp
+                                        )
+                                    },
+                                    modifier = Modifier.clickable {
+                                        val pending = suggestionPendingList
+                                        if (pending != null) {
+                                            onAgregarSugerencia(pending, lista.id)
+                                            suggestionPendingList = null
+                                        }
+                                    }
+                                )
+                                HorizontalDivider(color = colors.divider)
+                            }
+                        }
+                    }
+                    Spacer(Modifier.height(8.dp))
+                }
             }
 
             SectionTitle("Mis listas", colors)

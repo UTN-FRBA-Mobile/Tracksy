@@ -49,6 +49,12 @@ data class PerfilUsuario(
 fun PerfilScreen(
     usuario: PerfilUsuario,
     isDarkMode: Boolean,
+    notificacionesEnabled: Boolean,
+    onNotificacionesChange: (Boolean) -> Unit,
+    alertasSupermercadoEnabled: Boolean,
+    onAlertasSupermercadoChange: (Boolean) -> Unit,
+    distanciaMetros: Int,
+    onDistanciaChange: (Int) -> Unit,
     onBack: () -> Unit,
     onLogout: () -> Unit,
     onEditarPerfil: () -> Unit,
@@ -56,8 +62,6 @@ fun PerfilScreen(
     onModoOscuroChange: (Boolean) -> Unit
 ) {
     val colors = LocalTracksyColors.current
-    var notificaciones by remember { mutableStateOf(true) }
-    var alertasSupermercado by remember { mutableStateOf(true) }
 
     Scaffold(containerColor = colors.background) { padding ->
         Column(
@@ -90,8 +94,8 @@ fun PerfilScreen(
                     icon = Icons.Outlined.Notifications,
                     label = "Notificaciones",
                     description = "Recordatorios de compra y sugerencias",
-                    checked = notificaciones,
-                    onCheckedChange = { notificaciones = it },
+                    checked = notificacionesEnabled,
+                    onCheckedChange = onNotificacionesChange,
                     colors = colors
                 )
                 Divisor(colors)
@@ -99,10 +103,18 @@ fun PerfilScreen(
                     icon = Icons.Outlined.LocationOn,
                     label = "Alertas de supermercado",
                     description = "Avisos al entrar a un comercio cercano",
-                    checked = alertasSupermercado,
-                    onCheckedChange = { alertasSupermercado = it },
+                    checked = alertasSupermercadoEnabled,
+                    onCheckedChange = onAlertasSupermercadoChange,
                     colors = colors
                 )
+                if (alertasSupermercadoEnabled) {
+                    Divisor(colors)
+                    DistanciaSliderRow(
+                        distanciaMetros = distanciaMetros,
+                        onDistanciaChange = onDistanciaChange,
+                        colors = colors
+                    )
+                }
                 Divisor(colors)
                 PerfilToggleRow(
                     icon = Icons.Outlined.DarkMode,
@@ -300,4 +312,44 @@ private fun PerfilInfoRow(label: String, value: String, colors: TracksyColors) {
 @Composable
 internal fun Divisor(colors: TracksyColors) {
     HorizontalDivider(thickness = 1.dp, color = colors.divider, modifier = Modifier.padding(start = 52.dp))
+}
+
+@Composable
+private fun DistanciaSliderRow(
+    distanciaMetros: Int,
+    onDistanciaChange: (Int) -> Unit,
+    colors: TracksyColors
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 12.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                imageVector = Icons.Outlined.LocationOn,
+                contentDescription = null,
+                tint = colors.primary,
+                modifier = Modifier.size(22.dp)
+            )
+            Spacer(Modifier.width(14.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text("Distancia de alerta", fontSize = 15.sp, color = colors.titleText)
+                Text("$distanciaMetros metros", fontSize = 12.sp, color = colors.subtitleText)
+            }
+        }
+        Slider(
+            value = distanciaMetros.toFloat(),
+            onValueChange = { onDistanciaChange(it.toInt()) },
+            valueRange = 100f..1000f,
+            steps = 8,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 36.dp, top = 4.dp),
+            colors = SliderDefaults.colors(
+                thumbColor = colors.primary,
+                activeTrackColor = colors.primary
+            )
+        )
+    }
 }

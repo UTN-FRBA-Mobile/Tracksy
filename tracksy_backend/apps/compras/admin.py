@@ -11,7 +11,7 @@ class ProductoCompradoInline(admin.TabularInline):
 @admin.register(Compra)
 class CompraAdmin(admin.ModelAdmin):
     inlines = [ProductoCompradoInline]
-    list_display = ("id", "usuario", "supermercado", "fecha", "total")
+    list_display = ("id", "usuario", "nombre_lista", "supermercado", "fecha", "total")
     list_filter = ("supermercado",)
     search_fields = ("usuario__email",)
     ordering = ("-fecha",)

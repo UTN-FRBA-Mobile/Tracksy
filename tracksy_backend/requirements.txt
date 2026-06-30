@@ -6,25 +6,25 @@ django-cors-headers==4.3.1
 firebase-admin==6.5.0
 
 # Database
-psycopg2-binary==2.9.9
+psycopg2-binary>=2.9.11
 
 # Filtering & Search
-django-filter==23.5
+django-filter>=25.2
 
 # API Documentation
-drf-spectacular==0.27.1
+drf-spectacular>=0.27.1
 
 # Environment variables
 python-decouple==3.8
 
 # Image handling
-Pillow==10.2.0
+Pillow>=11.3.0
 
 # Geo distance calculations
 geopy==2.4.1
 
 # CSV Import
-pandas==2.1.4
+pandas>=2.3.3
 openpyxl==3.1.2
 
 # Celery (async tasks / background imports)
@@ -37,15 +37,18 @@ python-slugify==8.0.1
 phonenumbers==8.13.29
 
 # Testing
-pytest==7.4.4
-pytest-django==4.7.0
+pytest>=7.4.4
+pytest-django>=4.7.0
 factory-boy==3.3.0
 faker==22.2.0
 
 # Admin UI
-django-jazzmin==2.6.0
+django-jazzmin>=3.0.4
 
 # Code quality
-flake8==7.0.0
-black==24.1.1
+flake8>=7.0.0
+black>=24.1.1
 isort==5.13.2
+
+# Development
+django-debug-toolbar>=4.0

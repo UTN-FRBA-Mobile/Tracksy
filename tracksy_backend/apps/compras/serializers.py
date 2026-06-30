@@ -24,6 +24,7 @@ class CompraSerializer(serializers.ModelSerializer):
             "usuario",
             "supermercado",
             "supermercado_nombre",
+            "nombre_lista",
             "fecha",
             "total",
             "productos",
@@ -35,12 +36,18 @@ class CompraSerializer(serializers.ModelSerializer):
         return super().create(validated_data)
 
 
+class ProductoCompradoCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProductoComprado
+        fields = ["producto", "cantidad", "precio_unitario"]
+
+
 class CompraCreateSerializer(serializers.ModelSerializer):
-    productos = ProductoCompradoSerializer(many=True)
+    productos = ProductoCompradoCreateSerializer(many=True)
 
     class Meta:
         model = Compra
-        fields = ["supermercado", "total", "productos"]
+        fields = ["supermercado", "nombre_lista", "total", "productos"]
 
     def create(self, validated_data):
         productos_data = validated_data.pop("productos")

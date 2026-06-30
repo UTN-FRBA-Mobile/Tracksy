@@ -7,8 +7,10 @@ class Compra(models.Model):
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="compras"
     )
     supermercado = models.ForeignKey(
-        "supermarkets.Supermercado", on_delete=models.PROTECT, related_name="compras"
+        "supermarkets.Supermercado", on_delete=models.PROTECT, related_name="compras",
+        null=True, blank=True
     )
+    nombre_lista = models.CharField(max_length=255, blank=True, default="")
     fecha = models.DateTimeField(auto_now_add=True)
     total = models.DecimalField(max_digits=10, decimal_places=2)
 

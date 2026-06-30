@@ -1,0 +1,72 @@
+# Secrets & environment
+.env
+.env.*
+*.env
+tracksy_backend/.env
+!*.env.example
+
+# Python
+__pycache__/
+**/__pycache__/
+tracksy_backend/**/__pycache__/
+*.py[cod]
+**/*.py[cod]
+tracksy_backend/**/*.py[cod]
+*$py.class
+*.pyo
+*.pyd
+*.so
+
+# Virtual environments
+venv/
+.venv/
+env/
+.env/
+ENV/
+
+# Django
+*.log
+db.sqlite3
+db.sqlite3-journal
+staticfiles/
+media/
+tracksy_backend/media/
+
+# Celery
+celerybeat-schedule
+celerybeat-schedule.db
+celerybeat.pid
+
+# Testing & coverage
+.coverage
+.coverage.*
+htmlcov/
+.pytest_cache/
+.tox/
+nosetests.xml
+coverage.xml
+*.cover
+
+# Build & packaging
+dist/
+build/
+*.egg-info/
+*.egg
+MANIFEST
+
+# IDEs
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+ehthumbs.db
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-error.log*

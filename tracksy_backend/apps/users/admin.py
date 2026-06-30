@@ -5,18 +5,21 @@ from .models import Usuario, ProductoUsuario
 
 @admin.register(Usuario)
 class UsuarioAdmin(BaseUserAdmin):
-    list_display = ("email", "nombre", "is_active", "is_staff")
+    list_display = ("email", "nombre", "firebase_uid", "is_active", "is_staff")
     list_filter = ("is_active", "is_staff")
-    search_fields = ("email", "nombre")
+    search_fields = ("email", "nombre", "firebase_uid")
     ordering = ("email",)
     fieldsets = BaseUserAdmin.fieldsets + (
-        ("Datos adicionales", {"fields": ("nombre",)}),
+        ("Datos adicionales", {"fields": ("nombre", "firebase_uid")}),
     )
     add_fieldsets = (
-        (None, {
-            "classes": ("wide",),
-            "fields": ("email", "nombre", "username", "password1", "password2"),
-        }),
+        (
+            None,
+            {
+                "classes": ("wide",),
+                "fields": ("email", "nombre", "username", "password1", "password2"),
+            },
+        ),
     )
 
 

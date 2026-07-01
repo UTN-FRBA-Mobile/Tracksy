@@ -29,7 +29,7 @@ class RecommendationStorage(context: Context) {
             .filter { it.productoId !in dismissedIds }
             .map { nueva ->
                 existing.find { it.productoId == nueva.productoId }
-                    ?.copy(reason = nueva.reason, criterionType = nueva.criterionType)
+                    ?.copy(reason = nueva.reason, criterionType = nueva.criterionType, generatedAt = nueva.generatedAt)
                     ?: nueva
             }
         save(merged + existing.filter { it.isDismissed })

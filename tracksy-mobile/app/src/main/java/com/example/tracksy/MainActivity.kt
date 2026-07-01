@@ -67,7 +67,7 @@ class MainActivity : ComponentActivity() {
 
     companion object {
         // Activar para testear sin backend ni Firebase
-        const val DEBUG_BYPASS_AUTH = true
+        const val DEBUG_BYPASS_AUTH = false
     }
 
     private fun loadDebugMockData() {

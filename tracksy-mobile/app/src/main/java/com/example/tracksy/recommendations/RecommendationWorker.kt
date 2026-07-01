@@ -25,7 +25,7 @@ class RecommendationWorker(
         val prefs = UserPreferencesRepository(applicationContext)
         if (!prefs.notificationsEnabled) return@withContext Result.success()
 
-        runCatching {
+        val outcome = runCatching {
             val repo = TracksyRepository()
             val storage = RecommendationStorage(applicationContext)
             val engine = RecommendationEngine()
@@ -42,16 +42,16 @@ class RecommendationWorker(
                 listasActivas = listas
             )
 
-            val prevCount = storage.loadVisible().size
+            val prevVisible = storage.loadVisible()
             storage.mergeAndSave(engine.evaluate(ctx))
-            val newCount = storage.loadVisible().size
-
-            if (newCount > prevCount) {
-                TracksyNotificationManager.sendRecommendationsNotification(applicationContext, newCount)
+            val afterVisible = storage.loadVisible()
+            val delta = afterVisible.size - prevVisible.size
+            if (delta > 0) {
+                TracksyNotificationManager.sendRecommendationsNotification(applicationContext, delta)
             }
         }
 
-        Result.success()
+        if (outcome.isFailure) Result.retry() else Result.success()
     }
 
     companion object {

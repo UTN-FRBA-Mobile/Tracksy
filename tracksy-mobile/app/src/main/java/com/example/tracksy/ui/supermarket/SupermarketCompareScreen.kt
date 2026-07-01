@@ -13,9 +13,11 @@ import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableDoubleStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -67,15 +69,24 @@ fun CompararSupermercadosScreen(
     var userLat by remember { mutableDoubleStateOf(-34.6037) }
     var userLng by remember { mutableDoubleStateOf(-58.3816) }
 
+    // Token de cancelación activo — se cancela al salir de la pantalla.
+    var activeCts by remember { mutableStateOf<CancellationTokenSource?>(null) }
+    DisposableEffect(Unit) {
+        onDispose { activeCts?.cancel() }
+    }
+
     // Pide la ubicación actual al GPS (asume permiso ya concedido).
     fun actualizarUbicacion() {
         if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
                 != PackageManager.PERMISSION_GRANTED
         ) return
+        activeCts?.cancel()
+        val cts = CancellationTokenSource()
+        activeCts = cts
         try {
             fusedClient.getCurrentLocation(
                 Priority.PRIORITY_HIGH_ACCURACY,
-                CancellationTokenSource().token
+                cts.token
             ).addOnSuccessListener { location ->
                 if (location != null) {
                     userLat = location.latitude

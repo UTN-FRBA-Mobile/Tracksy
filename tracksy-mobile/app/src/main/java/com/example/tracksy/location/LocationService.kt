@@ -13,6 +13,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.pow
@@ -22,6 +24,7 @@ import kotlin.math.sqrt
 class LocationService : Service() {
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val proximityMutex = Mutex()
     private lateinit var locationManager: LocationManager
     private lateinit var prefs: UserPreferencesRepository
 
@@ -55,9 +58,13 @@ class LocationService : Service() {
                 userLocation.latitude, userLocation.longitude,
                 target.latitud, target.longitud
             )
-            if (distance <= threshold && !isOnCooldown(target.supermercadoId)) {
-                prefs.recordProximityNotification(target.supermercadoId)
-                TracksyNotificationManager.sendProximityNotification(this, target.nombre, target.listaNombre)
+            if (distance <= threshold) {
+                proximityMutex.withLock {
+                    if (!isOnCooldown(target.supermercadoId)) {
+                        prefs.recordProximityNotification(target.supermercadoId)
+                        TracksyNotificationManager.sendProximityNotification(this, target.nombre, target.listaNombre)
+                    }
+                }
             }
         }
     }

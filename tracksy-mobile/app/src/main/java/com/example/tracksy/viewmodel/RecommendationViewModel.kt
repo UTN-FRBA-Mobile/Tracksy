@@ -24,7 +24,9 @@ class RecommendationViewModel(
     val recommendations: StateFlow<List<Recommendation>> = _recommendations
 
     init {
-        _recommendations.value = storage.loadVisible()
+        viewModelScope.launch(Dispatchers.IO) {
+            _recommendations.value = storage.loadVisible()
+        }
     }
 
     // Fetches fresh data from the API, runs all criteria, persists results,

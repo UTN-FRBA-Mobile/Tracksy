@@ -3,6 +3,8 @@ package com.example.tracksy.ui.profile
 import android.graphics.BitmapFactory
 import android.net.Uri
 import androidx.compose.foundation.Image
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -204,11 +206,13 @@ internal fun ProfileAvatarImage(
         value = if (fotoUri.isBlank()) {
             null
         } else {
-            runCatching {
-                context.contentResolver.openInputStream(Uri.parse(fotoUri)).use { stream ->
-                    BitmapFactory.decodeStream(stream)?.asImageBitmap()
-                }
-            }.getOrNull()
+            withContext(Dispatchers.IO) {
+                runCatching {
+                    context.contentResolver.openInputStream(Uri.parse(fotoUri)).use { stream ->
+                        BitmapFactory.decodeStream(stream)?.asImageBitmap()
+                    }
+                }.getOrNull()
+            }
         }
     }
 

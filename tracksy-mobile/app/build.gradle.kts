@@ -89,6 +89,8 @@ dependencies {
     // Coroutines
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.coroutines.play.services)
+    // Ubicación (FusedLocationProviderClient) — geolocalización
+    implementation("com.google.android.gms:play-services-location:21.3.0")
     // ViewModel Compose
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     // Firebase
@@ -96,6 +98,8 @@ dependencies {
     implementation(libs.firebase.auth)
     // Google Sign-In
     implementation(libs.play.services.auth)
+    // WorkManager
+    implementation(libs.androidx.work.runtime.ktx)
 
     testImplementation(libs.junit)
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.1")

@@ -8,6 +8,7 @@ import com.example.tracksy.data.models.Compra
 import com.example.tracksy.data.models.CompraRequest
 import com.example.tracksy.data.models.ProductoCompradoRequest
 import com.example.tracksy.data.repository.TracksyRepository
+import com.example.tracksy.data.repository.TracksyRepositoryInterface
 import com.example.tracksy.ui.history.HistoryItem
 import com.example.tracksy.ui.history.Product
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,7 +18,7 @@ import java.text.SimpleDateFormat
 import java.util.Locale
 
 class CompraViewModel(
-    private val repo: TracksyRepository
+    private val repo: TracksyRepositoryInterface
 ) : ViewModel() {
 
     private val _compras = MutableStateFlow<List<HistoryItem>>(emptyList())

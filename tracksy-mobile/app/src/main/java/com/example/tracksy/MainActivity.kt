@@ -211,6 +211,7 @@ class MainActivity : ComponentActivity() {
                             onAuthenticated = { },
                             onLogin = { email, password -> authViewModel.login(email, password) },
                             onCreateAccount = { nombre, email, password -> authViewModel.registro(nombre, email, password) },
+                            onLoginWithGoogle = { idToken -> authViewModel.loginWithGoogle(idToken) },
                             onRecoverPassword = { email -> authViewModel.sendPasswordReset(email) },
                             onResendEmailVerification = { authViewModel.resendEmailVerification() },
                             onRefreshEmailVerification = { authViewModel.refreshEmailVerification() },

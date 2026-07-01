@@ -2,6 +2,7 @@ package com.example.tracksy.data.auth
 
 import com.google.firebase.auth.EmailAuthProvider
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.auth.UserProfileChangeRequest
 import kotlinx.coroutines.tasks.await
 
@@ -21,6 +22,11 @@ class FirebaseAuthService(
 
     suspend fun login(email: String, password: String) {
         auth.signInWithEmailAndPassword(email.trim(), password).await()
+    }
+
+    suspend fun signInWithGoogle(idToken: String) {
+        val credential = GoogleAuthProvider.getCredential(idToken, null)
+        auth.signInWithCredential(credential).await()
     }
 
     fun logout() {

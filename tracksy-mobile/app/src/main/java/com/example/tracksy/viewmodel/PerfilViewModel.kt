@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.tracksy.data.auth.FirebaseAuthService
 import com.example.tracksy.data.local.TokenManager
 import com.example.tracksy.data.repository.TracksyRepository
+import com.example.tracksy.data.repository.TracksyRepositoryInterface
 import com.example.tracksy.ui.profile.PerfilUsuario
 import com.google.firebase.FirebaseNetworkException
 import com.google.firebase.auth.FirebaseAuthException
@@ -17,7 +18,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 class PerfilViewModel(
-    private val repo: TracksyRepository,
+    private val repo: TracksyRepositoryInterface,
     private val firebaseAuthService: FirebaseAuthService,
     private val tokenManager: TokenManager
 ) : ViewModel() {

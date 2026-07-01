@@ -1,0 +1,14 @@
+## local.properties — DO NOT commit this file (it's gitignored)
+## Copy this file to local.properties and fill in your values.
+
+# Android SDK path (set automatically by Android Studio)
+sdk.dir=/path/to/Android/Sdk
+
+# Backend base URL
+# Use 10.0.2.2 to reach localhost from an Android emulator
+API_BASE_URL=http://10.0.2.2:8000/
+
+# Google Sign-In — Web Client ID
+# Obtained from: Firebase Console → Project Settings → General → Your apps → Web app
+# (NOT the Android client ID — must be the Web OAuth 2.0 client ID)
+GOOGLE_WEB_CLIENT_ID=YOUR_WEB_CLIENT_ID.apps.googleusercontent.com

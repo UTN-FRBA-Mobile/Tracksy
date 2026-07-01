@@ -6,13 +6,14 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.example.tracksy.data.repository.TracksyRepository
+import com.example.tracksy.data.repository.TracksyRepositoryInterface
 import com.example.tracksy.screens.Product
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 class ProductoViewModel(
-    private val repo: TracksyRepository
+    private val repo: TracksyRepositoryInterface
 ) : ViewModel() {
 
     private val _productos = MutableStateFlow<List<Product>>(emptyList())

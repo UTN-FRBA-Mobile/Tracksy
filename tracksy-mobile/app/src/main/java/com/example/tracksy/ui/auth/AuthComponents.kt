@@ -31,6 +31,8 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -398,6 +400,66 @@ fun ErrorMessage(
     modifier: Modifier = Modifier
 ) {
     SharedTracksyErrorMessage(text = text, modifier = modifier)
+}
+
+@Composable
+fun AuthOrDivider(modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        HorizontalDivider(modifier = Modifier.weight(1f), color = TracksyBorderSoft)
+        Text(
+            text = "  o  ",
+            color = TracksyTextMuted,
+            style = TextStyle(
+                fontWeight = FontWeight.Medium,
+                fontSize = 11.sp,
+                lineHeight = 14.sp,
+                letterSpacing = 0.sp
+            )
+        )
+        HorizontalDivider(modifier = Modifier.weight(1f), color = TracksyBorderSoft)
+    }
+}
+
+@Composable
+fun TracksyGoogleButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true,
+    isLoading: Boolean = false
+) {
+    Button(
+        onClick = onClick,
+        modifier = modifier
+            .fillMaxWidth()
+            .height(44.dp)
+            .shadow(2.dp, AuthButtonShape, clip = false),
+        enabled = enabled && !isLoading,
+        shape = AuthButtonShape,
+        border = BorderStroke(1.dp, TracksyBorderSoft),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = Color.White.copy(alpha = 0.94f),
+            contentColor = TracksyTextPrimary,
+            disabledContainerColor = Color.White.copy(alpha = 0.72f),
+            disabledContentColor = TracksyDisabledButtonText
+        ),
+        contentPadding = PaddingValues(horizontal = 12.dp)
+    ) {
+        if (isLoading) {
+            Text(text = "Conectando...", style = ButtonTextStyle, maxLines = 1)
+        } else {
+            Icon(
+                painter = painterResource(id = R.drawable.ic_google),
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+                tint = Color.Unspecified
+            )
+            Spacer(Modifier.width(8.dp))
+            Text(text = "Continuar con Google", style = ButtonTextStyle, maxLines = 1)
+        }
+    }
 }
 
 @Composable

@@ -7,12 +7,13 @@ import androidx.lifecycle.viewModelScope
 import com.example.tracksy.data.models.Estado
 import com.example.tracksy.data.models.Sugerencia
 import com.example.tracksy.data.repository.TracksyRepository
+import com.example.tracksy.data.repository.TracksyRepositoryInterface
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 class SugerenciaViewModel(
-    private val repo: TracksyRepository
+    private val repo: TracksyRepositoryInterface
 ) : ViewModel() {
 
     private val _sugerencias = MutableStateFlow<List<Sugerencia>>(emptyList())

@@ -1,5 +1,8 @@
 package com.example.tracksy.ui.auth
 
+import android.app.Activity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -35,6 +38,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -43,6 +47,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.tracksy.BuildConfig
 import com.example.tracksy.ui.history.HistoryItem
 import com.example.tracksy.ui.history.HistoryScreen
 import com.example.tracksy.ui.history.HistoryDetailScreen
@@ -52,6 +57,10 @@ import com.example.tracksy.ui.theme.TracksyErrorRed
 import com.example.tracksy.ui.theme.TracksySuccessGreen
 import com.example.tracksy.ui.theme.TracksyTextMuted
 import com.example.tracksy.ui.theme.TracksyTextSecondary
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.android.gms.auth.api.signin.GoogleSignInStatusCodes
+import com.google.android.gms.common.api.ApiException
 import kotlinx.coroutines.delay
 
 private enum class AuthRoute {
@@ -83,6 +92,7 @@ fun TracksyAuthApp(
     onAuthenticated: () -> Unit = {},
     onLogin: suspend (email: String, password: String) -> String? = { _, _ -> null },
     onCreateAccount: suspend (nombre: String, email: String, password: String) -> String? = { _, _, _ -> null },
+    onLoginWithGoogle: suspend (idToken: String) -> String? = { null },
     onRecoverPassword: suspend (email: String) -> String? = { null },
     onResendEmailVerification: suspend () -> String? = { null },
     onRefreshEmailVerification: suspend () -> Boolean = { false },
@@ -100,6 +110,59 @@ fun TracksyAuthApp(
     var lastRecoveryEmail by remember { mutableStateOf<String?>(null) }
     var checkEmailForVerification by remember { mutableStateOf(false) }
     var resendCooldownSeconds by remember { mutableStateOf(0) }
+    var googleLoading by remember { mutableStateOf(false) }
+    var googleErrorMessage by remember { mutableStateOf<String?>(null) }
+
+    val context = LocalContext.current
+    val googleSignInClient = remember {
+        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestIdToken(BuildConfig.GOOGLE_WEB_CLIENT_ID)
+            .requestEmail()
+            .requestProfile()
+            .build()
+        GoogleSignIn.getClient(context, gso)
+    }
+
+    val googleLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
+            try {
+                val account = task.getResult(ApiException::class.java)
+                val idToken = account?.idToken
+                if (idToken != null) {
+                    scope.launch {
+                        googleLoading = true
+                        val error = onLoginWithGoogle(idToken)
+                        googleLoading = false
+                        if (error == null) {
+                            onAuthenticated()
+                        } else {
+                            googleErrorMessage = error
+                        }
+                    }
+                } else {
+                    googleErrorMessage = "No se pudo obtener las credenciales de Google."
+                }
+            } catch (e: ApiException) {
+                if (e.statusCode != GoogleSignInStatusCodes.SIGN_IN_CANCELLED) {
+                    googleErrorMessage = when (e.statusCode) {
+                        GoogleSignInStatusCodes.NETWORK_ERROR ->
+                            "Sin conexión a internet. Revisá tu conexión e intentá de nuevo."
+                        else -> "No se pudo iniciar sesión con Google."
+                    }
+                }
+            }
+        }
+    }
+
+    val onGoogleSignIn: () -> Unit = {
+        googleErrorMessage = null
+        googleSignInClient.signOut().addOnCompleteListener {
+            googleLauncher.launch(googleSignInClient.signInIntent)
+        }
+    }
 
     LaunchedEffect(resendCooldownSeconds) {
         if (resendCooldownSeconds > 0) {
@@ -110,15 +173,27 @@ fun TracksyAuthApp(
 
     when (route) {
         AuthRoute.Welcome -> WelcomeScreen(
-            onCreateAccount = { route = AuthRoute.CreateAccount },
-            onLogin = { route = AuthRoute.Login }
+            onCreateAccount = {
+                googleErrorMessage = null
+                route = AuthRoute.CreateAccount
+            },
+            onLogin = {
+                googleErrorMessage = null
+                route = AuthRoute.Login
+            },
+            onGoogleSignIn = onGoogleSignIn,
+            googleErrorText = googleErrorMessage,
+            googleLoading = googleLoading
         )
 
         AuthRoute.Login -> LoginScreen(
             isLoading = loginLoading,
             serverErrorText = loginErrorMessage,
+            googleErrorText = googleErrorMessage,
+            googleLoading = googleLoading,
             onLogin = { email, password ->
                 loginErrorMessage = null
+                googleErrorMessage = null
                 scope.launch {
                     loginLoading = true
                     val error = onLogin(email, password)
@@ -127,15 +202,25 @@ fun TracksyAuthApp(
                 }
                 true
             },
-            onForgotPassword = { route = AuthRoute.RecoverPassword },
-            onCreateAccount = { route = AuthRoute.CreateAccount }
+            onForgotPassword = {
+                googleErrorMessage = null
+                route = AuthRoute.RecoverPassword
+            },
+            onCreateAccount = {
+                googleErrorMessage = null
+                route = AuthRoute.CreateAccount
+            },
+            onGoogleSignIn = onGoogleSignIn
         )
 
         AuthRoute.CreateAccount -> CreateAccountScreen(
             isLoading = registerLoading,
             serverErrorText = registerErrorMessage,
+            googleErrorText = googleErrorMessage,
+            googleLoading = googleLoading,
             onCreateAccount = { nombre, email, password ->
                 registerErrorMessage = null
+                googleErrorMessage = null
                 scope.launch {
                     registerLoading = true
                     val error = onCreateAccount(nombre, email, password)
@@ -150,7 +235,11 @@ fun TracksyAuthApp(
                 }
                 true
             },
-            onLogin = { route = AuthRoute.Login }
+            onLogin = {
+                googleErrorMessage = null
+                route = AuthRoute.Login
+            },
+            onGoogleSignIn = onGoogleSignIn
         )
 
         AuthRoute.RecoverPassword -> RecoverPasswordScreen(
@@ -249,6 +338,9 @@ private val CreateAccountSampleRegisteredEmail = "juan.perez@gmail.com"
 fun WelcomeScreen(
     onCreateAccount: () -> Unit,
     onLogin: () -> Unit,
+    onGoogleSignIn: () -> Unit = {},
+    googleErrorText: String? = null,
+    googleLoading: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     TracksyAuthBackground(modifier = modifier, imageAlpha = 0.60f) {
@@ -276,6 +368,14 @@ fun WelcomeScreen(
                     text = "Iniciar sesión",
                     onClick = onLogin
                 )
+                AuthOrDivider()
+                TracksyGoogleButton(
+                    onClick = onGoogleSignIn,
+                    isLoading = googleLoading
+                )
+                if (googleErrorText != null) {
+                    ErrorMessage(text = googleErrorText)
+                }
             }
         }
     }
@@ -286,8 +386,11 @@ fun LoginScreen(
     onLogin: (email: String, password: String) -> Boolean,
     onForgotPassword: () -> Unit,
     onCreateAccount: () -> Unit,
+    onGoogleSignIn: () -> Unit = {},
     isLoading: Boolean = false,
+    googleLoading: Boolean = false,
     serverErrorText: String? = null,
+    googleErrorText: String? = null,
     modifier: Modifier = Modifier
 ) {
     var email by remember { mutableStateOf("") }
@@ -305,6 +408,8 @@ fun LoginScreen(
         password = password,
         errorText = errorText,
         isLoading = isLoading,
+        googleLoading = googleLoading,
+        googleErrorText = googleErrorText,
         onEmailChange = {
             email = it
             if (showError) showError = false
@@ -322,6 +427,7 @@ fun LoginScreen(
         },
         onForgotPassword = onForgotPassword,
         onCreateAccount = onCreateAccount,
+        onGoogleSignIn = onGoogleSignIn,
         modifier = modifier
     )
 }
@@ -332,14 +438,17 @@ internal fun LoginContent(
     password: String,
     errorText: String?,
     isLoading: Boolean = false,
+    googleLoading: Boolean = false,
+    googleErrorText: String? = null,
     onEmailChange: (String) -> Unit,
     onPasswordChange: (String) -> Unit,
     onLogin: () -> Unit,
     onForgotPassword: () -> Unit,
     onCreateAccount: () -> Unit,
+    onGoogleSignIn: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    val loginEnabled = email.isNotBlank() && password.isNotBlank() && !isLoading
+    val loginEnabled = email.isNotBlank() && password.isNotBlank() && !isLoading && !googleLoading
 
     AuthScreenContainer(modifier = modifier) {
         Column(
@@ -388,7 +497,21 @@ internal fun LoginContent(
                     onClick = onForgotPassword,
                     modifier = Modifier.fillMaxWidth()
                 )
-                Spacer(modifier = Modifier.height(22.dp))
+                Spacer(modifier = Modifier.height(24.dp))
+                AuthOrDivider()
+                Spacer(modifier = Modifier.height(16.dp))
+                TracksyGoogleButton(
+                    onClick = onGoogleSignIn,
+                    enabled = !isLoading,
+                    isLoading = googleLoading
+                )
+                if (googleErrorText != null) {
+                    Spacer(modifier = Modifier.height(10.dp))
+                    ErrorMessage(text = googleErrorText)
+                    Spacer(modifier = Modifier.height(14.dp))
+                } else {
+                    Spacer(modifier = Modifier.height(22.dp))
+                }
                 TracksyInlineLink(
                     text = "¿No tenés cuenta?",
                     linkText = "Creá una",
@@ -404,8 +527,11 @@ internal fun LoginContent(
 fun CreateAccountScreen(
     onCreateAccount: (name: String, email: String, password: String) -> Boolean,
     onLogin: () -> Unit,
+    onGoogleSignIn: () -> Unit = {},
     isLoading: Boolean = false,
+    googleLoading: Boolean = false,
     serverErrorText: String? = null,
+    googleErrorText: String? = null,
     modifier: Modifier = Modifier
 ) {
     var name by remember { mutableStateOf("") }
@@ -448,7 +574,9 @@ fun CreateAccountScreen(
         passwordRequirements = passwordRequirements,
         showPasswordRequirementErrors = passwordBlurred || submitAttempted,
         showConfirmMismatch = showConfirmMismatch,
-        isCreateEnabled = isFrontendValid && localServerErrorText == null && !isLoading,
+        isCreateEnabled = isFrontendValid && localServerErrorText == null && !isLoading && !googleLoading,
+        googleLoading = googleLoading,
+        googleErrorText = googleErrorText,
         onNameChange = { name = it },
         onEmailChange = {
             email = it
@@ -488,6 +616,7 @@ fun CreateAccountScreen(
             }
         },
         onLogin = onLogin,
+        onGoogleSignIn = onGoogleSignIn,
         modifier = modifier
     )
 }
@@ -504,6 +633,8 @@ internal fun CreateAccountContent(
     showPasswordRequirementErrors: Boolean,
     showConfirmMismatch: Boolean,
     isCreateEnabled: Boolean,
+    googleLoading: Boolean = false,
+    googleErrorText: String? = null,
     onNameChange: (String) -> Unit,
     onEmailChange: (String) -> Unit,
     onEmailFocusChanged: (Boolean) -> Unit,
@@ -512,6 +643,7 @@ internal fun CreateAccountContent(
     onConfirmPasswordChange: (String) -> Unit,
     onSubmit: () -> Unit,
     onLogin: () -> Unit,
+    onGoogleSignIn: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val focusManager = LocalFocusManager.current
@@ -594,6 +726,19 @@ internal fun CreateAccountContent(
                         enabled = isCreateEnabled
                     )
                     Spacer(modifier = Modifier.height(20.dp))
+                    AuthOrDivider()
+                    Spacer(modifier = Modifier.height(16.dp))
+                    TracksyGoogleButton(
+                        onClick = onGoogleSignIn,
+                        isLoading = googleLoading
+                    )
+                    if (googleErrorText != null) {
+                        Spacer(modifier = Modifier.height(10.dp))
+                        ErrorMessage(text = googleErrorText)
+                        Spacer(modifier = Modifier.height(14.dp))
+                    } else {
+                        Spacer(modifier = Modifier.height(20.dp))
+                    }
                     TracksyInlineLink(
                         text = "¿Ya tenés cuenta?",
                         linkText = "Iniciá sesión",

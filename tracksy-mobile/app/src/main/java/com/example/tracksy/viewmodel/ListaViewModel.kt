@@ -9,13 +9,14 @@ import com.example.tracksy.data.models.ListaCompra
 import com.example.tracksy.data.models.ProductoListado
 import com.example.tracksy.data.models.Supermercado
 import com.example.tracksy.data.repository.TracksyRepository
+import com.example.tracksy.data.repository.TracksyRepositoryInterface
 import com.example.tracksy.screens.ShoppingList
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 class ListaViewModel(
-    private val repo: TracksyRepository
+    private val repo: TracksyRepositoryInterface
 ) : ViewModel() {
 
     private val _listas = MutableStateFlow<List<ShoppingList>>(emptyList())

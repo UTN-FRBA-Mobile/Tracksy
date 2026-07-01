@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModelProvider
 import com.example.tracksy.data.auth.FirebaseAuthService
 import com.example.tracksy.data.local.TokenManager
 import com.example.tracksy.data.repository.TracksyRepository
+import com.example.tracksy.data.repository.TracksyRepositoryInterface
 import com.google.firebase.FirebaseNetworkException
 import com.google.firebase.auth.FirebaseAuthException
 import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
@@ -17,7 +18,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
 class AuthViewModel(
-    private val repo: TracksyRepository,
+    private val repo: TracksyRepositoryInterface,
     private val firebaseAuthService: FirebaseAuthService,
     private val tokenManager: TokenManager
 ) : ViewModel() {
@@ -30,6 +31,12 @@ class AuthViewModel(
     suspend fun login(email: String, password: String): String? {
         return authenticateWithFirebase {
             firebaseAuthService.login(email, password)
+        }
+    }
+
+    suspend fun loginWithGoogle(idToken: String): String? {
+        return authenticateWithFirebase {
+            firebaseAuthService.signInWithGoogle(idToken)
         }
     }
 

@@ -6,66 +6,66 @@ import com.example.tracksy.data.models.*
 
 class TracksyRepository(
     private val api: ApiService = RetrofitClient.apiService
-) {
+) : TracksyRepositoryInterface {
     // ── Auth ──────────────────────────────────────────────────────────────────
 
-    suspend fun firebaseSync() =
+    override suspend fun firebaseSync() =
         api.firebaseSync()
 
     // ── Usuarios ──────────────────────────────────────────────────────────────
 
-    suspend fun getPerfil() = api.getPerfil()
+    override suspend fun getPerfil() = api.getPerfil()
 
-    suspend fun updatePerfil(nombre: String) =
+    override suspend fun updatePerfil(nombre: String) =
         api.updatePerfil(mapOf("nombre" to nombre))
 
-    suspend fun getFavoritos() = api.getFavoritos()
+    override suspend fun getFavoritos() = api.getFavoritos()
 
-    suspend fun addFavorito(productoId: Long) =
+    override suspend fun addFavorito(productoId: Long) =
         api.addFavorito(AddFavoritoRequest(producto = productoId, favorito = true))
 
-    suspend fun removeFavorito(id: Int) =
+    override suspend fun removeFavorito(id: Int) =
         api.removeFavorito(id)
 
     // ── Productos ─────────────────────────────────────────────────────────────
 
-    suspend fun getProductos(search: String? = null, page: Int? = null, pageSize: Int? = null) =
+    override suspend fun getProductos(search: String?, page: Int?, pageSize: Int?) =
         api.getProductos(search, page, pageSize)
 
-    suspend fun getProducto(id: Long) = api.getProducto(id)
+    override suspend fun getProducto(id: Long) = api.getProducto(id)
 
-    suspend fun getMarcas() = api.getMarcas()
+    override suspend fun getMarcas() = api.getMarcas()
 
     // ── Supermercados ─────────────────────────────────────────────────────────
 
-    suspend fun getSupermercados(search: String? = null) =
+    override suspend fun getSupermercados(search: String?) =
         api.getSupermercados(search)
 
-    suspend fun getSupermercado(id: Int) = api.getSupermercado(id)
+    override suspend fun getSupermercado(id: Int) = api.getSupermercado(id)
 
-    suspend fun getListados(
-        supermercadoId: Int? = null,
-        productoId: Long? = null,
-        disponible: Boolean? = null,
-        page: Int? = null,
-        pageSize: Int? = null
+    override suspend fun getListados(
+        supermercadoId: Int?,
+        productoId: Long?,
+        disponible: Boolean?,
+        page: Int?,
+        pageSize: Int?
     ) = api.getListados(supermercadoId, productoId, disponible, page, pageSize)
 
     // ── Listas de compra ──────────────────────────────────────────────────────
 
-    suspend fun getListas() = api.getListas()
+    override suspend fun getListas() = api.getListas()
 
-    suspend fun getLista(id: Int) = api.getLista(id)
+    override suspend fun getLista(id: Int) = api.getLista(id)
 
-    suspend fun crearLista(nombre: String, supermercadoId: Int? = null) =
+    override suspend fun crearLista(nombre: String, supermercadoId: Int?) =
         api.crearLista(ListaCompraRequest(nombre, supermercadoId))
 
-    suspend fun updateLista(id: Int, campos: Map<String, Any?>) =
+    override suspend fun updateLista(id: Int, campos: Map<String, Any?>) =
         api.updateLista(id, campos)
 
-    suspend fun deleteLista(id: Int) = api.deleteLista(id)
+    override suspend fun deleteLista(id: Int) = api.deleteLista(id)
 
-    suspend fun agregarItem(
+    override suspend fun agregarItem(
         listaId: Int,
         productoId: Long,
         cantidad: Int,
@@ -76,32 +76,32 @@ class TracksyRepository(
         ItemProductoRequest(productoId, cantidad, estadoId, precioUnitario)
     )
 
-    suspend fun updateItem(listaId: Int, itemId: Int, campos: Map<String, Any>) =
+    override suspend fun updateItem(listaId: Int, itemId: Int, campos: Map<String, Any>) =
         api.updateItem(listaId, itemId, campos)
 
-    suspend fun eliminarItem(listaId: Int, itemId: Int) =
+    override suspend fun eliminarItem(listaId: Int, itemId: Int) =
         api.eliminarItem(listaId, itemId)
 
-    suspend fun getEstadosProducto() = api.getEstadosProducto()
+    override suspend fun getEstadosProducto() = api.getEstadosProducto()
 
     // ── Compras ───────────────────────────────────────────────────────────────
 
-    suspend fun getCompras() = api.getCompras()
+    override suspend fun getCompras() = api.getCompras()
 
-    suspend fun getCompra(id: Int) = api.getCompra(id)
+    override suspend fun getCompra(id: Int) = api.getCompra(id)
 
-    suspend fun crearCompra(request: CompraRequest) =
+    override suspend fun crearCompra(request: CompraRequest) =
         api.crearCompra(request)
 
     // ── Sugerencias ───────────────────────────────────────────────────────────
 
-    suspend fun getSugerencias() = api.getSugerencias()
+    override suspend fun getSugerencias() = api.getSugerencias()
 
-    suspend fun crearSugerencia(productoId: Long, estadoId: Int, motivo: String) =
+    override suspend fun crearSugerencia(productoId: Long, estadoId: Int, motivo: String) =
         api.crearSugerencia(SugerenciaRequest(productoId, estadoId, motivo))
 
-    suspend fun agregarFeedback(sugerenciaId: Int, fueUtil: Boolean) =
+    override suspend fun agregarFeedback(sugerenciaId: Int, fueUtil: Boolean) =
         api.agregarFeedback(sugerenciaId, FeedbackRequest(fueUtil))
 
-    suspend fun getEstados() = api.getEstados()
+    override suspend fun getEstados() = api.getEstados()
 }

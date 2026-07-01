@@ -64,7 +64,7 @@ _UPLOAD_URLS = {
 }
 
 _CSV_HELP = {
-    ImportBatch.TYPE_PRODUCTS: "Columnas requeridas: <code>nombre</code>, <code>marca_nombre</code>",
+    ImportBatch.TYPE_PRODUCTS: "Columnas requeridas: <code>codigo_barra</code>, <code>nombre</code> — Opcional: <code>marca_nombre</code>",
     ImportBatch.TYPE_SUPERMARKETS: "Columnas requeridas: <code>nombre</code>, <code>direccion</code>, <code>latitud</code>, <code>longitud</code>",
     ImportBatch.TYPE_LISTADOS: "Columnas requeridas: <code>producto_id</code>, <code>supermercado_id</code>, <code>precio</code>, <code>disponible</code>",
     ImportBatch.TYPE_MARCAS: "Columnas requeridas: <code>nombre</code>",

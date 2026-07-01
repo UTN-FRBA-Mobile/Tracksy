@@ -43,7 +43,7 @@ factory-boy==3.3.0
 faker==22.2.0
 
 # Admin UI
-django-jazzmin>=3.0.4
+django-jazzmin==2.6.0
 
 # Code quality
 flake8>=7.0.0

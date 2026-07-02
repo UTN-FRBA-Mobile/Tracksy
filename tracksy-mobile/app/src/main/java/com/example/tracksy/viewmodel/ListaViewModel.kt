@@ -87,6 +87,29 @@ class ListaViewModel(
         }
     }
 
+    /**
+     * Asigna el supermercado a una lista existente (sirve tanto para el set
+     * inicial, cuando la lista todavía no tenía uno, como para actualizarlo).
+     * Se usa al elegir un supermercado recomendado en la pantalla de comparación.
+     */
+    fun asignarSupermercado(listaId: Int, supermercadoId: Int) {
+        viewModelScope.launch {
+            try {
+                repo.updateLista(listaId, mapOf("supermercado" to supermercadoId))
+                val response = repo.getLista(listaId)
+                if (response.isSuccessful) {
+                    _listaActual.value = response.body()
+                }
+                val listasResp = repo.getListas()
+                if (listasResp.isSuccessful) {
+                    val results = listasResp.body()?.results ?: emptyList()
+                    _listas.value = results.map { it.toUiModel() }
+                    _listasDetalladas.value = results
+                }
+            } catch (_: Exception) { }
+        }
+    }
+
     fun cargarEstadosProducto() {
         viewModelScope.launch {
             try {

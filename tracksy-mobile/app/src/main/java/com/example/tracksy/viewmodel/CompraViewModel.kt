@@ -75,6 +75,7 @@ class CompraViewModel(
             id              = id.toString(),
             listName        = nombreLista.ifBlank { "Compra" },
             supermarketName = supermercadoNombre ?: "",
+            supermercadoId  = supermercado,
             dateLabel       = fechaLabel,
             productCount    = productos.size,
             totalAmount     = "$%.0f".format(total),
@@ -82,7 +83,9 @@ class CompraViewModel(
                 Product(
                     name        = pc.productoNombre,
                     price       = "$%.0f".format(pc.precioUnitario * pc.cantidad),
-                    isCompleted = true
+                    isCompleted = true,
+                    productoId  = pc.producto,
+                    cantidad    = pc.cantidad
                 )
             }
         )

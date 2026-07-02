@@ -117,8 +117,8 @@ fun HistoryScreen(
 @Composable
 fun HistoryDetailScreen(
     item: HistoryItem,
-    profilePhotoUri: String = "",
     onBackClick: () -> Unit,
+    onReutilizarLista: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val colors = LocalTracksyColors.current
@@ -134,7 +134,7 @@ fun HistoryDetailScreen(
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
@@ -147,19 +147,9 @@ fun HistoryDetailScreen(
                         text = item.listName,
                         fontSize = 22.sp,
                         fontWeight = FontWeight.Bold,
-                        color = colors.titleText
+                        color = colors.titleText,
+                        modifier = Modifier.weight(1f)
                     )
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier.size(42.dp).clip(CircleShape).background(colors.divider)
-                    ) {
-                        ProfileAvatarImage(
-                            fotoUri = profilePhotoUri,
-                            colors = colors,
-                            iconSize = 24.dp,
-                            modifier = Modifier.fillMaxSize()
-                        )
-                    }
                 }
 
                 Spacer(Modifier.height(16.dp))
@@ -171,6 +161,15 @@ fun HistoryDetailScreen(
                     .background(colors.titleText)
                     .padding(horizontal = 24.dp, vertical = 24.dp)
             ) {
+                if (item.supermarketName.isNotBlank()) {
+                    Text(
+                        text = "Comprado en ${item.supermarketName}",
+                        color = Color.White,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                }
                 Text(
                     text = "${item.dateLabel} · ${item.productCount} productos",
                     color = Color.White.copy(alpha = 0.8f),
@@ -217,8 +216,8 @@ fun HistoryDetailScreen(
             ) {
                 TracksyPrimaryButton(
                     text = "Reutilizar Lista",
-                    onClick = {},
-                    enabled = false,
+                    onClick = onReutilizarLista,
+                    enabled = item.products.isNotEmpty(),
                     modifier = Modifier.fillMaxWidth()
                 )
             }

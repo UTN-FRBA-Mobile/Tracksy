@@ -3,13 +3,16 @@ package com.example.tracksy.ui.history
 data class Product(
     val name: String,
     val price: String,
-    val isCompleted: Boolean = true
+    val isCompleted: Boolean = true,
+    val productoId: Long = 0L,
+    val cantidad: Int = 1
 )
 
 data class HistoryItem(
     val id: String,
     val listName: String,
     val supermarketName: String,
+    val supermercadoId: Int? = null,
     val dateLabel: String,
     val productCount: Int,
     val totalAmount: String,

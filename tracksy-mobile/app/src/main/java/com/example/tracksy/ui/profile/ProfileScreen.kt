@@ -61,7 +61,8 @@ fun PerfilScreen(
     onLogout: () -> Unit,
     onEditarPerfil: () -> Unit,
     onCambiarContrasena: () -> Unit,
-    onModoOscuroChange: (Boolean) -> Unit
+    onModoOscuroChange: (Boolean) -> Unit,
+    onAyudaSoporte: () -> Unit = {}
 ) {
     val colors = LocalTracksyColors.current
 
@@ -133,7 +134,7 @@ fun PerfilScreen(
             SectionTitle("Sobre Tracksy", colors)
             Spacer(Modifier.height(10.dp))
             PerfilCard(colors) {
-                PerfilNavRow(Icons.AutoMirrored.Outlined.HelpOutline, "Ayuda y soporte", {}, colors)
+                PerfilNavRow(Icons.AutoMirrored.Outlined.HelpOutline, "Ayuda y soporte", onAyudaSoporte, colors)
                 Divisor(colors)
                 PerfilInfoRow("Versión", "1.0.0", colors)
             }

@@ -42,11 +42,13 @@ import com.example.tracksy.ui.lists.EditarListaScreen
 import com.example.tracksy.ui.lists.ItemDeLista
 import com.example.tracksy.ui.lists.MisListasScreen
 import com.example.tracksy.ui.profile.CambiarContrasenaScreen
+import com.example.tracksy.ui.profile.AyudaSoporteScreen
 import com.example.tracksy.ui.profile.EditarPerfilScreen
 import com.example.tracksy.ui.profile.PerfilScreen
 import com.example.tracksy.ui.profile.PerfilUsuario
 import com.example.tracksy.ui.supermarket.CompararSupermercadosScreen
 import com.example.tracksy.ui.components.TracksyTextAction
+import com.example.tracksy.widget.TracksyListWidgetProvider
 import com.example.tracksy.ui.theme.LocalTracksyColors
 import com.example.tracksy.ui.theme.TracksyTheme
 import com.example.tracksy.viewmodel.AuthViewModel
@@ -65,9 +67,32 @@ class MainActivity : ComponentActivity() {
     private val tokenManager by lazy { TokenManager(this) }
     private val userPrefs    by lazy { UserPreferencesRepository(this) }
 
+    // Id de lista pedido por el widget para navegar directo a su detalle (ver onCreate/onNewIntent)
+    private var pendingWidgetListaId by mutableStateOf<Int?>(null)
+
+    // Se pone en true cuando se abre la app desde la notificación de recomendaciones,
+    // para llevar al usuario a Home (donde se muestran las sugerencias) en vez de
+    // dejarlo en la pantalla en la que haya quedado la navegación.
+    private var pendingOpenRecommendations by mutableStateOf(false)
+
     companion object {
         // Activar para testear sin backend ni Firebase
         const val DEBUG_BYPASS_AUTH = false
+        const val EXTRA_WIDGET_LISTA_ID = "extra_widget_lista_id"
+        const val EXTRA_OPEN_RECOMMENDATIONS = "extra_open_recommendations"
+    }
+
+    private fun extractWidgetListaId(intent: Intent?): Int? =
+        intent?.getIntExtra(EXTRA_WIDGET_LISTA_ID, -1)?.takeIf { it != -1 }
+
+    private fun extractOpenRecommendations(intent: Intent?): Boolean =
+        intent?.getBooleanExtra(EXTRA_OPEN_RECOMMENDATIONS, false) ?: false
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        extractWidgetListaId(intent)?.let { pendingWidgetListaId = it }
+        if (extractOpenRecommendations(intent)) pendingOpenRecommendations = true
     }
 
     private fun loadDebugMockData() {
@@ -119,6 +144,8 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        pendingWidgetListaId = extractWidgetListaId(intent)
+        pendingOpenRecommendations = extractOpenRecommendations(intent)
         setContent {
             var isDarkMode by remember { mutableStateOf(tokenManager.isDarkMode) }
 
@@ -184,6 +211,7 @@ class MainActivity : ComponentActivity() {
                 var showPerfil                by remember { mutableStateOf(false) }
                 var showEditarPerfil          by remember { mutableStateOf(false) }
                 var showCambiarContrasena     by remember { mutableStateOf(false) }
+                var showAyudaSoporte          by remember { mutableStateOf(false) }
                 var scannerFromList           by remember { mutableStateOf(false) }
                 var pendingBarcode            by remember { mutableStateOf<String?>(null) }
                 var addingProductToList       by remember { mutableStateOf(false) }
@@ -298,6 +326,52 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
+                // Mantiene el widget "Mi lista activa" sincronizado con los cambios hechos en la app
+                // (listaActual cubre el toggle de un item dentro de DetalleListaScreen)
+                LaunchedEffect(listasDetalladas, listaActual) {
+                    if (isAuthenticated) TracksyListWidgetProvider.enqueueRefresh(this@MainActivity)
+                }
+
+                // Navega directo al detalle de la lista cuando se abre la app desde el widget.
+                // Fuerza la recarga del detalle explícitamente (no depender de LaunchedEffect(selectedList)):
+                // si ya estábamos parados en esa misma lista cuando se minimizó la app, selectedList
+                // no cambia de valor al volver y ese efecto no se re-dispara, dejando datos viejos.
+                LaunchedEffect(pendingWidgetListaId, listas, isAuthenticated) {
+                    val targetId = pendingWidgetListaId ?: return@LaunchedEffect
+                    if (!isAuthenticated) return@LaunchedEffect
+                    val match = listas.firstOrNull { it.id == targetId }
+                    if (match != null) {
+                        selectedList  = match
+                        currentScreen = AppScreen.DetalleLista
+                        selectedTab   = NavTab.LISTS
+                        pendingWidgetListaId = null
+                        listaViewModel.cargarLista(targetId)
+                        listaViewModel.cargarListados()
+                    } else {
+                        listaViewModel.cargarListas()
+                    }
+                }
+
+                // Abre la app en Home (donde se muestran las sugerencias) cuando se
+                // toca la notificación de recomendaciones, sin importar en qué
+                // pantalla haya quedado la navegación.
+                LaunchedEffect(pendingOpenRecommendations, isAuthenticated) {
+                    if (!pendingOpenRecommendations || !isAuthenticated) return@LaunchedEffect
+                    selectedTab               = NavTab.HOME
+                    selectedList              = null
+                    selectedProduct           = null
+                    selectedHistoryItem       = null
+                    showEditarListaStandalone = false
+                    showScanner               = false
+                    showPerfil                = false
+                    showEditarPerfil          = false
+                    showCambiarContrasena     = false
+                    showAyudaSoporte          = false
+                    currentScreen             = AppScreen.EditarLista
+                    pendingOpenRecommendations = false
+                    recommendationViewModel.refresh()
+                }
+
                 // Cargar detalle de lista cuando se selecciona una
                 LaunchedEffect(selectedList) {
                     selectedList?.let {
@@ -355,6 +429,10 @@ class MainActivity : ComponentActivity() {
                         val isLoadingCompras   by compraViewModel.isRefreshing.collectAsState()
 
                         when {
+                            showAyudaSoporte -> AyudaSoporteScreen(
+                                onBack = { showAyudaSoporte = false }
+                            )
+
                             showCambiarContrasena -> CambiarContrasenaScreen(
                                 onChangePassword = { passwordActual, passwordNuevo ->
                                     perfilViewModel.cambiarPassword(passwordActual, passwordNuevo)
@@ -412,6 +490,7 @@ class MainActivity : ComponentActivity() {
                                 },
                                 onEditarPerfil      = { showEditarPerfil = true },
                                 onCambiarContrasena = { showCambiarContrasena = true },
+                                onAyudaSoporte      = { showAyudaSoporte = true },
                                 onModoOscuroChange  = {
                                     isDarkMode = it
                                     tokenManager.isDarkMode = it
@@ -435,8 +514,17 @@ class MainActivity : ComponentActivity() {
 
                             selectedHistoryItem != null -> HistoryDetailScreen(
                                 item        = selectedHistoryItem!!,
-                                profilePhotoUri = usuario.fotoUri,
-                                onBackClick = { selectedHistoryItem = null }
+                                onBackClick = { selectedHistoryItem = null },
+                                onReutilizarLista = {
+                                    val item = selectedHistoryItem!!
+                                    listaViewModel.crearListaConItems(
+                                        nombre         = item.listName,
+                                        supermercadoId = item.supermercadoId,
+                                        items          = item.products.map { it.productoId to it.cantidad }
+                                    )
+                                    selectedHistoryItem = null
+                                    selectedTab          = NavTab.LISTS
+                                }
                             )
 
                             selectedProduct != null -> ProductDetailScreen(
@@ -570,7 +658,11 @@ class MainActivity : ComponentActivity() {
                                     lista         = listaActual,
                                     supermercados = supermercados,
                                     listados      = listados,
-                                    onBack        = { currentScreen = AppScreen.DetalleLista }
+                                    onBack        = { currentScreen = AppScreen.DetalleLista },
+                                    onSeleccionarSupermercado = { supermercadoId ->
+                                        listaActual?.let { listaViewModel.asignarSupermercado(it.id, supermercadoId) }
+                                        currentScreen = AppScreen.DetalleLista
+                                    }
                                 )
 
                                 AppScreen.FinalizarCompra -> {

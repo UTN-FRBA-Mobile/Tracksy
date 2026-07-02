@@ -56,7 +56,8 @@ fun CompararSupermercadosScreen(
     lista: ListaCompra? = null,
     supermercados: List<Supermercado> = emptyList(),
     listados: List<ProductoListado> = emptyList(),
-    onBack: () -> Unit = {}
+    onBack: () -> Unit = {},
+    onSeleccionarSupermercado: (Int) -> Unit = {}
 ) {
     val colors = LocalTracksyColors.current
 
@@ -129,7 +130,7 @@ fun CompararSupermercadosScreen(
 
     // Calcula resultado para cada supermercado
     val resultados = remember(supermercados, listados, lista, userLat, userLng) {
-        supermercados.map { super_ ->
+        val calculados = supermercados.map { super_ ->
             val listadosDelSuper = listados.filter {
                 it.supermercado == super_.id && it.disponible
             }
@@ -149,9 +150,18 @@ fun CompararSupermercadosScreen(
                 totalProductos      = totalProductos,
                 distanciaKm         = distancia
             )
-        }.sortedWith(
-            // Prioridad: más productos disponibles primero, luego menor precio
+        }
+
+        // Precio de referencia: el más barato entre los que tienen precio real.
+        val precioMinimo = calculados.filter { it.totalPrecio > 0 }.minOfOrNull { it.totalPrecio }
+
+        calculados.sortedWith(
+            // Prioridad: más productos disponibles primero. Entre los que están
+            // dentro de un 30% del precio más barato, gana la cercanía; a los que
+            // superan ese 30% se los relega, sin importar qué tan cerca estén.
             compareByDescending<ResultadoSupermercado> { it.productosDisponibles }
+                .thenBy { esMuchoMasCaro(it, precioMinimo) }
+                .thenBy { it.distanciaKm }
                 .thenBy { it.totalPrecio }
         )
     }
@@ -215,14 +225,17 @@ fun CompararSupermercadosScreen(
                     SupermercadoResultadoCard(
                         rank      = index + 1,
                         resultado = resultado,
-                        colors    = colors
+                        colors    = colors,
+                        onClick   = { onSeleccionarSupermercado(resultado.supermercado.id) }
                     )
                 }
             }
 
             // ── Pie de página ─────────────────────────────────────────────────
             Text(
-                text = "* La distancia se calcula desde tu ubicación al supermercado (en línea recta). " +
+                text = "Tocá un supermercado para asignarlo a esta lista. " +
+                       "Se prioriza el más cercano, salvo que otro sea más de un 30% más barato. " +
+                       "* La distancia se calcula desde tu ubicación al supermercado (en línea recta). " +
                        "Los precios corresponden a los productos disponibles en cada local.",
                 fontSize = 12.sp,
                 color = colors.subtitleText,
@@ -238,7 +251,8 @@ fun CompararSupermercadosScreen(
 private fun SupermercadoResultadoCard(
     rank: Int,
     resultado: ResultadoSupermercado,
-    colors: com.example.tracksy.ui.theme.TracksyColors
+    colors: com.example.tracksy.ui.theme.TracksyColors,
+    onClick: () -> Unit = {}
 ) {
     val esRecomendado = rank == 1
     val cobertura = if (resultado.totalProductos > 0)
@@ -247,7 +261,7 @@ private fun SupermercadoResultadoCard(
     val faltantes = resultado.totalProductos - resultado.productosDisponibles
 
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = colors.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = if (esRecomendado) 4.dp else 1.dp)
@@ -384,6 +398,12 @@ private fun haversineKm(lat1: Double, lon1: Double, lat2: Double, lon2: Double):
             cos(Math.toRadians(lat1)) * cos(Math.toRadians(lat2)) * sin(dLon / 2).pow(2)
     val c = 2 * atan2(sqrt(a), sqrt(1 - a))
     return r * c
+}
+
+/** True si [resultado] cuesta más de un 30% por encima de [precioMinimo]. */
+private fun esMuchoMasCaro(resultado: ResultadoSupermercado, precioMinimo: Double?): Boolean {
+    if (precioMinimo == null || precioMinimo <= 0 || resultado.totalPrecio <= 0) return false
+    return resultado.totalPrecio > precioMinimo * 1.3
 }
 
 private fun formatDistancia(km: Double): String = when {

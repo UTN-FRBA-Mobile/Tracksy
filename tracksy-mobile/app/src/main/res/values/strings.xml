@@ -1,3 +1,12 @@
 <resources>
     <string name="app_name">tracksy</string>
+
+    <!-- Widget -->
+    <string name="widget_description">Mostrá tu lista de compras activa en la pantalla de inicio</string>
+    <string name="widget_default_title">Mi lista activa</string>
+    <string name="widget_refresh_description">Actualizar</string>
+    <string name="widget_no_lists">No tenés listas aún. Abrí Tracksy para crear una.</string>
+    <string name="widget_login_required">Iniciá sesión en Tracksy para ver tu lista.</string>
+    <string name="widget_load_error">No se pudo actualizar. Tocá para reintentar.</string>
+    <string name="widget_all_done">¡Todo comprado! 🎉</string>
 </resources>

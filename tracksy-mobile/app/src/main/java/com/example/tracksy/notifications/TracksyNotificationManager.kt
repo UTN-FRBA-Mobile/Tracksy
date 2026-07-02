@@ -16,6 +16,8 @@ object TracksyNotificationManager {
     const val CHANNEL_LOCATION_SERVICE = "tracksy_location_service"
 
     private const val NOTIF_ID_RECOMMENDATIONS = 9001
+    private const val REQUEST_CODE_PROXIMITY = 1
+    private const val REQUEST_CODE_RECOMMENDATIONS = 2
 
     fun createChannels(context: Context) {
         val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
@@ -54,7 +56,7 @@ object TracksyNotificationManager {
         supermercadoNombre: String,
         listaNombre: String
     ) {
-        val intent = mainActivityIntent(context)
+        val intent = mainActivityIntent(context, REQUEST_CODE_PROXIMITY)
         val notification = NotificationCompat.Builder(context, CHANNEL_PROXIMITY)
             .setSmallIcon(android.R.drawable.ic_menu_mylocation)
             .setContentTitle("Cerca de $supermercadoNombre")
@@ -74,18 +76,27 @@ object TracksyNotificationManager {
             .setContentTitle("Recomendaciones para vos")
             .setContentText(text)
             .setPriority(NotificationCompat.PRIORITY_LOW)
-            .setContentIntent(mainActivityIntent(context))
+            .setContentIntent(
+                mainActivityIntent(context, REQUEST_CODE_RECOMMENDATIONS) {
+                    putExtra(MainActivity.EXTRA_OPEN_RECOMMENDATIONS, true)
+                }
+            )
             .setAutoCancel(true)
             .build()
         notificationManager(context).notify(NOTIF_ID_RECOMMENDATIONS, notification)
     }
 
-    private fun mainActivityIntent(context: Context): PendingIntent =
+    private fun mainActivityIntent(
+        context: Context,
+        requestCode: Int,
+        configure: Intent.() -> Unit = {}
+    ): PendingIntent =
         PendingIntent.getActivity(
             context,
-            0,
+            requestCode,
             Intent(context, MainActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
+                configure()
             },
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )

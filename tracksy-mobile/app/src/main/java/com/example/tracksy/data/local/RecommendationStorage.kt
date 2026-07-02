@@ -42,6 +42,11 @@ class RecommendationStorage(context: Context) {
 
     fun clear() = prefs.edit().remove(KEY_RECOMMENDATIONS).apply()
 
+    // Olvida las sugerencias ya mostradas (para que vuelvan a contar como
+    // "nuevas" en la próxima evaluación), sin resucitar las que el usuario
+    // ya descartó explícitamente.
+    fun clearVisibleKeepDismissed() = save(loadAll().filter { it.isDismissed })
+
     private fun save(list: List<Recommendation>) {
         prefs.edit().putString(KEY_RECOMMENDATIONS, gson.toJson(list)).apply()
     }

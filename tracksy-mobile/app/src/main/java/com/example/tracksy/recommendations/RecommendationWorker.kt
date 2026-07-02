@@ -4,7 +4,9 @@ import android.content.Context
 import androidx.work.Constraints
 import androidx.work.CoroutineWorker
 import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.ExistingWorkPolicy
 import androidx.work.NetworkType
+import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
@@ -23,7 +25,10 @@ class RecommendationWorker(
 
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
         val prefs = UserPreferencesRepository(applicationContext)
-        if (!prefs.notificationsEnabled) return@withContext Result.success()
+        if (!prefs.notificationsEnabled) {
+            if (DEMO_MODE) scheduleNext(applicationContext)
+            return@withContext Result.success()
+        }
 
         val outcome = runCatching {
             val repo = TracksyRepository()
@@ -42,22 +47,43 @@ class RecommendationWorker(
                 listasActivas = listas
             )
 
+            // Modo demo: se resetea lo "ya visto" (no lo dismisseado por el usuario,
+            // eso se sigue respetando) antes de evaluar, para que las sugerencias
+            // reales que arma el motor cada ciclo cuenten de nuevo como nuevas y
+            // disparen la notificación, en vez de simular un contador.
+            if (DEMO_MODE) storage.clearVisibleKeepDismissed()
+
             val prevVisible = storage.loadVisible()
             storage.mergeAndSave(engine.evaluate(ctx))
             val afterVisible = storage.loadVisible()
             val delta = afterVisible.size - prevVisible.size
+
             if (delta > 0) {
                 TracksyNotificationManager.sendRecommendationsNotification(applicationContext, delta)
             }
         }
 
+        if (DEMO_MODE) scheduleNext(applicationContext)
         if (outcome.isFailure) Result.retry() else Result.success()
     }
 
     companion object {
         private const val WORK_NAME = "tracksy_recommendations"
 
+        // ── Modo demo ────────────────────────────────────────────────────────
+        // Con DEMO_MODE = true, en lugar de correr cada 24hs, el worker se
+        // reprograma solo cada DEMO_INTERVAL y siempre dispara la notificación,
+        // para poder exhibirla en una presentación sin esperar ni depender de
+        // que existan sugerencias nuevas reales.
+        // IMPORTANTE: volver a false antes de pasar a producción.
+        const val DEMO_MODE = true
+        private const val DEMO_INTERVAL_MINUTES = 1L
+
         fun schedule(context: Context) {
+            if (DEMO_MODE) {
+                scheduleNext(context)
+                return
+            }
             val request = PeriodicWorkRequestBuilder<RecommendationWorker>(24, TimeUnit.HOURS)
                 .setConstraints(
                     Constraints.Builder()
@@ -68,6 +94,22 @@ class RecommendationWorker(
             WorkManager.getInstance(context).enqueueUniquePeriodicWork(
                 WORK_NAME,
                 ExistingPeriodicWorkPolicy.KEEP,
+                request
+            )
+        }
+
+        private fun scheduleNext(context: Context) {
+            val request = OneTimeWorkRequestBuilder<RecommendationWorker>()
+                .setInitialDelay(DEMO_INTERVAL_MINUTES, TimeUnit.MINUTES)
+                .setConstraints(
+                    Constraints.Builder()
+                        .setRequiredNetworkType(NetworkType.CONNECTED)
+                        .build()
+                )
+                .build()
+            WorkManager.getInstance(context).enqueueUniqueWork(
+                WORK_NAME,
+                ExistingWorkPolicy.REPLACE,
                 request
             )
         }

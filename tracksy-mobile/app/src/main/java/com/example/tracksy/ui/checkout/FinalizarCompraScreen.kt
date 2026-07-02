@@ -140,14 +140,27 @@ fun FinalizarCompraScreen(
                 }
             }
 
-            TracksyPrimaryButton(
-                text = "Confirmar y guardar en historial",
-                onClick = onConfirm,
+            Column(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
                     .padding(horizontal = 20.dp, vertical = 16.dp)
-            )
+            ) {
+                if (summary.purchasedProducts == 0) {
+                    Text(
+                        text = "Marcá al menos un producto como comprado para poder finalizar.",
+                        fontSize = 12.sp,
+                        color = colors.subtitleText,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                }
+                TracksyPrimaryButton(
+                    text = "Confirmar y guardar en historial",
+                    onClick = onConfirm,
+                    enabled = summary.purchasedProducts > 0,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
         }
     }
 }

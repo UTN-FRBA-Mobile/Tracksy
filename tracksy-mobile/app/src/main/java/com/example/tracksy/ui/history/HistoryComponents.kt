@@ -103,7 +103,7 @@ fun TracksyTopBar(
                 }
             }
         },
-        colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+        colors = TopAppBarDefaults.topAppBarColors(
             containerColor = Color.Transparent
         ),
         modifier = modifier

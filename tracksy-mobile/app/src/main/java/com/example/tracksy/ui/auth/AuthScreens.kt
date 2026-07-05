@@ -1,8 +1,6 @@
 package com.example.tracksy.ui.auth
 
-import android.app.Activity
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
+import android.util.Log
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -57,11 +55,16 @@ import com.example.tracksy.ui.theme.TracksyErrorRed
 import com.example.tracksy.ui.theme.TracksySuccessGreen
 import com.example.tracksy.ui.theme.TracksyTextMuted
 import com.example.tracksy.ui.theme.TracksyTextSecondary
-import com.google.android.gms.auth.api.signin.GoogleSignIn
-import com.google.android.gms.auth.api.signin.GoogleSignInOptions
-import com.google.android.gms.auth.api.signin.GoogleSignInStatusCodes
-import com.google.android.gms.common.api.ApiException
+import androidx.credentials.CredentialManager
+import androidx.credentials.CustomCredential
+import androidx.credentials.GetCredentialRequest
+import androidx.credentials.exceptions.GetCredentialCancellationException
+import androidx.credentials.exceptions.GetCredentialException
+import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
+import com.google.android.libraries.identity.googleid.GoogleIdTokenParsingException
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withTimeoutOrNull
 
 private enum class AuthRoute {
     Welcome,
@@ -114,53 +117,49 @@ fun TracksyAuthApp(
     var googleErrorMessage by remember { mutableStateOf<String?>(null) }
 
     val context = LocalContext.current
-    val googleSignInClient = remember {
-        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-            .requestIdToken(BuildConfig.GOOGLE_WEB_CLIENT_ID)
-            .requestEmail()
-            .requestProfile()
-            .build()
-        GoogleSignIn.getClient(context, gso)
-    }
-
-    val googleLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
-            try {
-                val account = task.getResult(ApiException::class.java)
-                val idToken = account?.idToken
-                if (idToken != null) {
-                    scope.launch {
-                        googleLoading = true
-                        val error = onLoginWithGoogle(idToken)
-                        googleLoading = false
-                        if (error == null) {
-                            onAuthenticated()
-                        } else {
-                            googleErrorMessage = error
-                        }
-                    }
-                } else {
-                    googleErrorMessage = "No se pudo obtener las credenciales de Google."
-                }
-            } catch (e: ApiException) {
-                if (e.statusCode != GoogleSignInStatusCodes.SIGN_IN_CANCELLED) {
-                    googleErrorMessage = when (e.statusCode) {
-                        GoogleSignInStatusCodes.NETWORK_ERROR ->
-                            "Sin conexión a internet. Revisá tu conexión e intentá de nuevo."
-                        else -> "No se pudo iniciar sesión con Google."
-                    }
-                }
-            }
-        }
-    }
+    val credentialManager = remember { CredentialManager.create(context) }
 
     val onGoogleSignIn: () -> Unit = {
         googleErrorMessage = null
-        googleSignInClient.signOut().addOnCompleteListener {
-            googleLauncher.launch(googleSignInClient.signInIntent)
+        scope.launch {
+            googleLoading = true
+            try {
+                val googleIdOption = GetGoogleIdOption.Builder()
+                    .setServerClientId(BuildConfig.GOOGLE_WEB_CLIENT_ID)
+                    .setFilterByAuthorizedAccounts(false)
+                    .setAutoSelectEnabled(false)
+                    .build()
+                val request = GetCredentialRequest.Builder()
+                    .addCredentialOption(googleIdOption)
+                    .build()
+                val response = withTimeoutOrNull(30_000) {
+                    credentialManager.getCredential(context, request)
+                }
+                if (response == null) {
+                    googleErrorMessage = "No se pudo iniciar sesión con Google. Intentá de nuevo."
+                    return@launch
+                }
+                val credential = response.credential
+                if (credential is CustomCredential &&
+                    credential.type == GoogleIdTokenCredential.TYPE_GOOGLE_ID_TOKEN_CREDENTIAL
+                ) {
+                    val idToken = GoogleIdTokenCredential.createFrom(credential.data).idToken
+                    val error = onLoginWithGoogle(idToken)
+                    if (error == null) onAuthenticated() else googleErrorMessage = error
+                } else {
+                    googleErrorMessage = "No se pudo obtener las credenciales de Google."
+                }
+            } catch (e: GetCredentialCancellationException) {
+                // El usuario cerró el selector de cuentas, no es un error a mostrar.
+            } catch (e: GetCredentialException) {
+                Log.e("GoogleSignIn", "getCredential failed: type=${e.type}, message=${e.message}", e)
+                googleErrorMessage = "No se pudo iniciar sesión con Google. Intentá de nuevo."
+            } catch (e: GoogleIdTokenParsingException) {
+                Log.e("GoogleSignIn", "Failed to parse Google ID token", e)
+                googleErrorMessage = "No se pudo obtener las credenciales de Google."
+            } finally {
+                googleLoading = false
+            }
         }
     }
 

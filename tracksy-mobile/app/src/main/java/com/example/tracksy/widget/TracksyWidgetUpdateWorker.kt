@@ -44,7 +44,9 @@ class TracksyWidgetUpdateWorker(
         val listas = outcome.getOrNull()
         if (listas == null) {
             showMessage(applicationContext, manager, ids, R.string.widget_load_error)
-            return@withContext Result.retry()
+            // Limita los reintentos: sin este tope, un backend inalcanzable hace que
+            // WorkManager reprograme este worker para siempre (loop de refresco infinito).
+            return@withContext if (runAttemptCount < 3) Result.retry() else Result.failure()
         }
         if (listas.isEmpty()) {
             showMessage(applicationContext, manager, ids, R.string.widget_no_lists)

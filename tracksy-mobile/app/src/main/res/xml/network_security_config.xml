@@ -5,7 +5,7 @@
         <domain includeSubdomains="false">10.0.2.2</domain>
         <domain includeSubdomains="false">localhost</domain>
         <!-- IP de la PC en la red local, para probar desde un dispositivo físico -->
-        <domain includeSubdomains="false">192.168.0.202</domain>
+        <domain includeSubdomains="false">192.168.0.163</domain>
     </domain-config>
     <!-- Todo el resto requiere HTTPS -->
     <base-config cleartextTrafficPermitted="false" />

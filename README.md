@@ -93,7 +93,17 @@ Pensada para el uso diario, Tracksy combina geolocalización, escaneo de código
 
 ## 🖼️ Recorrido por la app
 
-> Capturas de pantalla ilustrativas de los flujos principales — reemplazar por los assets finales antes de publicar en la ficha de Play Store.
+<div align="center">
+
+<img src="docs/screenshots/01-login.png" width="180" alt="Login / Bienvenida" /> <img src="docs/screenshots/02-crear-cuenta.png" width="180" alt="Crear cuenta" /> <img src="docs/screenshots/03-home.png" width="180" alt="Home" /> <img src="docs/screenshots/04-productos.png" width="180" alt="Catálogo de productos" /> <img src="docs/screenshots/05-mis-listas.png" width="180" alt="Mis listas" />
+
+*Bienvenida · Crear cuenta · Home · Catálogo de productos · Mis listas*
+
+<img src="docs/screenshots/06-detalle-lista.png" width="180" alt="Detalle de lista" /> <img src="docs/screenshots/07-editar-lista.png" width="180" alt="Editar lista" /> <img src="docs/screenshots/08-comparar-supermercados.png" width="180" alt="Comparar supermercados" /> <img src="docs/screenshots/09-historial-detalle.png" width="180" alt="Detalle de historial" />
+
+*Detalle de lista · Editar lista · Comparar supermercados · Detalle de historial*
+
+</div>
 
 | Pantalla | Descripción |
 |---|---|
@@ -108,8 +118,6 @@ Pensada para el uso diario, Tracksy combina geolocalización, escaneo de código
 | **Historial** | Compras pasadas con detalle y opción de reutilizar la lista. |
 | **Perfil** | Datos personales, preferencias, modo oscuro y soporte. |
 | **Widget de inicio** | Lista activa accesible desde el escritorio del teléfono. |
-
-*(Las imágenes reales de cada pantalla deben incorporarse aquí como `docs/screenshots/<pantalla>.png` una vez generadas desde builds de referencia, respetando el diseño real de la app.)*
 
 ---
 

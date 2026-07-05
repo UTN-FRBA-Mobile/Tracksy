@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+
+    <!--
+        Safe zone: 72dp centered in 108dp (from 18 to 90).
+        All content scaled to 0.65x and translated +19 on each axis
+        so the full logo fits within the safe zone on all launcher shapes.
+    -->
+    <group
+        android:scaleX="0.65"
+        android:scaleY="0.65"
+        android:translateX="19"
+        android:translateY="19">
+
+        <path android:fillColor="@android:color/transparent"
+            android:pathData="M31,53 L45,66 L75,34"
+            android:strokeColor="#2A0F5E" android:strokeAlpha="0.35"
+            android:strokeWidth="15" android:strokeLineCap="round" android:strokeLineJoin="round" />
+
+        <path android:fillColor="#6734EA" android:pathData="M16,30 a2.6,2.6 0,0,1 2.6,-2.6 h0.8 a2.6,2.6 0,0,1 2.6,2.6 v44 a2.6,2.6 0,0,1 -2.6,2.6 h-0.8 a2.6,2.6 0,0,1 -2.6,-2.6 z"/>
+        <path android:fillColor="#7F43E8" android:pathData="M27,22 a2.8,2.8 0,0,1 2.8,-2.8 h0.9 a2.8,2.8 0,0,1 2.8,2.8 v51 a2.8,2.8 0,0,1 -2.8,2.8 h-0.9 a2.8,2.8 0,0,1 -2.8,-2.8 z"/>
+        <path android:fillColor="#B150E4" android:pathData="M38,17 a2.9,2.9 0,0,1 2.9,-2.9 h1 a2.9,2.9 0,0,1 2.9,2.9 v49 a2.9,2.9 0,0,1 -2.9,2.9 h-1 a2.9,2.9 0,0,1 -2.9,-2.9 z"/>
+        <path android:fillColor="#DC53D7" android:pathData="M50,17 a2.9,2.9 0,0,1 2.9,-2.9 h1 a2.9,2.9 0,0,1 2.9,2.9 v38 a2.9,2.9 0,0,1 -2.9,2.9 h-1 a2.9,2.9 0,0,1 -2.9,-2.9 z"/>
+        <path android:fillColor="#FF75C4" android:pathData="M62,17 a2.9,2.9 0,0,1 2.9,-2.9 h1 a2.9,2.9 0,0,1 2.9,2.9 v29 a2.9,2.9 0,0,1 -2.9,2.9 h-1 a2.9,2.9 0,0,1 -2.9,-2.9 z"/>
+        <path android:fillColor="#FFA5B4" android:pathData="M74,28 a2.8,2.8 0,0,1 2.8,-2.8 h0.8 a2.8,2.8 0,0,1 2.8,2.8 v45 a2.8,2.8 0,0,1 -2.8,2.8 h-0.8 a2.8,2.8 0,0,1 -2.8,-2.8 z"/>
+
+        <path android:fillColor="@android:color/transparent"
+            android:pathData="M31,53 L45,66 L75,34"
+            android:strokeColor="#873FEA" android:strokeWidth="12"
+            android:strokeLineCap="round" android:strokeLineJoin="round" />
+        <path android:fillColor="@android:color/transparent"
+            android:pathData="M45,66 L75,34"
+            android:strokeColor="#FF98C5" android:strokeAlpha="0.86" android:strokeWidth="12"
+            android:strokeLineCap="round" android:strokeLineJoin="round" />
+        <path android:fillColor="@android:color/transparent"
+            android:pathData="M41,57 L47,62 L70,38"
+            android:strokeColor="#FFD0DF" android:strokeAlpha="0.45" android:strokeWidth="2.8"
+            android:strokeLineCap="round" android:strokeLineJoin="round" />
+
+        <path android:fillColor="#FFB72E" android:pathData="M82,9 a11.5,11.5 0,1,0 0.1,0 z" />
+        <path android:fillColor="#FFE77A" android:pathData="M82,11 a9.5,9.5 0,1,0 0.1,0 z" />
+        <path android:fillColor="@android:color/transparent" android:pathData="M82,14 a6.7,6.7 0,1,0 0.1,0 z" android:strokeColor="#C57B17" android:strokeWidth="1.1" />
+        <path android:fillColor="#2F1F1D" android:pathData="M82.9,15.1 v-1.7 h-1.6 v1.7 c-2.2,0.3 -3.7,1.5 -3.7,3.3 c0,2.3 1.9,3 3.9,3.5 c1.7,0.4 2.3,0.8 2.3,1.6 c0,0.9 -0.9,1.4 -2.2,1.4 c-1.2,0 -2.5,-0.4 -3.7,-1.2 l-1.1,2.1 c1.1,0.8 2.7,1.3 4.4,1.5 v1.9 h1.6 v-1.9 c2.4,-0.3 3.9,-1.7 3.9,-3.6 c0,-2.2 -1.6,-3 -4,-3.6 c-1.6,-0.4 -2.2,-0.8 -2.2,-1.5 c0,-0.8 0.8,-1.2 2,-1.2 c1,0 2,0.3 3,0.9 l1,-2 c-0.9,-0.6 -2.2,-1 -3.6,-1.2 z" />
+        <path android:fillColor="#FFE36A" android:pathData="M94,7 l1.2,2.1 l2.2,1.2 l-2.2,1.2 l-1.2,2.1 l-1.2,-2.1 l-2.2,-1.2 l2.2,-1.2 z" />
+        <path android:fillColor="#FFE36A" android:pathData="M97,15 l0.8,1.4 l1.4,0.8 l-1.4,0.8 l-0.8,1.4 l-0.8,-1.4 l-1.4,-0.8 l1.4,-0.8 z" />
+
+    </group>
+</vector>

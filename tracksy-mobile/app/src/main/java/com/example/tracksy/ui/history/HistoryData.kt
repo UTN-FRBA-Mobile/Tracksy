@@ -1,24 +1,21 @@
 package com.example.tracksy.ui.history
 
-enum class PurchaseStatus {
-    COMPLETED,
-    INCOMPLETE
-}
-
 data class Product(
     val name: String,
     val price: String,
-    val isCompleted: Boolean = true
+    val isCompleted: Boolean = true,
+    val productoId: Long = 0L,
+    val cantidad: Int = 1
 )
 
 data class HistoryItem(
     val id: String,
+    val listName: String,
     val supermarketName: String,
+    val supermercadoId: Int? = null,
     val dateLabel: String,
     val productCount: Int,
     val totalAmount: String,
-    val status: PurchaseStatus,
-    val pendingCount: Int = 0,
     val products: List<Product> = emptyList()
 )
 
@@ -59,30 +56,29 @@ val CotoProducts = listOf(
 val HistoryMockData = listOf(
     HistoryItem(
         id = "1",
+        listName = "Compra semanal",
         supermarketName = "Carrefour Express",
         dateLabel = "Hoy",
         productCount = 8,
         totalAmount = "$14.200",
-        status = PurchaseStatus.COMPLETED,
         products = CarrefourProducts
     ),
     HistoryItem(
         id = "2",
+        listName = "Lista Disco",
         supermarketName = "Disco",
         dateLabel = "Hace 7 días",
         productCount = 5,
         totalAmount = "$8.750",
-        status = PurchaseStatus.INCOMPLETE,
-        pendingCount = 2,
         products = DiscoProducts
     ),
     HistoryItem(
         id = "3",
+        listName = "Compra grande",
         supermarketName = "Coto",
         dateLabel = "Hace 14 días",
         productCount = 12,
         totalAmount = "$21.300",
-        status = PurchaseStatus.COMPLETED,
         products = CotoProducts
     )
 )

@@ -21,17 +21,45 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.tracksy.ui.theme.*
+import com.example.tracksy.data.models.ItemProducto
+import com.example.tracksy.data.models.ListaCompra
+import com.example.tracksy.data.models.ProductoListado
+import com.example.tracksy.data.models.Supermercado
+import com.example.tracksy.ui.components.TracksyPrimaryButton
+import com.example.tracksy.ui.components.TracksySecondaryButton
+import com.example.tracksy.ui.theme.LocalTracksyColors
+import com.example.tracksy.ui.theme.TracksyColors
 
 @Composable
 fun DetalleListaScreen(
+    lista: ListaCompra?,
+    supermercados: List<Supermercado> = emptyList(),
+    listados: List<ProductoListado> = emptyList(),
+    onToggleItem: (listaId: Int, itemId: Int, estaComprado: Boolean) -> Unit = { _, _, _ -> },
     onEditar: () -> Unit = {},
     onComparar: () -> Unit = {},
+    onFinalizar: () -> Unit = {},
     onBack: () -> Unit = {}
 ) {
+    val colors = LocalTracksyColors.current
     var tabSeleccionado by remember { mutableIntStateOf(0) }
 
-    Scaffold(containerColor = TracksyBackground) { padding ->
+    val items = lista?.items ?: emptyList()
+    val pendientes = items.filter { !it.esComprado() }
+    val comprados  = items.filter { it.esComprado() }
+
+    val preciosPorProducto: Map<Long, Double> = remember(listados, lista?.supermercado) {
+        val supId = lista?.supermercado ?: return@remember emptyMap()
+        listados.filter { it.supermercado == supId }.associate { it.producto to it.precio }
+    }
+
+    val itemsFiltrados = when (tabSeleccionado) {
+        1 -> pendientes
+        2 -> comprados
+        else -> items
+    }
+
+    Scaffold(containerColor = colors.background) { padding ->
         Box(
             modifier = Modifier
                 .padding(padding)
@@ -55,56 +83,56 @@ fun DetalleListaScreen(
                     Icon(
                         imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
                         contentDescription = "Volver",
-                        tint = TracksyTitleText,
+                        tint = colors.titleText,
                         modifier = Modifier.size(24.dp).clickable { onBack() }
                     )
                     Text(
-                        text = "Compra semanal",
+                        text = lista?.nombre ?: "Lista",
                         fontSize = 22.sp,
                         fontWeight = FontWeight.Bold,
-                        color = TracksyTitleText
+                        color = colors.titleText
                     )
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier.size(42.dp).clip(CircleShape).background(TracksyDivider)
-                    ) {
-                        Icon(Icons.Outlined.Person, contentDescription = "Perfil", tint = TracksySectionText, modifier = Modifier.size(24.dp))
-                    }
+                    Spacer(Modifier.size(42.dp))
                 }
 
-                Text(
-                    "Supermercado:",
-                    fontSize = 13.sp,
-                    color = TracksySectionText,
-                    fontWeight = FontWeight.Medium
-                )
-
+                Text("Supermercado", fontSize = 13.sp, color = colors.sectionText, fontWeight = FontWeight.Medium)
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(12.dp))
-                        .background(TracksySurface)
+                        .background(colors.surface)
                         .padding(horizontal = 16.dp, vertical = 14.dp)
                 ) {
-                    Text("Carrefour", color = TracksySubtitleText, fontSize = 15.sp)
+                    Text(
+                        text = if (lista?.supermercado != null) {
+                        supermercados.firstOrNull { it.id == lista.supermercado }?.nombre
+                            ?: "Supermercado #${lista.supermercado}"
+                    } else "Sin supermercado",
+                        color = colors.subtitleText,
+                        fontSize = 15.sp
+                    )
                 }
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    listOf("Todos (8)", "Pendientes (3)", "Comprados (5)").forEachIndexed { index, label ->
+                    listOf(
+                        "Todos (${items.size})",
+                        "Pendientes (${pendientes.size})",
+                        "Comprados (${comprados.size})"
+                    ).forEachIndexed { index, label ->
                         val selected = tabSeleccionado == index
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(50))
-                                .background(if (selected) TracksyTitleText else Color.Transparent)
+                                .background(if (selected) colors.titleText else Color.Transparent)
                                 .clickable { tabSeleccionado = index }
                                 .padding(horizontal = 12.dp, vertical = 8.dp)
                         ) {
                             Text(
                                 label,
-                                color = if (selected) Color.White else TracksyTitleText,
+                                color = if (selected) Color.White else colors.titleText,
                                 fontSize = 13.sp,
                                 fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal
                             )
@@ -112,22 +140,35 @@ fun DetalleListaScreen(
                     }
                 }
 
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    ProductoDetalle(nombre = "Leche entera x1L", precio = "$1.200", comprado = false)
-                    ProductoDetalle(nombre = "Pan lactal", precio = "$950", comprado = false)
-                    ProductoDetalle(nombre = "Yogur natural x4u", precio = "$2.100", comprado = false)
-                }
-
-                Text(
-                    "Comprados",
-                    fontSize = 13.sp,
-                    color = TracksySectionText,
-                    fontWeight = FontWeight.Medium
-                )
-
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    ProductoDetalle(nombre = "Arroz x1kg", precio = "$800", comprado = true)
-                    ProductoDetalle(nombre = "Aceite x1.5L", precio = "$1.650", comprado = true)
+                if (lista == null) {
+                    Box(modifier = Modifier.fillMaxWidth().padding(top = 32.dp), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(color = colors.primary)
+                    }
+                } else if (itemsFiltrados.isEmpty()) {
+                    Box(modifier = Modifier.fillMaxWidth().padding(top = 32.dp), contentAlignment = Alignment.Center) {
+                        Text(
+                            text = when (tabSeleccionado) {
+                                1 -> "Sin productos pendientes"
+                                2 -> "Sin productos comprados"
+                                else -> "La lista está vacía"
+                            },
+                            color = colors.subtitleText,
+                            fontSize = 14.sp
+                        )
+                    }
+                } else {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        itemsFiltrados.forEach { item ->
+                            ItemProductoRow(
+                                item   = item,
+                                colors = colors,
+                                precio = preciosPorProducto[item.producto],
+                                onToggle = {
+                                    lista?.let { onToggleItem(it.id, item.id, item.esComprado()) }
+                                }
+                            )
+                        }
+                    }
                 }
 
                 Spacer(Modifier.height(8.dp))
@@ -137,7 +178,7 @@ fun DetalleListaScreen(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .fillMaxWidth()
-                    .background(TracksyBackground)
+                    .background(colors.background)
                     .padding(horizontal = 20.dp, vertical = 14.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
@@ -145,75 +186,70 @@ fun DetalleListaScreen(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Button(
+                    TracksySecondaryButton(
+                        text = "Editar Lista",
                         onClick = onEditar,
-                        modifier = Modifier.weight(1f).height(52.dp),
-                        shape = RoundedCornerShape(50),
-                        colors = ButtonDefaults.buttonColors(containerColor = TracksyPrimary)
-                    ) {
-                        Text("Editar Lista", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = Color.White)
-                    }
-                    Button(
+                        modifier = Modifier.weight(1f)
+                    )
+                    TracksySecondaryButton(
+                        text = "Comparar",
                         onClick = onComparar,
-                        modifier = Modifier.weight(1f).height(52.dp),
-                        shape = RoundedCornerShape(50),
-                        colors = ButtonDefaults.buttonColors(containerColor = TracksyPrimary)
-                    ) {
-                        Text("Comparar", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = Color.White)
-                    }
+                        modifier = Modifier.weight(1f)
+                    )
                 }
-                Button(
-                    onClick = {},
-                    modifier = Modifier.fillMaxWidth().height(52.dp),
-                    shape = RoundedCornerShape(50),
-                    colors = ButtonDefaults.buttonColors(containerColor = TracksyTitleText)
-                ) {
-                    Text("Finalizar Compra", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = Color.White)
-                }
+                TracksyPrimaryButton(
+                    text = "Finalizar Compra",
+                    onClick = onFinalizar,
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
         }
     }
 }
 
 @Composable
-private fun ProductoDetalle(nombre: String, precio: String, comprado: Boolean) {
+private fun ItemProductoRow(item: ItemProducto, colors: TracksyColors, precio: Double? = null, onToggle: () -> Unit) {
+    val comprado = item.esComprado()
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .background(TracksySurface)
+            .background(colors.surface)
+            .clickable { onToggle() }
             .padding(horizontal = 14.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         if (comprado) {
             Box(
-                modifier = Modifier
-                    .size(22.dp)
-                    .clip(CircleShape)
-                    .background(TracksyPrimary),
+                modifier = Modifier.size(22.dp).clip(CircleShape).background(colors.primary),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(Icons.Default.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
             }
         } else {
-            Box(
-                modifier = Modifier
-                    .size(22.dp)
-                    .border(1.5.dp, TracksySubtitleText, CircleShape)
-            )
+            Box(modifier = Modifier.size(22.dp).border(1.5.dp, colors.subtitleText, CircleShape))
         }
         Spacer(Modifier.width(12.dp))
-        Text(
-            text = nombre,
-            modifier = Modifier.weight(1f),
-            color = if (comprado) TracksySubtitleText else TracksyTitleText,
-            fontSize = 15.sp
-        )
-        Text(
-            text = precio,
-            color = if (comprado) TracksySubtitleText else TracksyTitleText,
-            fontSize = 15.sp,
-            fontWeight = FontWeight.Medium
-        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = item.productoNombre,
+                color = if (comprado) colors.subtitleText else colors.titleText,
+                fontSize = 15.sp
+            )
+            if (item.cantidad > 1) {
+                Text(text = "x${item.cantidad}", color = colors.subtitleText, fontSize = 12.sp)
+            }
+        }
+        val displayPrice = precio ?: if (item.precioUnitario > 0) item.precioUnitario else null
+        if (displayPrice != null) {
+            Text(
+                text = "$%.0f".format(displayPrice * item.cantidad),
+                color = colors.subtitleText,
+                fontSize = 15.sp
+            )
+        }
     }
 }
+
+private fun ItemProducto.esComprado(): Boolean =
+    estadoNombre.lowercase().let { it.contains("comprad") || it.contains("completad") }
